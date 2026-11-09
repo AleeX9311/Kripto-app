@@ -261,6 +261,7 @@
   <header class="app">
     <div>
       <h1>Moj kripto pregled</h1>
+      <div class="sub">Stanje na dan 9. 11. 2026</div>
       <div class="sub" id="updated">Osvežujem…</div>
     </div>
     <button class="refresh" id="btnRefresh" type="button" aria-label="Osveži">↻ Osveži</button>
@@ -288,7 +289,7 @@
 
   <section>
     <h2>Imetja</h2>
-    <p class="caption">Kjer je količina ali cena ocenjena, je to označeno. P&amp;L bota ni izračunan.</p>
+    <p class="caption">Stanje na dan 9. 11. 2026. Kjer je vrednost ocenjena, je to označeno.</p>
     <div class="card vest-scroll">
       <table>
         <thead>
@@ -306,7 +307,7 @@
 
   <section>
     <h2>PEPE Spot Grid bot</h2>
-    <p class="caption">Zagnan 8. nov 2026 · 29 mrež · aritmetično · vložek 50 USDC · prodaj ves PEPE ob SL</p>
+    <p class="caption">Zagnan 8. nov 2026 · 29 mrež · aritmetično · vložek 50 USDC · prodaj ves PEPE ob SL. Količine v botu so posnetek 9. 11. 2026 ob 17:50 (Europe/Ljubljana) in se spreminjajo, ko bot trguje.</p>
     <div class="card">
       <div id="pepeStatus"></div>
       <div class="range-wrap">
@@ -358,25 +359,22 @@
 
   <footer class="note">
     Samo pregled imetja. Ni napoved cen in ni priporočilo za nakup ali prodajo.<br />
-    Cene prihajajo iz DexScreener, Binance in CoinGecko.
+    Cene prihajajo iz DexScreener in Binance.
   </footer>
 
 <script>
 (function () {
   "use strict";
 
-  // Fixed holdings (no wallet address — privacy)
+  // Fixed holdings as of 9. 11. 2026 17:50 Europe/Ljubljana (no wallet address — privacy)
   const HOLD = {
-    lityLiquid: 194210,
-    lityLocked: 600000,
-    pepeInvested: 50,
-    usdcFree: 4.15,
-    spotDust: 0.07,
-    katUsdFixed: 8.47,      // estimate
-    solAmt: 0.01,
-    ethEthUsdFixed: 1.96,   // last known value
-    ethRhUsdFixed: 1.73,    // last known value
-    naorisEurFixed: 65,     // approximate, qty unknown
+    lityLiquid: 194210,       // Binance Web3 Wallet1 (BSC)
+    lityLocked: 600000,       // LITY V2 vesting, unchanged
+    pepeInvested: 50,         // USDC put into the Spot Grid bot
+    pepeBotUsdc: 33.85,       // USDC sitting in the bot at snapshot
+    pepeBotPepe: 3343521.51,  // PEPE sitting in the bot at snapshot
+    usdcEarn: 4.23,           // Binance Earn
+    bscDustUsd: 0.17,         // other BSC airdrop dust, fixed lump sum
   };
 
   const PEPE = {
@@ -392,8 +390,6 @@
     lity: 0.007816,
     lityLiq: 1092430,
     pepe: 0.0000053,
-    sol: 87.3,
-    eth: 2136.08,
     eurPerUsd: 0.891822, // 1/1.1213
     asOf: null,
     fromCache: true,
@@ -414,6 +410,16 @@
   }
   function fmtPepe(p) {
     return Number(p).toFixed(8);
+  }
+  function fmtSignedUsd(n) {
+    if (!Number.isFinite(n)) return "—";
+    const sign = n > 0 ? "+" : n < 0 ? "−" : "";
+    return sign + fmtUsd(Math.abs(n));
+  }
+  function fmtSignedPct(n) {
+    if (!Number.isFinite(n)) return "—";
+    const body = n.toLocaleString("sl-SI", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    return (n > 0 ? "+" : "") + body + " %";
   }
 
   function showBanner(kind, text) {
@@ -471,7 +477,6 @@
       fetchJson("https://api.dexscreener.com/latest/dex/pairs/bsc/0x91727E4485542612e9eD4293d1021414DBF5e588"),
       fetchJson("https://api.binance.com/api/v3/ticker/price?symbol=PEPEUSDC"),
       fetchJson("https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT"),
-      fetchJson("https://api.coingecko.com/api/v3/simple/price?ids=solana,ethereum&vs_currencies=usd"),
     ]);
 
     const errors = [];
@@ -503,18 +508,6 @@
       } else errors.push("FX");
     } else errors.push("FX");
 
-    // SOL / ETH
-    if (results[3].status === "fulfilled") {
-      const g = results[3].value;
-      if (g.solana && g.solana.usd) { out.sol = g.solana.usd; out.sources.sol = "CoinGecko"; }
-      else errors.push("SOL");
-      if (g.ethereum && g.ethereum.usd) { out.eth = g.ethereum.usd; out.sources.eth = "CoinGecko"; }
-      else errors.push("ETH");
-    } else {
-      errors.push("SOL");
-      errors.push("ETH");
-    }
-
     out.partialErrors = errors;
     return out;
   }
@@ -523,18 +516,11 @@
     const eur = prices.eurPerUsd;
     const liquidLityUsd = HOLD.lityLiquid * prices.lity;
     const lockedLityUsd = HOLD.lityLocked * prices.lity;
-    const naorisUsd = HOLD.naorisEurFixed / eur;
-    const solUsd = HOLD.solAmt * prices.sol;
-    const liquidUsd =
-      liquidLityUsd +
-      naorisUsd +
-      HOLD.pepeInvested +
-      HOLD.usdcFree +
-      HOLD.spotDust +
-      HOLD.katUsdFixed +
-      solUsd +
-      HOLD.ethEthUsdFixed +
-      HOLD.ethRhUsdFixed;
+    const botValue = HOLD.pepeBotUsdc + HOLD.pepeBotPepe * prices.pepe;
+    const botPnl = botValue - HOLD.pepeInvested;
+    const botPnlPct = (botPnl / HOLD.pepeInvested) * 100;
+    const pnlText = fmtSignedUsd(botPnl) + " (" + fmtSignedPct(botPnlPct) + ")";
+    const liquidUsd = liquidLityUsd + botValue + HOLD.usdcEarn + HOLD.bscDustUsd;
     const lockedUsd = lockedLityUsd;
     const totalUsd = liquidUsd + lockedUsd;
 
@@ -559,7 +545,7 @@
     const rows = [
       {
         name: "LITY V2",
-        note: "Wallet1 · likvidno",
+        note: "Binance Web3 Wallet1 · BSC",
         qty: fmtNum(HOLD.lityLiquid),
         usd: liquidLityUsd,
         tag: null,
@@ -572,59 +558,24 @@
         tag: "warn",
       },
       {
-        name: "NAORIS",
-        note: "≈ 65 € · količina neznana",
+        name: "Ostali drobni žetoni (BSC)",
+        note: "Wallet1 · skupaj fiksno, posamezni pod 0,10 $",
         qty: "—",
-        usd: naorisUsd,
+        usd: HOLD.bscDustUsd,
         tag: "accent",
       },
       {
-        name: "PEPE (Spot Grid)",
-        note: "vložek 50 USDC · P&L neznan",
-        qty: "50 USDC",
-        usd: HOLD.pepeInvested,
+        name: "PEPE/USDC Grid",
+        note: "33,85 USDC v botu · vložek 50 USDC · " + pnlText,
+        qty: fmtNum(HOLD.pepeBotPepe, 2) + " PEPE",
+        usd: botValue,
         tag: null,
       },
       {
         name: "USDC",
-        note: "Binance Spot · prosto",
-        qty: "4,15",
-        usd: HOLD.usdcFree,
-        tag: null,
-      },
-      {
-        name: "KAT",
-        note: "Solana · ocena",
-        qty: "≈ 3,27 M",
-        usd: HOLD.katUsdFixed,
-        tag: "accent",
-      },
-      {
-        name: "SOL",
-        note: "Solana",
-        qty: "0,01",
-        usd: solUsd,
-        tag: null,
-      },
-      {
-        name: "ETH",
-        note: "Ethereum · prah ~$1,96",
-        qty: "prah",
-        usd: HOLD.ethEthUsdFixed,
-        tag: "accent",
-      },
-      {
-        name: "ETH",
-        note: "Robinhood · prah ~$1,73",
-        qty: "prah",
-        usd: HOLD.ethRhUsdFixed,
-        tag: "accent",
-      },
-      {
-        name: "Prah",
-        note: "Binance Spot",
-        qty: "—",
-        usd: HOLD.spotDust,
+        note: "Binance Earn",
+        qty: "4,23",
+        usd: HOLD.usdcEarn,
         tag: null,
       },
     ];
@@ -676,15 +627,20 @@
       bar.appendChild(el);
     });
 
+    const pnlColor = botPnl >= 0 ? "var(--ok)" : "var(--danger)";
     $("pepeProps").innerHTML = [
       ["Par", "PEPE/USDC (Spot Grid)"],
       ["Vložek", "50 USDC"],
+      ["USDC v botu", "33,85"],
+      ["PEPE v botu", fmtNum(HOLD.pepeBotPepe, 2)],
+      ["Vrednost bota", fmtUsd(botValue) + " · " + fmtEur(botValue, eur)],
+      ["P&L glede na vložek", `<span style="color:${pnlColor}">${pnlText}</span>`],
+      ["Posnetek količin", "9. 11. 2026, 17:50"],
       ["Razpon", fmtPepe(PEPE.lo) + " – " + fmtPepe(PEPE.hi)],
       ["Stop-loss", fmtPepe(PEPE.sl)],
       ["Take-profit", fmtPepe(PEPE.tp)],
       ["Cena ob zagonu", fmtPepe(PEPE.launch)],
       ["Trenutna cena", fmtPepe(pepe)],
-      ["P&L bota", "Neznan — vštet samo vložek"],
     ].map(([k, v]) => `<div class="prop"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
 
     // Vesting
@@ -706,7 +662,6 @@
     $("sources").innerHTML = [
       ["LITY", src.lity || "—"],
       ["PEPE", src.pepe || "—"],
-      ["SOL / ETH", src.sol || src.eth || "—"],
       ["USD → EUR", src.fx || "—"],
       ["USD/EUR tečaj", eur.toFixed(6)],
     ].map(([k, v]) => `<div class="prop"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");

@@ -1,5 +1,5 @@
 /* Service worker: caches shell only. Never caches price/API responses. */
-const CACHE = "kripto-shell-v1";
+const CACHE = "kripto-shell-v2";
 const SHELL = [
   "./",
   "./index.html",
