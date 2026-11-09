@@ -1,0 +1,79 @@
+name: Paper simulation
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sim-data
+  cancel-in-progress: false
+
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Load state from sim-data
+        run: |
+          set -euo pipefail
+          if git fetch --depth=1 origin sim-data; then
+            git show FETCH_HEAD:state.json > sim/state.json
+            echo "Loaded state.json from sim-data"
+          else
+            cp sim/seed-state.json sim/state.json
+            echo "sim-data is missing — seeded from sim/seed-state.json"
+          fi
+
+      - name: Run one simulation pass
+        run: python3 sim/trader.py
+
+      - name: Publish state and status to sim-data
+        run: |
+          set -euo pipefail
+          test -f sim/state.json
+          test -f sim/status.json
+          cp sim/state.json /tmp/sim-state.json
+          cp sim/status.json /tmp/sim-status.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git fetch --depth=1 origin sim-data; then
+            git checkout -B sim-data FETCH_HEAD
+          else
+            git switch --orphan sim-data
+            # Newer git starts the orphan with an empty index; older git keeps
+            # the previous index. Either way, only state.json and status.json
+            # may be committed (checked below).
+            git rm -rf --cached . >/dev/null 2>&1 || true
+          fi
+
+          cp /tmp/sim-state.json state.json
+          cp /tmp/sim-status.json status.json
+          git add -- state.json status.json
+
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              state.json|status.json) ;;
+              *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
+            esac
+          done < <(git ls-files)
+
+          if git diff --cached --quiet; then
+            echo "No snapshot changes — leaving sim-data as-is"
+            exit 0
+          fi
+
+          git commit -m "Update paper simulation snapshot"
+          git push origin HEAD:sim-data

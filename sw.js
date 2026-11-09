@@ -1,8 +1,9 @@
 /* Service worker: caches shell only. Never caches price/API responses. */
-const CACHE = "kripto-shell-v2";
+const CACHE = "kripto-shell-v3";
 const SHELL = [
   "./",
   "./index.html",
+  "./sim.html",
   "./manifest.json",
   "./icon-180.png",
   "./icon-192.png",
@@ -26,6 +27,11 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+  // Simulation snapshot is always live. Never write it to the Cache API or HTTP cache.
+  if (url.pathname.endsWith("/status.json") || url.pathname.endsWith("status.json")) {
+    event.respondWith(fetch(event.request.url, { cache: "no-store" }));
+    return;
+  }
   // Never cache cross-origin API / price data
   if (url.origin !== self.location.origin) {
     event.respondWith(fetch(event.request));

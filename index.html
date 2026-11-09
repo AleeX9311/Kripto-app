@@ -86,6 +86,28 @@
       color: var(--muted);
       font-size: 0.85rem;
     }
+    nav.tabs {
+      display: flex;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    a.tab {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      color: var(--muted);
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    a.tab.on {
+      color: var(--text);
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
     button.refresh {
       appearance: none;
       border: 1px solid var(--border);
@@ -266,6 +288,11 @@
     </div>
     <button class="refresh" id="btnRefresh" type="button" aria-label="Osveži">↻ Osveži</button>
   </header>
+
+  <nav class="tabs" aria-label="Razdelki">
+    <a class="tab on" href="./index.html" aria-current="page">Imetja</a>
+    <a class="tab" href="./sim.html">Simulacija</a>
+  </nav>
 
   <div class="banner" id="banner"></div>
 
