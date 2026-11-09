@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Kripto" />
+  <meta name="description" content="Pregled kripto imetij z živimi cenami" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <title>Moj kripto pregled</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --bg2: #ffffff;
+      --bg3: #f1f5f9;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #0284c7;
+      --accent-soft: #e0f2fe;
+      --ok: #16a34a;
+      --ok-soft: #dcfce7;
+      --warn: #d97706;
+      --warn-soft: #ffedd5;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --shadow: 0 1px 2px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.06);
+      --radius: 16px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1220;
+        --bg2: #111827;
+        --bg3: #1e293b;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --border: #1f2a3d;
+        --accent: #38bdf8;
+        --accent-soft: #0c4a6e;
+        --ok: #4ade80;
+        --ok-soft: #14532d;
+        --warn: #fbbf24;
+        --warn-soft: #78350f;
+        --danger: #f87171;
+        --danger-soft: #7f1d1d;
+        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 28px rgba(0,0,0,.35);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: contain;
+    }
+    body {
+      padding: calc(12px + var(--safe-top)) 14px calc(28px + var(--safe-bottom));
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    header.app {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 1.35rem;
+      margin: 0 0 4px;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    button.refresh {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.refresh:active { transform: scale(0.97); }
+    button.refresh.busy { opacity: 0.7; }
+    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .banner {
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .banner.show { display: block; }
+    .banner.warn { background: var(--warn-soft); color: var(--warn); }
+    .banner.err { background: var(--danger-soft); color: var(--danger); }
+    .banner.info { background: var(--accent-soft); color: var(--accent); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .metric .label { color: var(--muted); font-size: 0.78rem; margin-bottom: 4px; }
+    .metric .value { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .metric .detail { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+    .metric.ok .value { color: var(--ok); }
+    .metric.warn .value { color: var(--warn); }
+    .span2 { grid-column: 1 / -1; }
+
+    section { margin-bottom: 14px; }
+    section h2 {
+      font-size: 0.95rem;
+      margin: 0 0 8px;
+      letter-spacing: -0.01em;
+    }
+    section .caption {
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin: -4px 0 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: none; }
+    .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--bg3);
+      color: var(--muted);
+    }
+    .tag.ok { background: var(--ok-soft); color: var(--ok); }
+    .tag.warn { background: var(--warn-soft); color: var(--warn); }
+    .tag.accent { background: var(--accent-soft); color: var(--accent); }
+
+    .range-wrap { margin-top: 8px; }
+    .range-bar {
+      position: relative;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--bg3);
+      margin: 28px 0 18px;
+    }
+    .range-fill {
+      position: absolute;
+      top: 0; bottom: 0;
+      border-radius: 999px;
+      background: var(--accent-soft);
+    }
+    .marker {
+      position: absolute;
+      top: -22px;
+      transform: translateX(-50%);
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .marker .tick {
+      width: 2px;
+      height: 34px;
+      margin: 2px auto 0;
+      border-radius: 1px;
+      background: currentColor;
+    }
+    .props { display: grid; gap: 8px; }
+    .prop {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.86rem;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .prop:last-child { border-bottom: none; }
+    .prop .k { color: var(--muted); }
+    .prop .v { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .vest-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .vest-scroll table { min-width: 420px; }
+
+    footer.note {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 8px;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .install {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      background: var(--bg2);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .install strong { color: var(--text); }
+    .pull-hint {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+      height: 0;
+      overflow: hidden;
+      transition: height .15s;
+    }
+    .pull-hint.show { height: 24px; margin-bottom: 6px; }
+    a.link { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="pull-hint" id="pullHint">Spusti za osvežitev…</div>
+  <header class="app">
+    <div>
+      <h1>Moj kripto pregled</h1>
+      <div class="sub" id="updated">Osvežujem…</div>
+    </div>
+    <button class="refresh" id="btnRefresh" type="button" aria-label="Osveži">↻ Osveži</button>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="metrics" id="metrics">
+    <div class="card metric span2">
+      <div class="label">Skupaj</div>
+      <div class="value" id="totalUsd">—</div>
+      <div class="detail" id="totalEur">—</div>
+    </div>
+    <div class="card metric ok">
+      <div class="label">Likvidno</div>
+      <div class="value" id="liqUsd">—</div>
+      <div class="detail" id="liqEur">—</div>
+    </div>
+    <div class="card metric warn">
+      <div class="label">Zaklenjeno LITY</div>
+      <div class="value" id="lockUsd">—</div>
+      <div class="detail" id="lockEur">—</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Imetja</h2>
+    <p class="caption">Kjer je količina ali cena ocenjena, je to označeno. P&amp;L bota ni izračunan.</p>
+    <div class="card vest-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Sredstvo</th>
+            <th class="num">Količina</th>
+            <th class="num">USD</th>
+            <th class="num">EUR</th>
+          </tr>
+        </thead>
+        <tbody id="holdingsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>PEPE Spot Grid bot</h2>
+    <p class="caption">Zagnan 8. nov 2026 · 29 mrež · aritmetično · vložek 50 USDC · prodaj ves PEPE ob SL</p>
+    <div class="card">
+      <div id="pepeStatus"></div>
+      <div class="range-wrap">
+        <div class="range-bar" id="pepeBar">
+          <div class="range-fill" id="pepeFill"></div>
+        </div>
+      </div>
+      <div class="props" id="pepeProps"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>LITY vesting</h2>
+    <p class="caption">600.000 V2 zaklenjenih · 5 % ob odprtju 27. 11. 2026, nato 5 % mesečno 19 mesecev (20 × 30.000). Meseci po odprtju so okvirni.</p>
+    <div class="card">
+      <div class="metrics" style="margin:0 0 10px; box-shadow:none;">
+        <div class="metric">
+          <div class="label">Na obrok</div>
+          <div class="value" style="font-size:1.05rem" id="trancheAmt">30.000</div>
+          <div class="detail" id="trancheVal">—</div>
+        </div>
+        <div class="metric">
+          <div class="label">LITY cena</div>
+          <div class="value" style="font-size:1.05rem" id="lityPrice">—</div>
+          <div class="detail" id="lityLiq">—</div>
+        </div>
+      </div>
+      <div class="vest-scroll">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Obdobje</th><th class="num">Skupaj</th><th class="num">%</th><th class="num">Vrednost</th></tr>
+          </thead>
+          <tbody id="vestBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Viri cen</h2>
+    <div class="card props" id="sources"></div>
+  </section>
+
+  <div class="install" id="installHint">
+    <strong>Dodaj na začetni zaslon (iPhone):</strong>
+    odpri to stran v Safariju → gumb Deli → »Dodaj na začetni zaslon«.
+    Ob vsakem odprtju se cene osvežijo same.
+  </div>
+
+  <footer class="note">
+    Samo pregled imetja. Ni napoved cen in ni priporočilo za nakup ali prodajo.<br />
+    Cene prihajajo iz DexScreener, Binance in CoinGecko.
+  </footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // Fixed holdings (no wallet address — privacy)
+  const HOLD = {
+    lityLiquid: 194210,
+    lityLocked: 600000,
+    pepeInvested: 50,
+    usdcFree: 4.15,
+    spotDust: 0.07,
+    katUsdFixed: 8.47,      // estimate
+    solAmt: 0.01,
+    ethEthUsdFixed: 1.96,   // last known value
+    ethRhUsdFixed: 1.73,    // last known value
+    naorisEurFixed: 65,     // approximate, qty unknown
+  };
+
+  const PEPE = {
+    lo: 0.00000482,
+    hi: 0.00000546,
+    sl: 0.00000424,
+    tp: 0.00000601,
+    launch: 0.00000504,
+  };
+
+  const LS_KEY = "kripto-pregled-v1";
+  const FALLBACK = {
+    lity: 0.007816,
+    lityLiq: 1092430,
+    pepe: 0.0000053,
+    sol: 87.3,
+    eth: 2136.08,
+    eurPerUsd: 0.891822, // 1/1.1213
+    asOf: null,
+    fromCache: true,
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function fmtUsd(n, d = 2) {
+    if (!Number.isFinite(n)) return "—";
+    return "$" + n.toLocaleString("sl-SI", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function fmtEur(nUsd, eurPerUsd, d = 2) {
+    if (!Number.isFinite(nUsd) || !Number.isFinite(eurPerUsd)) return "—";
+    return (nUsd * eurPerUsd).toLocaleString("sl-SI", { minimumFractionDigits: d, maximumFractionDigits: d }) + " €";
+  }
+  function fmtNum(n, d = 0) {
+    return n.toLocaleString("sl-SI", { maximumFractionDigits: d });
+  }
+  function fmtPepe(p) {
+    return Number(p).toFixed(8);
+  }
+
+  function showBanner(kind, text) {
+    const el = $("banner");
+    el.className = "banner show " + kind;
+    el.textContent = text;
+  }
+  function hideBanner() {
+    $("banner").className = "banner";
+    $("banner").textContent = "";
+  }
+
+  function vestingRows(lityPrice) {
+    const tranche = HOLD.lityLocked * 0.05;
+    const rows = [];
+    for (let i = 0; i < 20; i++) {
+      let label;
+      if (i === 0) label = "27.11.2026 (odprtje)";
+      else {
+        let y = 2026, m = 11 + i;
+        while (m > 12) { m -= 12; y += 1; }
+        label = String(m).padStart(2, "0") + "." + y + " (približno)";
+      }
+      const unlocked = tranche * (i + 1);
+      rows.push({ i: i + 1, label, unlocked, pct: (i + 1) * 5, value: unlocked * lityPrice });
+    }
+    return rows;
+  }
+
+  function loadCache() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_) { return null; }
+  }
+  function saveCache(data) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch (_) {}
+  }
+
+  async function fetchJson(url, timeoutMs) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs || 10000);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.json();
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  async function fetchPrices() {
+    const results = await Promise.allSettled([
+      fetchJson("https://api.dexscreener.com/latest/dex/pairs/bsc/0x91727E4485542612e9eD4293d1021414DBF5e588"),
+      fetchJson("https://api.binance.com/api/v3/ticker/price?symbol=PEPEUSDC"),
+      fetchJson("https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT"),
+      fetchJson("https://api.coingecko.com/api/v3/simple/price?ids=solana,ethereum&vs_currencies=usd"),
+    ]);
+
+    const errors = [];
+    const out = { ...FALLBACK, asOf: new Date().toISOString(), fromCache: false, sources: {} };
+
+    // LITY
+    if (results[0].status === "fulfilled") {
+      const d = results[0].value;
+      const p = d.pair || (d.pairs && d.pairs[0]);
+      if (p && p.priceUsd) {
+        out.lity = parseFloat(p.priceUsd);
+        out.lityLiq = (p.liquidity && p.liquidity.usd) || out.lityLiq;
+        out.sources.lity = "DexScreener LITY/WBNB";
+      } else errors.push("LITY");
+    } else errors.push("LITY");
+
+    // PEPE
+    if (results[1].status === "fulfilled" && results[1].value.price) {
+      out.pepe = parseFloat(results[1].value.price);
+      out.sources.pepe = "Binance PEPEUSDC";
+    } else errors.push("PEPE");
+
+    // EURUSDT → EUR per USD
+    if (results[2].status === "fulfilled" && results[2].value.price) {
+      const eurUsdt = parseFloat(results[2].value.price);
+      if (eurUsdt > 0) {
+        out.eurPerUsd = 1 / eurUsdt;
+        out.sources.fx = "Binance EURUSDT " + eurUsdt.toFixed(4);
+      } else errors.push("FX");
+    } else errors.push("FX");
+
+    // SOL / ETH
+    if (results[3].status === "fulfilled") {
+      const g = results[3].value;
+      if (g.solana && g.solana.usd) { out.sol = g.solana.usd; out.sources.sol = "CoinGecko"; }
+      else errors.push("SOL");
+      if (g.ethereum && g.ethereum.usd) { out.eth = g.ethereum.usd; out.sources.eth = "CoinGecko"; }
+      else errors.push("ETH");
+    } else {
+      errors.push("SOL");
+      errors.push("ETH");
+    }
+
+    out.partialErrors = errors;
+    return out;
+  }
+
+  function render(prices) {
+    const eur = prices.eurPerUsd;
+    const liquidLityUsd = HOLD.lityLiquid * prices.lity;
+    const lockedLityUsd = HOLD.lityLocked * prices.lity;
+    const naorisUsd = HOLD.naorisEurFixed / eur;
+    const solUsd = HOLD.solAmt * prices.sol;
+    const liquidUsd =
+      liquidLityUsd +
+      naorisUsd +
+      HOLD.pepeInvested +
+      HOLD.usdcFree +
+      HOLD.spotDust +
+      HOLD.katUsdFixed +
+      solUsd +
+      HOLD.ethEthUsdFixed +
+      HOLD.ethRhUsdFixed;
+    const lockedUsd = lockedLityUsd;
+    const totalUsd = liquidUsd + lockedUsd;
+
+    $("totalUsd").textContent = fmtUsd(totalUsd);
+    $("totalEur").textContent = fmtEur(totalUsd, eur);
+    $("liqUsd").textContent = fmtUsd(liquidUsd);
+    $("liqEur").textContent = fmtEur(liquidUsd, eur);
+    $("lockUsd").textContent = fmtUsd(lockedUsd);
+    $("lockEur").textContent = fmtEur(lockedUsd, eur) + " · papirna vrednost";
+
+    const asOf = prices.asOf ? new Date(prices.asOf) : new Date();
+    const timeStr = asOf.toLocaleString("sl-SI", {
+      timeZone: "Europe/Ljubljana",
+      day: "numeric", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+    let stamp = "Posodobljeno " + timeStr + " (Europe/Ljubljana)";
+    if (prices.fromCache) stamp += " · zadnje shranjene vrednosti";
+    $("updated").textContent = stamp;
+
+    // Holdings table
+    const rows = [
+      {
+        name: "LITY V2",
+        note: "Wallet1 · likvidno",
+        qty: fmtNum(HOLD.lityLiquid),
+        usd: liquidLityUsd,
+        tag: null,
+      },
+      {
+        name: "LITY V2 (zaklenjen)",
+        note: "Airdrop / vesting",
+        qty: fmtNum(HOLD.lityLocked),
+        usd: lockedLityUsd,
+        tag: "warn",
+      },
+      {
+        name: "NAORIS",
+        note: "≈ 65 € · količina neznana",
+        qty: "—",
+        usd: naorisUsd,
+        tag: "accent",
+      },
+      {
+        name: "PEPE (Spot Grid)",
+        note: "vložek 50 USDC · P&L neznan",
+        qty: "50 USDC",
+        usd: HOLD.pepeInvested,
+        tag: null,
+      },
+      {
+        name: "USDC",
+        note: "Binance Spot · prosto",
+        qty: "4,15",
+        usd: HOLD.usdcFree,
+        tag: null,
+      },
+      {
+        name: "KAT",
+        note: "Solana · ocena",
+        qty: "≈ 3,27 M",
+        usd: HOLD.katUsdFixed,
+        tag: "accent",
+      },
+      {
+        name: "SOL",
+        note: "Solana",
+        qty: "0,01",
+        usd: solUsd,
+        tag: null,
+      },
+      {
+        name: "ETH",
+        note: "Ethereum · prah ~$1,96",
+        qty: "prah",
+        usd: HOLD.ethEthUsdFixed,
+        tag: "accent",
+      },
+      {
+        name: "ETH",
+        note: "Robinhood · prah ~$1,73",
+        qty: "prah",
+        usd: HOLD.ethRhUsdFixed,
+        tag: "accent",
+      },
+      {
+        name: "Prah",
+        note: "Binance Spot",
+        qty: "—",
+        usd: HOLD.spotDust,
+        tag: null,
+      },
+    ];
+
+    $("holdingsBody").innerHTML = rows.map((r) => {
+      const tag = r.tag ? `<span class="tag ${r.tag}">ocena</span> ` : "";
+      return `<tr>
+        <td><strong>${r.name}</strong><br /><span class="sub">${tag}${r.note}</span></td>
+        <td class="num">${r.qty}</td>
+        <td class="num">${fmtUsd(r.usd)}</td>
+        <td class="num">${fmtEur(r.usd, eur)}</td>
+      </tr>`;
+    }).join("");
+
+    // PEPE bot
+    const pepe = prices.pepe;
+    let statusHtml;
+    if (pepe >= PEPE.lo && pepe <= PEPE.hi) {
+      statusHtml = `Trenutna PEPE/USDC: <strong>${fmtPepe(pepe)}</strong> <span class="tag ok">znotraj mreže</span>`;
+    } else if (pepe < PEPE.lo) {
+      statusHtml = `Trenutna PEPE/USDC: <strong>${fmtPepe(pepe)}</strong> <span class="tag warn">pod spodnjo mejo</span>`;
+    } else {
+      statusHtml = `Trenutna PEPE/USDC: <strong>${fmtPepe(pepe)}</strong> <span class="tag warn">nad zgornjo mejo</span>`;
+    }
+    $("pepeStatus").innerHTML = statusHtml;
+
+    const min = PEPE.sl, max = PEPE.tp, span = max - min;
+    const pct = (v) => Math.min(100, Math.max(0, ((v - min) / span) * 100));
+    const fill = $("pepeFill");
+    fill.style.left = pct(PEPE.lo) + "%";
+    fill.style.width = (pct(PEPE.hi) - pct(PEPE.lo)) + "%";
+
+    const bar = $("pepeBar");
+    // clear old markers
+    [...bar.querySelectorAll(".marker")].forEach((m) => m.remove());
+    const markers = [
+      { label: "SL", at: PEPE.sl, color: "var(--danger)" },
+      { label: "Min", at: PEPE.lo, color: "var(--muted)" },
+      { label: "Zdaj", at: pepe, color: "var(--accent)" },
+      { label: "Max", at: PEPE.hi, color: "var(--muted)" },
+      { label: "TP", at: PEPE.tp, color: "var(--ok)" },
+    ];
+    markers.forEach((m) => {
+      const el = document.createElement("div");
+      el.className = "marker";
+      el.style.left = pct(m.at) + "%";
+      el.style.color = m.color;
+      el.innerHTML = `<div>${m.label}</div><div class="tick"></div>`;
+      bar.appendChild(el);
+    });
+
+    $("pepeProps").innerHTML = [
+      ["Par", "PEPE/USDC (Spot Grid)"],
+      ["Vložek", "50 USDC"],
+      ["Razpon", fmtPepe(PEPE.lo) + " – " + fmtPepe(PEPE.hi)],
+      ["Stop-loss", fmtPepe(PEPE.sl)],
+      ["Take-profit", fmtPepe(PEPE.tp)],
+      ["Cena ob zagonu", fmtPepe(PEPE.launch)],
+      ["Trenutna cena", fmtPepe(pepe)],
+      ["P&L bota", "Neznan — vštet samo vložek"],
+    ].map(([k, v]) => `<div class="prop"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
+
+    // Vesting
+    $("lityPrice").textContent = fmtUsd(prices.lity, 6);
+    $("lityLiq").textContent = "likvidnost " + fmtUsd(prices.lityLiq, 0);
+    $("trancheVal").textContent = fmtUsd(30000 * prices.lity) + " pri trenutni ceni";
+    $("vestBody").innerHTML = vestingRows(prices.lity).map((r) =>
+      `<tr>
+        <td>${r.i}</td>
+        <td>${r.label}</td>
+        <td class="num">${fmtNum(r.unlocked)}</td>
+        <td class="num">${r.pct} %</td>
+        <td class="num">${fmtUsd(r.value)}</td>
+      </tr>`
+    ).join("");
+
+    // Sources
+    const src = prices.sources || {};
+    $("sources").innerHTML = [
+      ["LITY", src.lity || "—"],
+      ["PEPE", src.pepe || "—"],
+      ["SOL / ETH", src.sol || src.eth || "—"],
+      ["USD → EUR", src.fx || "—"],
+      ["USD/EUR tečaj", eur.toFixed(6)],
+    ].map(([k, v]) => `<div class="prop"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
+  }
+
+  let refreshing = false;
+  async function refresh(manual) {
+    if (refreshing) return;
+    refreshing = true;
+    const btn = $("btnRefresh");
+    btn.classList.add("busy");
+    btn.innerHTML = '<span class="spin">↻</span> Osvežujem';
+
+    const cached = loadCache();
+    if (cached && cached.lity) {
+      render({ ...cached, fromCache: true });
+    }
+
+    try {
+      const prices = await fetchPrices();
+      saveCache(prices);
+      render(prices);
+      if (prices.partialErrors && prices.partialErrors.length) {
+        showBanner("warn", "Delno: ni uspelo naložiti " + prices.partialErrors.join(", ") + ". Ostalo je sveže ali iz predpomnjenja.");
+      } else {
+        hideBanner();
+      }
+    } catch (e) {
+      if (cached && cached.lity) {
+        render({ ...cached, fromCache: true });
+        showBanner("err", "Omrežje ni dosegljivo. Prikazane so zadnje shranjene vrednosti.");
+      } else {
+        render({ ...FALLBACK, asOf: new Date().toISOString(), fromCache: true, sources: {} });
+        showBanner("err", "Ni bilo mogoče naložiti cen. Prikazan je vgrajeni posnetek.");
+      }
+    } finally {
+      btn.classList.remove("busy");
+      btn.innerHTML = "↻ Osveži";
+      refreshing = false;
+    }
+  }
+
+  // Pull-to-refresh (simple touch)
+  let startY = 0, pulling = false;
+  const hint = $("pullHint");
+  window.addEventListener("touchstart", (e) => {
+    if (window.scrollY <= 0) { startY = e.touches[0].clientY; pulling = true; }
+  }, { passive: true });
+  window.addEventListener("touchmove", (e) => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 60) hint.classList.add("show");
+    else hint.classList.remove("show");
+  }, { passive: true });
+  window.addEventListener("touchend", () => {
+    if (hint.classList.contains("show")) refresh(true);
+    hint.classList.remove("show");
+    pulling = false;
+  });
+
+  $("btnRefresh").addEventListener("click", () => refresh(true));
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refresh(false);
+  });
+  window.addEventListener("focus", () => refresh(false));
+
+  // SW: shell only
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  }
+
+  // Hide install hint once in standalone
+  if (window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches) {
+    $("installHint").style.display = "none";
+  }
+
+  // First paint from cache, then live
+  const cached = loadCache();
+  if (cached && cached.lity) render({ ...cached, fromCache: true });
+  else render({ ...FALLBACK, asOf: null, fromCache: true, sources: {} });
+  refresh(false);
+})();
+</script>
+</body>
+</html>
