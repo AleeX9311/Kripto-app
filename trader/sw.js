@@ -1,5 +1,5 @@
 /* Kripto Agenti shell. Scoped to /trader/. Never caches status.json. */
-const CACHE = "agenti-shell-v1";
+const CACHE = "agenti-shell-v2";
 const SHELL = [
   "./",
   "./index.html",

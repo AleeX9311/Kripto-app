@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import config
+from agents import AGENT_IDS, AGENT_LABELS, ensure_books
 
 ROOT = Path(__file__).resolve().parent
 STATE_PATH = ROOT / config.STATE_FILE
@@ -112,6 +113,14 @@ def build_status(st: dict) -> dict:
     wins = sum(1 for t in closed if float(t.get("pnl_usd") or 0) > 0)
     losses = sum(1 for t in closed if float(t.get("pnl_usd") or 0) <= 0)
     newest_first = list(reversed(closed))
+    ensure_books(st)
+    agents_out = {}
+    for agent_id in AGENT_IDS:
+        bucket = dict(st["agents"].get(agent_id) or {})
+        bucket["label"] = AGENT_LABELS[agent_id]
+        agents_out[agent_id] = bucket
+    candidates = list(reversed(st.get("candidates") or []))[:30]
+    activity = list(reversed(st.get("activity") or []))[:40]
     return {
         "note": "SIMULACIJA",
         "started": st.get("started_at"),
@@ -120,12 +129,17 @@ def build_status(st: dict) -> dict:
         "equity_eur": equity_eur_r,
         "equity_usd": round(equity_usd, 2),
         "pct_vs_eur50": round(pct, 4),
+        "trades": len(closed),
         "wins": wins,
         "losses": losses,
         "best": extreme(closed, max),
         "worst": extreme(closed, min),
         "open": [public_open(p) for p in open_pos],
         "closed": [public_trade(t) for t in newest_first],
+        "agents": agents_out,
+        "candidates": candidates,
+        "activity": activity,
+        "equity_history": list(st.get("equity_history") or []),
     }
 
 

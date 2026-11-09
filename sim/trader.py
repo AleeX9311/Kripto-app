@@ -28,8 +28,17 @@ from api import (
     fetch_token_pairs,
     fetch_token_profiles,
 )
+from agents import (
+    AGENT_LABELS,
+    evaluate_agents,
+    first_veto,
+    note_votes,
+    push_activity,
+    push_candidate,
+    push_equity,
+)
 from status import write_status
-from strategy import all_checks, best_pair_for_token
+from strategy import best_pair_for_token
 
 ROOT = Path(__file__).resolve().parent
 STATE_PATH = ROOT / config.STATE_FILE
@@ -37,7 +46,7 @@ SEED_PATH = ROOT / "seed-state.json"
 STATUS_PATH = ROOT / config.STATUS_FILE
 
 LJ = timezone(timedelta(hours=1))
-_CAND_CACHE: tuple[float, list[str]] | None = None
+_CAND_CACHE: tuple[float, list[dict]] | None = None
 _CAND_TTL = 180  # seconds
 
 
@@ -122,44 +131,46 @@ def position_size_usd(st: dict) -> float:
     return max(size, config.MIN_POSITION_USD) if eq >= config.MIN_POSITION_USD else 0.0
 
 
-def collect_candidates() -> list[str]:
-    """Gather BSC token addresses from several free public sources."""
+def collect_candidates() -> list[dict]:
+    """BSC token addresses plus whether DexScreener currently boosts them."""
     global _CAND_CACHE
     if _CAND_CACHE and now_ts() - _CAND_CACHE[0] < _CAND_TTL:
-        return list(_CAND_CACHE[1])
+        return [dict(item) for item in _CAND_CACHE[1]]
 
-    addrs: list[str] = []
-    seen: set[str] = set()
+    found: dict[str, dict] = {}
 
-    def add(a: str | None) -> None:
+    def add(a: str | None, boosted: bool = False) -> None:
         if not a:
             return
         a = a.strip()
         al = a.lower()
-        if not al.startswith("0x") or al in seen:
+        if not al.startswith("0x"):
             return
-        seen.add(al)
-        addrs.append(a)
+        row = found.get(al)
+        if row is None:
+            found[al] = {"address": a, "boosted": boosted}
+        elif boosted:
+            row["boosted"] = True
 
-    for item in fetch_token_boosts() + fetch_token_boosts_top() + fetch_token_profiles():
+    for item in fetch_token_boosts() + fetch_token_boosts_top():
+        add(item.get("tokenAddress"), boosted=True)
+    for item in fetch_token_profiles():
         add(item.get("tokenAddress"))
-
     for a in fetch_gt_bsc_pools("trending") + fetch_gt_bsc_pools("new"):
         add(a)
 
-    # Active BSC pairs via search (memes / pancake ecosystem)
     for q in ("cake", "floki", "bsc pepe", "baby doge", "pancake"):
         for p in fetch_search_pairs(q):
             base = (p.get("baseToken") or {}).get("address")
             add(base)
-            if len(addrs) >= 60:
+            if len(found) >= 60:
                 break
-        if len(addrs) >= 60:
+        if len(found) >= 60:
             break
 
-    out = addrs[:60]
+    out = list(found.values())[:60]
     _CAND_CACHE = (now_ts(), out)
-    return list(out)
+    return [dict(item) for item in out]
 
 
 def mark_positions(st: dict) -> None:
@@ -228,6 +239,14 @@ def maybe_exit(st: dict) -> None:
             st["closed"].append(trade)
             st["stats"]["exits"] = int(st["stats"].get("exits", 0)) + 1
             st["cooldowns"][pos["token"].lower()] = now_ts() + config.REENTRY_COOLDOWN_SEC
+            push_activity(st, {
+                "time": trade["closed_at"],
+                "type": "sell",
+                "symbol": pos["symbol"],
+                "reason": reason,
+                "text": f"PRODAJA {pos['symbol']} · {reason}",
+                "pnl_usd": trade["pnl_usd"],
+            })
             log(
                 f"EXIT {pos['symbol']} reason={reason} pnl=${pnl:.3f} ({pnl_pct*100:.2f}%) "
                 f"cash=${st['cash_usd']:.2f}"
@@ -238,66 +257,98 @@ def maybe_exit(st: dict) -> None:
 
 
 def maybe_enter(st: dict) -> None:
+    when = now_iso()
     if len(st["open"]) >= config.MAX_OPEN:
+        push_activity(st, {
+            "time": when, "type": "scan",
+            "text": "Pregled ustavljen — odprtih je že največ 5 pozicij",
+        })
         return
     if datetime.now(LJ) >= config.END_AT:
         return
     size = position_size_usd(st)
     if size <= 0 or float(st["cash_usd"]) < size:
+        push_activity(st, {
+            "time": when, "type": "scan",
+            "text": "Pregled ustavljen — premalo gotovine za nov vstop",
+        })
         return
 
-    addrs = collect_candidates()
-    st["stats"]["candidates_seen"] = int(st["stats"].get("candidates_seen", 0)) + len(addrs)
-    if not addrs:
+    candidates = collect_candidates()
+    st["stats"]["candidates_seen"] = int(st["stats"].get("candidates_seen", 0)) + len(candidates)
+    push_activity(st, {
+        "time": when,
+        "type": "scan",
+        "text": f"Pregled {len(candidates)} kandidatov",
+    })
+    if not candidates:
         log("no BSC boost/profile candidates")
         return
 
-    # Batch fetch pairs
-    pairs = fetch_token_pairs(addrs)
-    # Index by token
+    pairs = fetch_token_pairs([c["address"] for c in candidates])
     open_tokens = {p["token"].lower() for p in st["open"]}
     now = now_ts()
+    evaluated = 0
 
-    # Probe GoPlus once early if unknown
-    goplus_probed = st["stats"].get("goplus_ok") is not None
-
-    for addr in addrs:
-        if len(st["open"]) >= config.MAX_OPEN:
+    for cand in candidates:
+        if evaluated >= 30 or len(st["open"]) >= config.MAX_OPEN:
             break
         if float(st["cash_usd"]) < size:
             break
+        addr = cand["address"]
         al = addr.lower()
         if al in open_tokens:
             continue
-        cd = float(st["cooldowns"].get(al, 0))
-        if cd > now:
+        if float(st["cooldowns"].get(al, 0)) > now:
             continue
         pair = best_pair_for_token(pairs, addr)
         if not pair:
-            continue
-        # Prefer pancake already in best_pair_for_token
-        run_gp = True
-        ok, details = all_checks(pair, run_goplus=run_gp)
-        if not goplus_probed:
-            # Infer from details
-            gp_line = next((d for d in details if "goplus" in d.lower()), "")
-            if "goplus_unavailable" in gp_line or "goplus_code" in gp_line:
-                st["stats"]["goplus_ok"] = False
-            elif "goplus=" in gp_line or "PASS safety" in " ".join(details):
-                st["stats"]["goplus_ok"] = True
-            goplus_probed = True
-        if not ok:
-            st["stats"]["vetoes"] = int(st["stats"].get("vetoes", 0)) + 1
-            log(f"VETO {(pair.get('baseToken') or {}).get('symbol','?')}: {details[-1]}")
             continue
 
         base = pair.get("baseToken") or {}
         symbol = base.get("symbol") or "?"
         token = base.get("address") or addr
+        ok, votes = evaluate_agents(pair, {
+            "boosted": bool(cand.get("boosted")),
+            "size_usd": size,
+            "run_goplus": True,
+        })
+        evaluated += 1
+        stamp = now_iso()
+        note_votes(st, symbol, votes, stamp)
+        gp = (votes.get("varnost") or {}).get("numbers", {}).get("goplus")
+        if gp:
+            worked = "goplus_unavailable" not in str(gp) and not str(gp).startswith("goplus_code")
+            if st["stats"].get("goplus_ok") is None or worked:
+                st["stats"]["goplus_ok"] = worked
+                st["stats"]["goplus_probe"] = gp
+        record = {
+            "time": stamp,
+            "symbol": symbol,
+            "name": base.get("name") or symbol,
+            "url": pair.get("url"),
+            "token": token,
+            "decision": "BUY" if ok else "VETO",
+            "votes": votes,
+        }
+        push_candidate(st, record)
+        if not ok:
+            veto_id = first_veto(votes) or "kit"
+            reason = votes[veto_id]["reason"]
+            st["stats"]["vetoes"] = int(st["stats"].get("vetoes", 0)) + 1
+            push_activity(st, {
+                "time": stamp,
+                "type": "veto",
+                "agent": veto_id,
+                "symbol": symbol,
+                "text": f"VETO {AGENT_LABELS.get(veto_id, veto_id)} · {symbol} · {reason}",
+            })
+            log(f"VETO {symbol} by {veto_id}: {reason}")
+            continue
+
         px = float(pair.get("priceUsd") or 0)
         if px <= 0:
             continue
-        # Apply entry cost: spend `size`, get tokens at worse price
         spend = min(size, float(st["cash_usd"]))
         eff_price = px * (1.0 + config.ENTRY_COST)
         tokens = spend / eff_price
@@ -311,22 +362,27 @@ def maybe_enter(st: dict) -> None:
             "eff_entry": eff_price,
             "tokens": tokens,
             "cost_usd": spend,
-            "mark_usd": spend,  # until marked
+            "mark_usd": spend,
             "peak_price": px,
             "opened_ts": now,
-            "opened_at": now_iso(),
+            "opened_at": stamp,
             "url": pair.get("url"),
-            "checks": details,
+            "votes": votes,
         }
         st["cash_usd"] = round(float(st["cash_usd"]) - spend, 6)
         st["open"].append(pos)
         open_tokens.add(token.lower())
         st["stats"]["entries"] = int(st["stats"].get("entries", 0)) + 1
+        push_activity(st, {
+            "time": stamp,
+            "type": "buy",
+            "symbol": symbol,
+            "text": f"NAKUP {symbol} · vseh 5 agentov DA · ${spend:.2f}",
+        })
         log(
             f"ENTER {symbol} spend=${spend:.2f} px={px:.10g} dex={pos['dex']} "
             f"pair={pos['pair']} cash=${st['cash_usd']:.2f}"
         )
-        # Refresh size after entry
         size = position_size_usd(st)
 
 
@@ -363,6 +419,12 @@ def loop_once(st: dict) -> None:
     st["stats"]["loops"] = int(st["stats"].get("loops", 0)) + 1
     st["last_loop_at"] = now_iso()
     eq = equity_usd(st)
+    eur = float(st.get("eur_usd") or 1.08) or 1.08
+    push_equity(st, {
+        "t": st["last_loop_at"],
+        "usd": round(eq, 2),
+        "eur": round(eq / eur, 2),
+    })
     log(
         f"loop#{st['stats']['loops']} equity=${eq:.2f} "
         f"(€{eq/st['eur_usd']:.2f}) cash=${st['cash_usd']:.2f} "
@@ -402,6 +464,14 @@ def flatten_for_end(st: dict) -> None:
             "held_sec": int(now_ts() - float(pos.get("opened_ts") or now_ts())),
             "reason": "sim_end",
             "url": pos.get("url"),
+        })
+        push_activity(st, {
+            "time": now_iso(),
+            "type": "sell",
+            "symbol": pos.get("symbol"),
+            "reason": "sim_end",
+            "text": f"PRODAJA {pos.get('symbol')} · konec simulacije",
+            "pnl_usd": round(pnl, 4),
         })
         log(f"FLATTEN {pos.get('symbol')} reason=sim_end pnl=${pnl:.3f}")
     st["open"] = []
