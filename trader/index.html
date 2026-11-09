@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Agenti" />
+  <meta name="description" content="Papirna simulacija BSC memecoinov — brez pravega denarja" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <title>Kripto Agenti</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --bg2: #ffffff;
+      --bg3: #f1f5f9;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #0284c7;
+      --accent-soft: #e0f2fe;
+      --ok: #16a34a;
+      --ok-soft: #dcfce7;
+      --warn: #d97706;
+      --warn-soft: #ffedd5;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --shadow: 0 1px 2px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.06);
+      --radius: 16px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1220;
+        --bg2: #111827;
+        --bg3: #1e293b;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --border: #1f2a3d;
+        --accent: #38bdf8;
+        --accent-soft: #0c4a6e;
+        --ok: #4ade80;
+        --ok-soft: #14532d;
+        --warn: #fbbf24;
+        --warn-soft: #78350f;
+        --danger: #f87171;
+        --danger-soft: #7f1d1d;
+        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 28px rgba(0,0,0,.35);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      padding: calc(12px + var(--safe-top)) 14px calc(28px + var(--safe-bottom));
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    header.app {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 4px; letter-spacing: -0.02em; }
+    h2 { font-size: 0.95rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+    .sub { color: var(--muted); font-size: 0.85rem; }
+    nav.tabs { display: flex; gap: 8px; margin: 0 0 14px; }
+    a.tab {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      color: var(--muted);
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    a.tab.on { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+    button.refresh {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+    }
+    button.refresh:active { transform: scale(0.97); }
+    button.refresh.busy { opacity: 0.7; }
+    .banner {
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+    .banner.err { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .metric .label { color: var(--muted); font-size: 0.78rem; margin-bottom: 4px; }
+    .metric .value { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .metric .detail { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+    .metric .value.ok { color: var(--ok); }
+    .metric .value.bad { color: var(--danger); }
+    .span2 { grid-column: 1 / -1; }
+    section { margin-bottom: 14px; }
+    .caption { color: var(--muted); font-size: 0.78rem; margin: -4px 0 8px; }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+    .row + .row, .meta { margin-top: 4px; }
+    .name { font-weight: 700; }
+    .pnl { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+    .pnl.ok { color: var(--ok); }
+    .pnl.bad { color: var(--danger); }
+    .tiny { color: var(--muted); font-size: 0.78rem; }
+    a.link { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .trade { padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .trade:first-child { padding-top: 0; }
+    .trade:last-child { border-bottom: none; padding-bottom: 0; }
+    .empty { color: var(--muted); font-size: 0.9rem; }
+    footer.note { color: var(--muted); font-size: 0.75rem; margin-top: 8px; text-align: center; }
+    .install {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      background: var(--bg2);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .install strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <div>
+      <h1>Kripto Agenti</h1>
+      <div class="sub" id="updated">Nalagam posnetek…</div>
+    </div>
+    <button class="refresh" id="btnRefresh" type="button">↻ Osveži</button>
+  </header>
+
+  <div class="banner" role="status">Simulacija – brez pravega denarja</div>
+  <div class="banner err" id="error" hidden></div>
+
+  <div class="metrics">
+    <div class="card metric span2">
+      <div class="label">Vrednost</div>
+      <div class="value" id="equityEur">—</div>
+      <div class="detail" id="equityUsd">—</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Sprememba glede na 50 €</div>
+      <div class="value" id="pct">—</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Zmage / porazi</div>
+      <div class="value" id="wl">—</div>
+      <div class="detail" id="extremes"></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Odprte pozicije</h2>
+    <p class="caption" id="openCaption">Trenutni P&amp;L glede na vstopno ceno.</p>
+    <div class="card" id="openList"><p class="empty">Nalagam…</p></div>
+  </section>
+
+  <section>
+    <h2>Zaprti posli</h2>
+    <p class="caption">Najnovejši najprej. Vsak žeton ima povezavo na DexScreener.</p>
+    <div class="card" id="closedList"><p class="empty">Nalagam…</p></div>
+  </section>
+
+  <div class="install" id="installHint">
+    <strong>Dodaj na začetni zaslon (iPhone):</strong>
+    Safari → Deli → »Dodaj na začetni zaslon«. To je ločena aplikacija, ne Moj kripto.
+  </div>
+
+  <footer class="note" id="foot">
+    Papirna simulacija na BSC. Posnetek pride približno vsakih 10 minut; ta stran ga preveri vsako minuto.<br />
+    Ni priporočilo za nakup ali prodajo.
+  </footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const STATUS_URL = "https://raw.githubusercontent.com/AleeX9311/Kripto-app/sim-data/status.json";
+  const REASONS = {
+    stop_loss: "stop-loss",
+    take_profit: "take-profit",
+    trailing_stop: "trailing stop",
+    time_stop: "časovni izhod",
+    sim_end: "konec simulacije"
+  };
+
+  const $ = (id) => document.getElementById(id);
+  let loading = false;
+  let hasData = false;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function safeDexUrl(u) {
+    try {
+      const url = new URL(String(u));
+      if (url.protocol === "https:" && url.hostname === "dexscreener.com") return url.href;
+    } catch (_) {}
+    return null;
+  }
+
+  function fmtEur(n) {
+    if (!Number.isFinite(Number(n))) return "—";
+    return Number(n).toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  }
+  function fmtUsd(n) {
+    if (!Number.isFinite(Number(n))) return "—";
+    return "$" + Number(n).toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fmtSignedUsd(n) {
+    if (!Number.isFinite(Number(n))) return "—";
+    const v = Number(n);
+    const sign = v > 0 ? "+" : v < 0 ? "−" : "";
+    return sign + fmtUsd(Math.abs(v));
+  }
+  function fmtPct(n) {
+    if (!Number.isFinite(Number(n))) return "—";
+    const v = Number(n);
+    const body = v.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (v > 0 ? "+" : "") + body + " %";
+  }
+  function pnlClass(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v) || Math.abs(v) < 0.005) return "";
+    return v > 0 ? "ok" : "bad";
+  }
+  function fmtTime(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString("sl-SI", {
+      timeZone: "Europe/Ljubljana",
+      day: "numeric", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  }
+  function fmtPx(n) {
+    if (!Number.isFinite(Number(n))) return "—";
+    const v = Number(n);
+    const abs = Math.abs(v);
+    const d = abs >= 1 ? 4 : abs >= 0.01 ? 6 : 10;
+    return "$" + v.toLocaleString("sl-SI", { maximumFractionDigits: d });
+  }
+  function reasonLabel(r) {
+    return REASONS[r] || r || "—";
+  }
+  function dexLink(url) {
+    const href = safeDexUrl(url);
+    if (!href) return "";
+    return `<div class="meta"><a class="link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">DexScreener</a></div>`;
+  }
+
+  function render(data) {
+    hasData = true;
+    $("updated").textContent = "Posodobljeno " + fmtTime(data.last_update) + " (Europe/Ljubljana)";
+    $("equityEur").textContent = fmtEur(data.equity_eur);
+    $("equityUsd").textContent = fmtUsd(data.equity_usd);
+    const pct = Number(data.pct_vs_eur50);
+    const pctEl = $("pct");
+    pctEl.textContent = fmtPct(pct);
+    pctEl.className = "value " + pnlClass(pct);
+    const wins = Number(data.wins) || 0;
+    const losses = Number(data.losses) || 0;
+    $("wl").textContent = wins + " / " + losses;
+
+    const bits = [];
+    if (data.best && data.best.symbol) {
+      bits.push("Najboljši: " + data.best.symbol + " " + fmtSignedUsd(data.best.pnl_usd));
+    }
+    if (data.worst && data.worst.symbol && (!data.best || data.worst.symbol !== data.best.symbol || data.worst.time !== data.best.time)) {
+      bits.push("Najslabši: " + data.worst.symbol + " " + fmtSignedUsd(data.worst.pnl_usd));
+    }
+    $("extremes").textContent = bits.join(" · ");
+
+    const open = Array.isArray(data.open) ? data.open : [];
+    $("openList").innerHTML = open.length ? open.map((p) => `
+      <div class="trade">
+        <div class="row">
+          <div class="name">${esc(p.symbol)}</div>
+          <div class="pnl ${pnlClass(p.pnl_usd)}">${esc(fmtSignedUsd(p.pnl_usd))} · ${esc(fmtPct(p.pnl_pct))}</div>
+        </div>
+        <div class="tiny">${esc(p.name && p.name !== p.symbol ? p.name : "")}</div>
+        <div class="tiny">Vstop ${esc(fmtPx(p.entry_price))} · zdaj ${esc(fmtPx(p.last_price))}</div>
+        <div class="tiny">Odprto ${esc(fmtTime(p.opened_at || p.time))}</div>
+        ${dexLink(p.url)}
+      </div>
+    `).join("") : `<p class="empty">Ni odprtih pozicij.</p>`;
+
+    const closed = (Array.isArray(data.closed) ? data.closed.slice() : []).sort((a, b) => {
+      return String(b.time || b.closed_at || "").localeCompare(String(a.time || a.closed_at || ""));
+    });
+    $("closedList").innerHTML = closed.length ? closed.map((t) => `
+      <div class="trade">
+        <div class="row">
+          <div class="name">${esc(t.symbol)}</div>
+          <div class="pnl ${pnlClass(t.pnl_usd)}">${esc(fmtSignedUsd(t.pnl_usd))} · ${esc(fmtPct(t.pnl_pct))}</div>
+        </div>
+        <div class="tiny">${esc(t.name && t.name !== t.symbol ? t.name : "")}</div>
+        <div class="tiny">Vstop ${esc(fmtPx(t.entry_price))} · izstop ${esc(fmtPx(t.exit_price))}</div>
+        <div class="tiny">${esc(fmtTime(t.time || t.closed_at))} · ${esc(reasonLabel(t.reason))}</div>
+        ${dexLink(t.url)}
+      </div>
+    `).join("") : `<p class="empty">Še ni zaprtih poslov.</p>`;
+
+    const started = data.started ? "Začetek " + fmtTime(data.started) + ". " : "";
+    const ends = data.ends ? "Konec " + fmtTime(data.ends) + ". " : "";
+    $("foot").innerHTML = esc(started + ends) +
+      "Papirna simulacija na BSC. Posnetek pride približno vsakih 10 minut; ta stran ga preveri vsako minuto.<br />Ni priporočilo za nakup ali prodajo.";
+  }
+
+  function showError(text) {
+    const el = $("error");
+    el.hidden = false;
+    el.textContent = text;
+  }
+  function hideError() {
+    const el = $("error");
+    el.hidden = true;
+    el.textContent = "";
+  }
+
+  async function load() {
+    if (loading) return;
+    loading = true;
+    const btn = $("btnRefresh");
+    btn.classList.add("busy");
+    try {
+      const res = await fetch(STATUS_URL + "?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (!data || data.note !== "SIMULACIJA") throw new Error("nepričakovan posnetek");
+      render(data);
+      hideError();
+    } catch (err) {
+      if (!hasData) {
+        $("updated").textContent = "Posnetek še ni na voljo";
+        $("openList").innerHTML = `<p class="empty">Ni odprtih pozicij.</p>`;
+        $("closedList").innerHTML = `<p class="empty">Še ni zaprtih poslov.</p>`;
+        showError("Posnetka še ni ali ga ni bilo mogoče naložiti. Prvi tek simulacije ga objavi na veji sim-data.");
+      } else {
+        showError("Zadnje osveževanje ni uspelo. Prikazan je prejšnji posnetek.");
+      }
+    } finally {
+      btn.classList.remove("busy");
+      loading = false;
+    }
+  }
+
+  $("btnRefresh").addEventListener("click", () => load());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") load();
+  });
+  setInterval(() => {
+    if (document.visibilityState === "visible") load();
+  }, 60000);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});
+  }
+  if (window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches) {
+    const hint = $("installHint");
+    if (hint) hint.style.display = "none";
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
