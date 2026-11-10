@@ -34,6 +34,7 @@ from agents import (
     evaluate_agents,
     first_veto,
     is_stable,
+    yes_count,
     note_votes,
     push_activity,
     push_candidate,
@@ -428,8 +429,12 @@ def maybe_enter(st: dict) -> None:
             "votes": votes,
         }
         push_candidate(st, record)
+        yes_n = yes_count(votes)
         if not ok:
-            veto_id = first_veto(votes) or "kit"
+            if votes.get("varnost", {}).get("vote") != "YES":
+                veto_id = "varnost"
+            else:
+                veto_id = first_veto(votes) or "kit"
             reason = votes[veto_id]["reason"]
             st["stats"]["vetoes"] = int(st["stats"].get("vetoes", 0)) + 1
             push_activity(st, {
@@ -437,7 +442,7 @@ def maybe_enter(st: dict) -> None:
                 "type": "veto",
                 "agent": veto_id,
                 "symbol": symbol,
-                "text": f"VETO {AGENT_LABELS.get(veto_id, veto_id)} · {symbol} · {reason}",
+                "text": f"VETO {AGENT_LABELS.get(veto_id, veto_id)} · {symbol} · {yes_n}/5 · {reason}",
             })
             log(f"VETO {symbol} by {veto_id}: {reason}")
             continue
@@ -482,7 +487,7 @@ def maybe_enter(st: dict) -> None:
             "time": stamp,
             "type": "buy",
             "symbol": symbol,
-            "text": f"NAKUP {symbol} · vseh 5 agentov DA · ${spend:.2f}",
+            "text": f"NAKUP {symbol} · {yes_n}/5 DA · ${spend:.2f}",
         })
         log(
             f"ENTER {symbol} spend=${spend:.2f} px={px:.10g} dex={pos['dex']} "

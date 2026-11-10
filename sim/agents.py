@@ -1,4 +1,8 @@
-"""Five entry agents. A paper buy requires every vote to be YES.
+"""Five entry agents. A paper buy needs at least 4 of 5 YES votes.
+
+VARNOST is mandatory. If VARNOST votes NO, there is no trade even when
+the other four vote YES. One dissent from KIT, TREND, BIK/MEDVED, or
+IZVAJANJE is allowed. Two dissents among those four block the entry.
 
 KIT looks at buy concentration in DexScreener transaction counts.
 TREND looks at momentum and whether the token is boosted.
@@ -236,12 +240,22 @@ _FUNCS = {
 }
 
 
+def yes_count(votes: dict) -> int:
+    return sum(1 for v in votes.values() if v.get("vote") == "YES")
+
+
+def entry_allowed(votes: dict) -> bool:
+    """At least 4 YES votes, and VARNOST must be one of them."""
+    if votes.get("varnost", {}).get("vote") != "YES":
+        return False
+    return yes_count(votes) >= 4
+
+
 def evaluate_agents(pair: dict, ctx: dict | None = None) -> tuple[bool, dict]:
-    """Return (all_yes, votes keyed by agent id). Every agent always votes."""
+    """Return (entry_ok, votes keyed by agent id). Every agent always votes."""
     ctx = ctx or {}
     votes = {agent_id: fn(pair, ctx) for agent_id, fn in _FUNCS.items()}
-    all_yes = all(v["vote"] == "YES" for v in votes.values())
-    return all_yes, votes
+    return entry_allowed(votes), votes
 
 
 def first_veto(votes: dict) -> str | None:

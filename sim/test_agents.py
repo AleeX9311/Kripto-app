@@ -59,7 +59,7 @@ def test_all_yes_buys():
     assert votes["izvajanje"]["numbers"]["dex"] == "pancakeswap"
 
 
-def test_each_agent_can_veto():
+def test_each_agent_can_vote_no():
     cases = {
         "kit": _pair(txns={"m5": {"buys": 4, "sells": 4}, "h1": {"buys": 10, "sells": 10}}),
         "trend": _pair(priceChange={"m5": -1.2, "h1": 4.0}),
@@ -69,11 +69,26 @@ def test_each_agent_can_veto():
     }
     for agent_id, pair in cases.items():
         ok, votes = evaluate_agents(pair, _ctx())
-        assert not ok, agent_id
         assert votes[agent_id]["vote"] == "NO", (agent_id, votes[agent_id])
-        assert first_veto(votes) in AGENT_IDS
-        # Every agent still casts a vote.
         assert len(votes) == 5
+        yes = sum(v["vote"] == "YES" for v in votes.values())
+        varnost_yes = votes["varnost"]["vote"] == "YES"
+        assert ok is (varnost_yes and yes >= 4), (agent_id, yes, ok)
+
+
+def test_four_of_five_with_mandatory_safety():
+    ok, votes = evaluate_agents(
+        _pair(txns={"m5": {"buys": 4, "sells": 4}, "h1": {"buys": 10, "sells": 10}}),
+        _ctx(),
+    )
+    assert votes["kit"]["vote"] == "NO"
+    assert all(votes[k]["vote"] == "YES" for k in ("trend", "varnost", "bik_medved", "izvajanje"))
+    assert ok
+
+    blocked, safety = evaluate_agents(_pair(), _ctx(goplus=(False, "honeypot")))
+    assert safety["varnost"]["vote"] == "NO"
+    assert all(safety[k]["vote"] == "YES" for k in ("kit", "trend", "bik_medved", "izvajanje"))
+    assert not blocked
 
 
 def test_goplus_honeypot_blocks_even_if_others_pass():
@@ -139,7 +154,8 @@ def test_categories_and_alt_dip():
 
 if __name__ == "__main__":
     test_all_yes_buys()
-    test_each_agent_can_veto()
+    test_each_agent_can_vote_no()
+    test_four_of_five_with_mandatory_safety()
     test_goplus_honeypot_blocks_even_if_others_pass()
     test_books_keep_latest_window()
     test_categories_and_alt_dip()
