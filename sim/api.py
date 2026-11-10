@@ -56,24 +56,26 @@ def fetch_eur_usd() -> float | None:
     return fetch_binance_eur_usd() or fetch_frankfurter_eur_usd()
 
 
+def _chain_rows(data: Any, chains: tuple[str, ...] = ("bsc", "solana")) -> list[dict]:
+    if not isinstance(data, list):
+        return []
+    return [x for x in data if isinstance(x, dict) and x.get("chainId") in chains]
+
+
 def fetch_token_boosts() -> list[dict]:
     data = _get(f"{config.DEX_BASE}/token-boosts/latest/v1")
     time.sleep(config.REQUEST_PAUSE)
-    if isinstance(data, list):
-        return [x for x in data if isinstance(x, dict) and x.get("chainId") == config.CHAIN_ID]
-    return []
+    return _chain_rows(data)
 
 
 def fetch_token_profiles() -> list[dict]:
     data = _get(f"{config.DEX_BASE}/token-profiles/latest/v1")
     time.sleep(config.REQUEST_PAUSE)
-    if isinstance(data, list):
-        return [x for x in data if isinstance(x, dict) and x.get("chainId") == config.CHAIN_ID]
-    return []
+    return _chain_rows(data)
 
 
-def fetch_token_pairs(addresses: list[str]) -> list[dict]:
-    """Fetch BSC pairs for token addresses, 30 per DexScreener request."""
+def fetch_token_pairs(addresses: list[str], chain: str = "bsc") -> list[dict]:
+    """Fetch pairs for token addresses, 30 per DexScreener request."""
     if not addresses:
         return []
     out: list[dict] = []
@@ -84,13 +86,13 @@ def fetch_token_pairs(addresses: list[str]) -> list[dict]:
         if isinstance(data, dict) and isinstance(data.get("pairs"), list):
             out.extend(
                 p for p in data["pairs"]
-                if isinstance(p, dict) and p.get("chainId") == config.CHAIN_ID
+                if isinstance(p, dict) and p.get("chainId") == chain
             )
     return out
 
 
-def fetch_pair(pair_address: str) -> dict | None:
-    data = _get(f"{config.DEX_BASE}/latest/dex/pairs/{config.CHAIN_ID}/{pair_address}")
+def fetch_pair(pair_address: str, chain: str = "bsc") -> dict | None:
+    data = _get(f"{config.DEX_BASE}/latest/dex/pairs/{chain}/{pair_address}")
     time.sleep(config.REQUEST_PAUSE)
     if isinstance(data, dict) and isinstance(data.get("pairs"), list) and data["pairs"]:
         return data["pairs"][0]
@@ -103,9 +105,7 @@ def fetch_pair(pair_address: str) -> dict | None:
 def fetch_token_boosts_top() -> list[dict]:
     data = _get(f"{config.DEX_BASE}/token-boosts/top/v1")
     time.sleep(config.REQUEST_PAUSE)
-    if isinstance(data, list):
-        return [x for x in data if isinstance(x, dict) and x.get("chainId") == config.CHAIN_ID]
-    return []
+    return _chain_rows(data)
 
 
 def fetch_search_pairs(query: str) -> list[dict]:
@@ -117,27 +117,32 @@ def fetch_search_pairs(query: str) -> list[dict]:
     return []
 
 
-def fetch_gt_top_pools(page: int = 1) -> list[dict]:
-    """One page of the busiest BSC pools (about 20). No API key."""
-    data = _get(f"https://api.geckoterminal.com/api/v2/networks/bsc/pools?page={int(page)}")
+def fetch_gt_top_pools(page: int = 1, network: str = "bsc") -> list[dict]:
+    """One page of the busiest pools on a GeckoTerminal network (about 20)."""
+    data = _get(f"https://api.geckoterminal.com/api/v2/networks/{network}/pools?page={int(page)}")
     time.sleep(config.REQUEST_PAUSE)
     out: list[dict] = []
+    prefix = f"{network}_"
     if not isinstance(data, dict):
         return out
     for item in data.get("data") or []:
         if not isinstance(item, dict):
             continue
         rel = (item.get("relationships") or {}).get("base_token") or {}
-        tid = ((rel.get("data") or {}).get("id") or "")
-        if not str(tid).startswith("bsc_0x"):
+        tid = str(((rel.get("data") or {}).get("id") or ""))
+        if not tid.startswith(prefix):
+            continue
+        address = tid[len(prefix):]
+        if network == "bsc" and not address.startswith("0x"):
             continue
         attrs = item.get("attributes") or {}
         name = str(attrs.get("name") or "")
         symbol = name.split("/")[0].strip().split()[0] if name else ""
         vol = attrs.get("volume_usd") or {}
         out.append({
-            "address": tid.split("_", 1)[1],
+            "address": address,
             "symbol": symbol,
+            "chain": network,
             "reserve_usd": _num(attrs.get("reserve_in_usd")),
             "vol24_usd": _num(vol.get("h24") if isinstance(vol, dict) else None),
             "mcap_usd": _num(attrs.get("market_cap_usd") or attrs.get("fdv_usd")),
@@ -152,25 +157,32 @@ def _num(value: object) -> float:
         return 0.0
 
 
-def fetch_gt_bsc_pools(kind: str = "trending") -> list[str]:
-    """GeckoTerminal BSC trending/new pools → base token addresses. No key."""
+def fetch_gt_pools(kind: str = "trending", network: str = "bsc") -> list[str]:
+    """GeckoTerminal trending/new pools → base token addresses. No key."""
     path = "trending_pools" if kind == "trending" else "new_pools"
-    data = _get(f"https://api.geckoterminal.com/api/v2/networks/bsc/{path}?page=1")
+    data = _get(f"https://api.geckoterminal.com/api/v2/networks/{network}/{path}?page=1")
     time.sleep(config.REQUEST_PAUSE)
     out: list[str] = []
+    prefix = f"{network}_"
     if not isinstance(data, dict):
         return out
     for item in data.get("data") or []:
         if not isinstance(item, dict):
             continue
         rel = (item.get("relationships") or {}).get("base_token") or {}
-        tid = ((rel.get("data") or {}).get("id") or "")
-        # id like "bsc_0xabc..."
-        if "_" in tid:
-            addr = tid.split("_", 1)[1]
-            if addr.startswith("0x"):
-                out.append(addr)
+        tid = str(((rel.get("data") or {}).get("id") or ""))
+        if not tid.startswith(prefix):
+            continue
+        addr = tid[len(prefix):]
+        if network == "bsc" and not addr.startswith("0x"):
+            continue
+        if addr:
+            out.append(addr)
     return out
+
+
+def fetch_gt_bsc_pools(kind: str = "trending") -> list[str]:
+    return fetch_gt_pools(kind, "bsc")
 
 
 def goplus_ok(contract: str) -> tuple[bool, str]:
@@ -234,3 +246,72 @@ def goplus_ok(contract: str) -> tuple[bool, str]:
         return False, "transfer_pausable"
 
     return True, f"ok buy_tax={buy_tax} sell_tax={sell_tax}"
+
+
+def _on(obj: object) -> bool:
+    if isinstance(obj, dict):
+        return str(obj.get("status", "0")).lower() in ("1", "true")
+    return str(obj).lower() in ("1", "true")
+
+
+def solana_security(info: dict) -> tuple[bool, str]:
+    """Stricter GoPlus Solana checks. info is one token object, no network."""
+    if _on(info.get("mintable")):
+        return False, "mintable"
+    if _on(info.get("freezable")):
+        return False, "freezable"
+    if _on(info.get("closable")):
+        return False, "closable"
+    if str(info.get("non_transferable", "0")) in ("1", "true"):
+        return False, "non_transferable"
+    mutable = info.get("metadata_mutable") or {}
+    if isinstance(mutable, dict) and _on(mutable):
+        auths = mutable.get("metadata_upgrade_authority") or []
+        suspicious = False
+        for auth in auths if isinstance(auths, list) else []:
+            if isinstance(auth, dict) and int(auth.get("malicious_address") or 0) == 1:
+                suspicious = True
+        if suspicious:
+            return False, "metadata_mutable_malicious"
+    fee = info.get("transfer_fee")
+    if isinstance(fee, dict) and fee:
+        return False, "transfer_fee"
+    hook = info.get("transfer_hook")
+    if (isinstance(hook, list) and hook) or (isinstance(hook, dict) and hook):
+        return False, "transfer_hook"
+    percents: list[float] = []
+    holders = info.get("holders") or []
+    if isinstance(holders, list):
+        for holder in holders[:10]:
+            if not isinstance(holder, dict):
+                continue
+            try:
+                percents.append(float(holder.get("percent") or 0))
+            except (TypeError, ValueError):
+                continue
+    if percents and max(percents) > 0.30:
+        return False, f"top_holder={max(percents):.0%}"
+    if sum(percents[:5]) > 0.60:
+        return False, "holder_concentration"
+    return True, "ok solana"
+
+
+def goplus_solana_ok(mint: str) -> tuple[bool, str]:
+    """Solana token security via GoPlus. Soft-pass only if the API itself fails."""
+    url = f"https://api.gopluslabs.io/api/v1/solana/token_security?contract_addresses={mint}"
+    data = _get(url, timeout=15.0)
+    time.sleep(config.REQUEST_PAUSE)
+    if not isinstance(data, dict) or "__error__" in data:
+        return True, "goplus_unavailable"
+    if str(data.get("code")) not in ("1", "1.0") and data.get("code") != 1:
+        if not data.get("result"):
+            return True, f"goplus_code={data.get('code')}"
+    result = data.get("result") or {}
+    info = None
+    if isinstance(result, dict):
+        info = result.get(mint) or result.get(mint.lower())
+        if info is None and len(result) == 1:
+            info = next(iter(result.values()))
+    if not isinstance(info, dict):
+        return True, "goplus_no_info"
+    return solana_security(info)

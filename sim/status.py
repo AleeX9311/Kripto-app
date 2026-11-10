@@ -23,12 +23,14 @@ def dex_url(obj: dict) -> str | None:
     url = obj.get("url")
     if isinstance(url, str) and url.startswith("https://dexscreener.com/"):
         return url
+    chain = str(obj.get("chain") or "bsc")
+    slug = "solana" if chain in ("solana", "SOL") else "bsc"
     pair = obj.get("pair")
-    if isinstance(pair, str) and pair.startswith("0x"):
-        return f"https://dexscreener.com/bsc/{pair}"
+    if isinstance(pair, str) and pair:
+        return f"https://dexscreener.com/{slug}/{pair}"
     token = obj.get("token")
-    if isinstance(token, str) and token.startswith("0x"):
-        return f"https://dexscreener.com/bsc/{token}"
+    if isinstance(token, str) and token:
+        return f"https://dexscreener.com/{slug}/{token}"
     return None
 
 
@@ -45,6 +47,8 @@ def public_trade(t: dict) -> dict:
     return {
         "symbol": t.get("symbol") or "?",
         "name": t.get("name") or t.get("symbol") or "?",
+        "chain": t.get("chain") or "bsc",
+        "category": t.get("category") or "",
         "url": dex_url(t),
         "entry_price": _num(t.get("entry_price")),
         "exit_price": _num(t.get("exit_price")),
@@ -70,6 +74,8 @@ def public_open(p: dict) -> dict:
     return {
         "symbol": p.get("symbol") or "?",
         "name": p.get("name") or p.get("symbol") or "?",
+        "chain": p.get("chain") or "bsc",
+        "category": p.get("category") or "",
         "url": dex_url(p),
         "entry_price": _num(p.get("entry_price")),
         "last_price": _num(p.get("last_price") or p.get("entry_price")),
@@ -131,6 +137,8 @@ def build_status(st: dict) -> dict:
         "pct_vs_eur50": round(pct, 4),
         "trades": len(closed),
         "scanned": int(st.get("last_scanned") or 0),
+        "scanned_bsc": int(st.get("last_scanned_bsc") or 0),
+        "scanned_sol": int(st.get("last_scanned_sol") or 0),
         "wins": wins,
         "losses": losses,
         "best": extreme(closed, max),

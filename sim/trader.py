@@ -20,7 +20,7 @@ from api import (
     fetch_binance_eur_usd,
     fetch_eur_usd,
     fetch_frankfurter_eur_usd,
-    fetch_gt_bsc_pools,
+    fetch_gt_pools,
     fetch_gt_top_pools,
     fetch_pair,
     fetch_token_boosts,
@@ -134,24 +134,30 @@ def position_size_usd(st: dict) -> float:
 
 
 UNIVERSE_TTL = 20 * 60
-PASS_BATCH = 36
-EVAL_CAP = 24
+PASS_BATCH = 18
+EVAL_CAP = 12
 
 
-def _add_token(found: dict[str, dict], address: str | None, **flags: object) -> None:
+def _add_token(found: dict[str, dict], address: str | None, chain: str = "bsc", **flags: object) -> None:
     if not address:
         return
     address = str(address).strip()
-    key = address.lower()
-    if not key.startswith("0x"):
-        return
+    if chain == "bsc":
+        if not address.lower().startswith("0x"):
+            return
+        key = "bsc:" + address.lower()
+    else:
+        if address.lower().startswith("0x") or len(address) < 32:
+            return
+        key = "solana:" + address
     symbol = str(flags.get("symbol") or "")
     if is_stable(symbol):
         return
     row = found.get(key)
     if row is None:
         found[key] = {
-            "address": address,
+            "address": address if chain == "solana" else address.lower(),
+            "chain": chain,
             "boosted": bool(flags.get("boosted")),
             "source": str(flags.get("source") or ""),
             "symbol": symbol,
@@ -170,50 +176,69 @@ def refresh_universe(st: dict) -> list[dict]:
     """Broad BSC universe from live pool lists. Cached so passes stay inside rate limits."""
     cached = st.get("universe") or {}
     age = now_ts() - float(cached.get("fetched_at") or 0)
-    items = cached.get("items") if isinstance(cached.get("items"), list) else []
-    if items and age < UNIVERSE_TTL:
-        return items
+    old = cached.get("items") if isinstance(cached.get("items"), list) else []
+    has_sol = any(isinstance(i, dict) and i.get("chain") == "solana" for i in old)
+    if old and has_sol and age < UNIVERSE_TTL:
+        return old
 
     found: dict[str, dict] = {}
-    for page in range(1, 9):
-        for pool in fetch_gt_top_pools(page):
-            if pool["reserve_usd"] and pool["reserve_usd"] < config.MIN_LIQUIDITY_USD:
-                continue
-            if pool["vol24_usd"] and pool["vol24_usd"] < 20_000:
-                continue
-            _add_token(
-                found, pool["address"], source="volume",
-                symbol=pool["symbol"], mcap_usd=pool["mcap_usd"],
-            )
-    for addr in fetch_gt_bsc_pools("trending"):
-        _add_token(found, addr, source="trending")
-    for addr in fetch_gt_bsc_pools("new"):
-        _add_token(found, addr, source="new")
+    for network, pages in (("bsc", 5), ("solana", 4)):
+        for page in range(1, pages + 1):
+            for pool in fetch_gt_top_pools(page, network):
+                if pool["reserve_usd"] and pool["reserve_usd"] < config.MIN_LIQUIDITY_USD:
+                    continue
+                if pool["vol24_usd"] and pool["vol24_usd"] < 20_000:
+                    continue
+                _add_token(
+                    found, pool["address"], chain=network, source="volume",
+                    symbol=pool["symbol"], mcap_usd=pool["mcap_usd"],
+                )
+        for addr in fetch_gt_pools("trending", network):
+            _add_token(found, addr, chain=network, source="trending")
+        for addr in fetch_gt_pools("new", network):
+            _add_token(found, addr, chain=network, source="new")
     for item in fetch_token_boosts() + fetch_token_boosts_top():
-        _add_token(found, item.get("tokenAddress"), boosted=True, source="boost")
+        _add_token(
+            found, item.get("tokenAddress"),
+            chain=str(item.get("chainId") or "bsc"),
+            boosted=True, source="boost",
+        )
     for item in fetch_token_profiles():
-        _add_token(found, item.get("tokenAddress"), source="profile")
+        _add_token(
+            found, item.get("tokenAddress"),
+            chain=str(item.get("chainId") or "bsc"),
+            source="profile",
+        )
 
-    items = list(found.values())[:500]
+    items = list(found.values())[:800]
     st["universe"] = {"fetched_at": now_ts(), "items": items}
-    st["universe_cursor"] = int(st.get("universe_cursor") or 0) % max(1, len(items))
-    log(f"universe refresh {len(items)} liquid BSC tokens")
+    log(
+        "universe refresh "
+        f"{sum(1 for i in items if i.get('chain')=='bsc')} BSC / "
+        f"{sum(1 for i in items if i.get('chain')=='solana')} SOL"
+    )
     return items
+
+
+def _rotate(st: dict, items: list[dict], key: str) -> list[dict]:
+    if not items:
+        return []
+    start = int(st.get(key) or 0) % len(items)
+    batch = [dict(items[(start + i) % len(items)]) for i in range(min(PASS_BATCH, len(items)))]
+    st[key] = (start + len(batch)) % len(items)
+    return batch
 
 
 def next_batch(st: dict) -> list[dict]:
     items = refresh_universe(st)
-    if not items:
-        return []
-    start = int(st.get("universe_cursor") or 0) % len(items)
-    batch = [items[(start + i) % len(items)] for i in range(min(PASS_BATCH, len(items)))]
-    st["universe_cursor"] = (start + len(batch)) % len(items)
-    return [dict(item) for item in batch]
+    bsc = [i for i in items if i.get("chain", "bsc") == "bsc"]
+    sol = [i for i in items if i.get("chain") == "solana"]
+    return _rotate(st, bsc, "cursor_bsc") + _rotate(st, sol, "cursor_sol")
 
 
 def mark_positions(st: dict) -> None:
     for pos in st["open"]:
-        pair = fetch_pair(pos["pair"])
+        pair = fetch_pair(pos["pair"], pos.get("chain") or "bsc")
         if not pair:
             continue
         px = float(pair.get("priceUsd") or 0)
@@ -242,7 +267,7 @@ def maybe_exit(st: dict) -> None:
         age = now_ts() - float(pos["opened_ts"])
         # Effective exit proceeds after cost
         gross = float(pos["tokens"]) * px
-        net = gross * (1.0 - config.EXIT_COST)
+        net = gross * (1.0 - float(pos.get("cost_rate") or config.EXIT_COST))
         cost = float(pos["cost_usd"])
         pnl = net - cost
         pnl_pct = (net / cost - 1.0) if cost else 0.0
@@ -272,6 +297,8 @@ def maybe_exit(st: dict) -> None:
                 "held_sec": int(age),
                 "reason": reason,
                 "url": pos.get("url"),
+                "chain": pos.get("chain") or "bsc",
+                "category": pos.get("category") or "",
             }
             st["cash_usd"] = round(float(st["cash_usd"]) + net, 6)
             st["closed"].append(trade)
@@ -323,14 +350,20 @@ def maybe_enter(st: dict) -> None:
         log("no BSC boost/profile candidates")
         return
 
-    pairs = fetch_token_pairs([c["address"] for c in candidates])
-    open_tokens = {p["token"].lower() for p in st["open"]}
+    pairs: list[dict] = []
+    for chain_name in ("bsc", "solana"):
+        addrs = [c["address"] for c in candidates if c.get("chain", "bsc") == chain_name]
+        pairs.extend(fetch_token_pairs(addrs, chain_name))
+    open_tokens = {str(p.get("token") or "").lower() for p in st["open"]}
     now = now_ts()
-    evaluated = 0
+    evaluated = {"bsc": 0, "solana": 0}
 
     for cand in candidates:
-        if evaluated >= EVAL_CAP or len(st["open"]) >= config.MAX_OPEN:
+        chain_name = cand.get("chain") or "bsc"
+        if evaluated["bsc"] >= EVAL_CAP and evaluated["solana"] >= EVAL_CAP:
             break
+        if evaluated.get(chain_name, 0) >= EVAL_CAP or len(st["open"]) >= config.MAX_OPEN:
+            continue
         if float(st["cash_usd"]) < size:
             break
         addr = cand["address"]
@@ -339,7 +372,10 @@ def maybe_enter(st: dict) -> None:
             continue
         if float(st["cooldowns"].get(al, 0)) > now:
             continue
-        pair = best_pair_for_token(pairs, addr)
+        pair = best_pair_for_token(
+            [p for p in pairs if p.get("chainId") == chain_name],
+            addr,
+        )
         if not pair:
             continue
 
@@ -362,8 +398,9 @@ def maybe_enter(st: dict) -> None:
             "size_usd": size,
             "run_goplus": True,
             "category": category,
+            "chain": chain_name,
         })
-        evaluated += 1
+        evaluated[chain_name] = evaluated.get(chain_name, 0) + 1
         stamp = now_iso()
         note_votes(st, symbol, votes, stamp)
         gp = (votes.get("varnost") or {}).get("numbers", {}).get("goplus")
@@ -378,6 +415,7 @@ def maybe_enter(st: dict) -> None:
             "name": base.get("name") or symbol,
             "url": pair.get("url"),
             "token": token,
+            "chain": chain_name,
             "decision": "BUY" if ok else "VETO",
             "category": category,
             "votes": votes,
@@ -400,8 +438,12 @@ def maybe_enter(st: dict) -> None:
         px = float(pair.get("priceUsd") or 0)
         if px <= 0:
             continue
+        liq_now = float(((pair.get("liquidity") or {}).get("usd")) or 0)
+        cost_rate = config.ENTRY_COST
+        if chain_name == "solana" and liq_now < 80_000:
+            cost_rate = 0.02
         spend = min(size, float(st["cash_usd"]))
-        eff_price = px * (1.0 + config.ENTRY_COST)
+        eff_price = px * (1.0 + cost_rate)
         tokens = spend / eff_price
         pos = {
             "symbol": symbol,
@@ -418,6 +460,9 @@ def maybe_enter(st: dict) -> None:
             "opened_ts": now,
             "opened_at": stamp,
             "url": pair.get("url"),
+            "chain": chain_name,
+            "category": category,
+            "cost_rate": cost_rate,
             "votes": votes,
         }
         st["cash_usd"] = round(float(st["cash_usd"]) - spend, 6)
@@ -435,11 +480,13 @@ def maybe_enter(st: dict) -> None:
             f"pair={pos['pair']} cash=${st['cash_usd']:.2f}"
         )
         size = position_size_usd(st)
-    st["last_scanned"] = evaluated
+    st["last_scanned_bsc"] = int(evaluated.get("bsc") or 0)
+    st["last_scanned_sol"] = int(evaluated.get("solana") or 0)
+    st["last_scanned"] = st["last_scanned_bsc"] + st["last_scanned_sol"]
     push_activity(st, {
         "time": now_iso(),
         "type": "scan",
-        "text": f"PREGLEDANIH: {evaluated}",
+        "text": f"PREGLEDANIH BSC: {st['last_scanned_bsc']} · SOL: {st['last_scanned_sol']}",
     })
 
 

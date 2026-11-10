@@ -104,6 +104,27 @@ def test_books_keep_latest_window():
     assert st["equity_history"][-1]["usd"] == 50 + 599
 
 
+def test_solana_security_rules():
+    from api import solana_security
+    clean = {
+        "mintable": {"status": "0"},
+        "freezable": {"status": "0"},
+        "closable": {"status": "0"},
+        "non_transferable": "0",
+        "metadata_mutable": {"status": "1", "metadata_upgrade_authority": [{"malicious_address": 0}]},
+        "transfer_fee": {},
+        "transfer_hook": [],
+        "holders": [{"percent": "0.08"}, {"percent": "0.05"}],
+    }
+    assert solana_security(clean)[0]
+    assert solana_security({**clean, "mintable": {"status": "1"}})[1] == "mintable"
+    assert solana_security({**clean, "freezable": {"status": "1"}})[1] == "freezable"
+    assert solana_security({**clean, "transfer_hook": [{"address": "x"}]})[1] == "transfer_hook"
+    bad_meta = {"status": "1", "metadata_upgrade_authority": [{"malicious_address": 1}]}
+    assert solana_security({**clean, "metadata_mutable": bad_meta})[1] == "metadata_mutable_malicious"
+    assert not solana_security({**clean, "holders": [{"percent": "0.45"}]})[0]
+
+
 def test_categories_and_alt_dip():
     from agents import classify
     assert classify("CAKE", "PancakeSwap", "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", 2_000_000_000) == "MAJOR"
@@ -122,4 +143,5 @@ if __name__ == "__main__":
     test_goplus_honeypot_blocks_even_if_others_pass()
     test_books_keep_latest_window()
     test_categories_and_alt_dip()
+    test_solana_security_rules()
     print("agent tests ok")

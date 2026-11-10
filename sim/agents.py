@@ -172,10 +172,14 @@ def agent_varnost(pair: dict, ctx: dict | None = None) -> dict:
         if preset is not None:
             ok, reason = preset
         else:
-            from api import goplus_ok
-
             addr = ((pair.get("baseToken") or {}).get("address") or "")
-            ok, reason = goplus_ok(addr) if addr else (False, "no_address")
+            chain = ctx.get("chain") or "bsc"
+            if chain == "solana":
+                from api import goplus_solana_ok
+                ok, reason = goplus_solana_ok(addr) if addr else (False, "no_address")
+            else:
+                from api import goplus_ok
+                ok, reason = goplus_ok(addr) if addr else (False, "no_address")
         numbers["goplus"] = reason
         if not ok:
             return _vote(False, f"GoPlus zavrača ({reason})", **numbers)
@@ -207,15 +211,18 @@ def agent_izvajanje(pair: dict, ctx: dict | None = None) -> dict:
     liq = _f((pair.get("liquidity") or {}).get("usd"))
     px = _f(pair.get("priceUsd"))
     size = float(ctx.get("size_usd") or config.MIN_POSITION_USD)
-    slip = (size / liq) if liq > 0 else 1.0
+    chain = ctx.get("chain") or "bsc"
+    extra = 0.01 if chain == "solana" and liq < 80_000 else 0.0
+    slip = ((size / liq) if liq > 0 else 1.0) + extra
+    limit = 0.03 if chain == "solana" else 0.02
     numbers = {"dex": dex or "?", "liq_usd": liq, "slip": slip, "price": px}
     if px <= 0:
         return _vote(False, "ni cene za pot", **numbers)
     if not dex:
-        return _vote(False, "ni BSC DEX poti", **numbers)
+        return _vote(False, "ni DEX poti", **numbers)
     if liq < config.MIN_LIQUIDITY_USD:
         return _vote(False, f"likvidnost ${liq:.0f} preplitka za vstop", **numbers)
-    if slip > 0.02:
+    if slip > limit:
         return _vote(False, f"ocena zdrsa {slip:.1%} previsoka", **numbers)
     return _vote(True, f"{dex}, zdrs ~{slip:.2%}, liq ${liq:.0f}", **numbers)
 
