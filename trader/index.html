@@ -3,477 +3,1028 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#05060a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Agenti" />
-  <meta name="description" content="Papirna simulacija — virtualni denar, brez pravih naročil" />
+  <meta name="description" content="Kripto Agenti Desk — simulacija, virtualni denar" />
   <link rel="manifest" href="./manifest.json" />
-  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="icon" href="./icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
-  <title>AGENTI DESK</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <title>KRIPTO AGENTI DESK</title>
   <style>
     :root {
-      --bg: #000;
-      --mag: #ff3ad4;
-      --pur: #b44dff;
-      --blue: #7aa2ff;
-      --ora: #ff9a1f;
-      --grn: #39ff7a;
-      --red: #ff3355;
-      --yel: #ffb020;
-      --dim: #7d8b9a;
-      --safe-t: env(safe-area-inset-top, 0px);
-      --safe-b: env(safe-area-inset-bottom, 0px);
-      --safe-l: env(safe-area-inset-left, 0px);
-      --safe-r: env(safe-area-inset-right, 0px);
-      --orbit: 78px;
+      --bg: #05060a;
+      --panel: #0a0d14;
+      --line: rgba(120, 140, 255, .22);
+      --green: #39ff88;
+      --red: #ff3b5c;
+      --mag: #ff3df2;
+      --yel: #ffd23f;
+      --cyan: #3de0ff;
+      --muted: rgba(176, 192, 220, .62);
+      --text: #e7eefc;
     }
-    :root { color-scheme: dark; }
     * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; background: #000; color: #e8f3ff; }
-    body {
-      font-family: "JetBrains Mono", ui-monospace, monospace;
-      font-size: 11px;
-      line-height: 1.25;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      padding:
-        calc(6px + var(--safe-t))
-        calc(8px + var(--safe-r))
-        calc(8px + var(--safe-b))
-        calc(8px + var(--safe-l));
-      -webkit-tap-highlight-color: transparent;
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
+    body { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    button { font-family: inherit; color: inherit; background: transparent; border: 0; padding: 0; cursor: pointer; }
+    #fit {
+      width: 100vw; height: 100dvh;
+      display: grid; place-items: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
-    button, input { font-family: inherit; color: inherit; }
-    button { touch-action: manipulation; }
-    #fx {
-      position: fixed; inset: 0; width: 100%; height: 100%;
-      z-index: 1; pointer-events: none;
+    #scaler { position: relative; overflow: hidden; }
+    #board {
+      position: absolute; left: 0; top: 0;
+      width: 390px; height: 844px;
+      transform-origin: 0 0;
+      background:
+        radial-gradient(420px 280px at 50% 42%, rgba(80, 40, 140, .18), transparent 70%),
+        var(--bg);
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 5px;
+      color: var(--text);
     }
-    .top, .desk, .err, #toast { position: relative; z-index: 2; }
-    .top {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 2px 10px;
-      align-items: center;
-      margin-bottom: 6px;
-      flex: none;
+    #board.wide { width: 1440px; height: 900px; padding: 10px; gap: 6px; }
+    .top { height: 70px; flex: none; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .toprow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .logo { font-family: "Space Grotesk", sans-serif; font-weight: 700; letter-spacing: .08em; font-size: 12px; line-height: 1; }
+    .logo small { display: block; margin-top: 2px; font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 7px; letter-spacing: .14em; color: var(--muted); }
+    .clock { font-size: 16px; letter-spacing: .06em; text-align: right; color: #fff; flex: none; }
+    .navline, .statline { display: flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; }
+    .navline button.nav { font-size: 7px; letter-spacing: .12em; color: var(--cyan); padding: 2px 0; }
+    .stat, .pill {
+      border: 1px solid var(--line);
+      background: rgba(8, 12, 22, .9);
+      border-radius: 2px;
+      padding: 1px 4px;
+      font-size: 7px;
+      letter-spacing: .04em;
+      white-space: nowrap;
     }
-    .brand {
-      font-family: "Space Grotesk", sans-serif;
-      font-weight: 700;
-      letter-spacing: .16em;
-      font-size: 13px;
-      color: #fff;
-    }
-    .brand span { color: #d7e6ff; text-shadow: 0 0 10px rgba(122, 162, 255, .8); }
-    .clock {
-      font-size: 16px;
-      letter-spacing: .08em;
-      color: #fff;
-      text-shadow: 0 0 10px rgba(180, 77, 255, .7);
-    }
-    .sim {
-      grid-column: 1 / -1;
-      color: var(--ora);
-      letter-spacing: .14em;
+    .stat b { color: #fff; font-weight: 600; }
+    .stat.up b { color: var(--green); }
+    .stat.dn b { color: var(--red); }
+    .pill.live { color: #04140c; background: var(--green); border-color: var(--green); font-weight: 700; letter-spacing: .08em; }
+    .pill.wait { color: var(--yel); }
+    .pill, .stat { flex: none; }
+    .tick {
+      height: 16px; flex: none;
+      border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+      color: var(--muted); font-size: 7px; letter-spacing: .08em;
+      display: flex; align-items: center; gap: 8px; overflow: hidden; white-space: nowrap;
       text-transform: uppercase;
-      font-size: 9px;
-      font-weight: 700;
     }
-    .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--dim); font-size: 9px; letter-spacing: .06em; }
-    .meta button, .chip {
-      background: transparent;
-      border: 1px solid rgba(180, 77, 255, .55);
-      color: #e7d6ff;
-      border-radius: 999px;
-      padding: 2px 8px;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      font-size: 9px;
+    .tick b { color: var(--yel); font-weight: 600; }
+    .tri { height: 136px; flex: none; display: grid; grid-template-columns: 1fr 1.12fr 1fr; gap: 4px; min-height: 0; }
+    .mid { height: 268px; flex: none; display: grid; grid-template-columns: 78px 1fr 108px; gap: 4px; min-height: 0; position: relative; z-index: 2; }
+    .pipe { height: 26px; flex: none; position: relative; z-index: 8; display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
+    .pipe .wire { position: absolute; left: 8px; right: 8px; top: 50%; height: 1px; background: linear-gradient(90deg, #ff3df2, #ffb020, #ff3b5c, #39ff88, #3de0ff); opacity: .7; }
+    .pipe button {
+      position: relative; z-index: 1; flex: 1; min-width: 0;
+      border: 1px solid var(--line); background: #0b101a;
+      border-radius: 99px; font-size: 7px; letter-spacing: .04em;
+      padding: 3px 2px; color: var(--muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    #age.stale { color: var(--ora); }
-    .err {
-      margin: 0 0 6px;
-      color: var(--red);
-      border: 1px solid rgba(255, 51, 85, .7);
-      padding: 4px 8px;
-      font-size: 10px;
-    }
-    .desk {
-      flex: 1;
-      min-height: 0;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1fr);
-      grid-template-rows: minmax(0, 1fr) minmax(150px, 30vh) minmax(0, 1fr);
-      gap: 10px;
-    }
-    .heat { grid-column: 1; grid-row: 1; }
-    .agents { grid-column: 2; grid-row: 1; }
-    .eq { grid-column: 3; grid-row: 1; }
-    .core { grid-column: 1 / -1; grid-row: 2; }
-    .value { grid-column: 1; grid-row: 3; }
-    .result { grid-column: 2; grid-row: 3; }
-    .tape { grid-column: 3; grid-row: 3; }
+    .pipe button.hot { color: #fff; border-color: var(--green); box-shadow: 0 0 0 1px rgba(57,255,136,.4), 0 0 10px rgba(57,255,136,.45); }
+    .bot { flex: 1; min-height: 0; display: grid; grid-template-columns: 132px 1fr; gap: 4px; }
     .panel {
-      background: rgba(3, 3, 8, .86);
-      border: 1px solid rgba(160, 70, 255, .38);
-      box-shadow: inset 0 0 28px rgba(90, 20, 160, .14);
-      border-radius: 10px;
-      padding: 8px;
-      min-width: 0;
-      min-height: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      cursor: pointer;
+      background: rgba(10, 13, 20, .9);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 4px 5px 3px;
+      min-width: 0; min-height: 0; overflow: hidden;
+      display: flex; flex-direction: column;
+      position: relative; z-index: 3;
     }
-    .heat { border-color: rgba(255, 58, 212, .45); }
-    .agents { border-color: rgba(122, 162, 255, .45); }
-    .eq { border-color: rgba(255, 176, 32, .4); }
-    .value { border-color: rgba(57, 255, 122, .35); }
-    .result { border-color: rgba(255, 154, 31, .4); }
-    .tape { border-color: rgba(255, 78, 205, .45); }
+    .syn { background: transparent; border-color: transparent; z-index: 6; pointer-events: none; }
     .panel h2 {
-      margin: 0 0 6px;
+      margin: 0 0 2px; flex: none;
       font-family: "Space Grotesk", sans-serif;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: #b9dcff;
-      flex: none;
+      font-size: 8px; font-weight: 500; letter-spacing: .16em;
+      text-transform: uppercase; color: rgba(186, 204, 240, .78);
     }
-    .scroller { overflow: auto; min-height: 0; flex: 1; }
-    .surface { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; height: 36px; margin-bottom: 6px; flex: none; }
-    .surface button { border: 0; padding: 0; border-radius: 2px; min-width: 0; background: #14141c; }
-    .hrow, .frow {
-      display: grid;
-      gap: 4px;
-      align-items: center;
-      padding: 2px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, .04);
-      font-size: 9px;
+    canvas.plot { width: 100%; flex: 1; min-height: 0; display: block; }
+    canvas.thin { height: 28px; flex: none; width: 100%; }
+    .hint { margin: 0; flex: none; font-size: 6px; letter-spacing: .06em; color: var(--yel); text-transform: uppercase; }
+    .srow, .prow {
+      display: grid; gap: 3px; align-items: center;
+      font-size: 7px; line-height: 1.15; padding: 1px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      width: 100%; text-align: left;
     }
-    .hrow { grid-template-columns: 1.15fr .55fr .7fr .75fr .8fr; }
-    .hrow.head { color: var(--dim); letter-spacing: .08em; }
-    button.hrow, button.frow {
-      appearance: none;
-      background: transparent;
-      color: inherit;
-      border: 0;
-      text-align: left;
-      padding: 3px 0;
-      width: 100%;
-      display: grid;
-    }
-    .frow { grid-template-columns: 40px 28px 68px 34px minmax(0, 1fr); cursor: pointer; }
-    .frow span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .up { color: var(--grn); }
+    .srow { grid-template-columns: 5px 30px minmax(0, 1fr) auto; }
+    .dot { width: 5px; height: 5px; border-radius: 50%; display: block; }
+    .up { color: var(--green); }
     .dn { color: var(--red); }
-    .dim { color: var(--dim); }
-    .empty { color: var(--dim); padding: 8px 0; }
-    .rule { margin: 6px 0 0; color: #c9b6ff; font-size: 8px; letter-spacing: .04em; line-height: 1.35; flex: none; }
-    .arow { display: grid; grid-template-columns: 78px minmax(0, 1fr) 38px; gap: 6px; align-items: center; margin: 3px 0; }
-    .arow b { font-size: 9px; letter-spacing: .06em; }
-    .track { height: 5px; background: #120814; border-radius: 99px; overflow: hidden; }
-    .track i { display: block; height: 100%; border-radius: 99px; }
-    .spark { display: block; width: 100%; height: 14px; margin-top: 2px; }
-    .mega {
+    .dim { color: var(--muted); }
+    .tag { font-size: 6px; letter-spacing: .04em; color: var(--cyan); }
+    .pcard { border-top: 1px solid rgba(255,255,255,.05); padding: 2px 0; }
+    .pcard .nm { display: flex; justify-content: space-between; font-size: 8px; }
+    .pcard canvas { width: 100%; height: 16px; display: block; }
+    .huge {
       font-family: "Space Grotesk", sans-serif;
-      font-weight: 700;
-      font-size: clamp(26px, 3.2vw, 54px);
-      letter-spacing: -.03em;
-      line-height: .95;
-      color: #f6fff9;
-      text-shadow: 0 0 18px rgba(57, 255, 122, .28);
-      flex: none;
+      font-weight: 700; font-size: 26px; letter-spacing: -.04em; line-height: .9;
+      color: var(--green); text-shadow: 0 0 16px rgba(57,255,136,.25);
     }
-    .mega.dn { color: #ffe4ea; text-shadow: 0 0 18px rgba(255, 51, 85, .35); }
-    .pct { margin: 4px 0; font-size: 12px; letter-spacing: .04em; flex: none; }
-    .fine { margin: 4px 0 0; color: var(--dim); font-size: 9px; flex: none; }
-    .chartbox { position: relative; flex: 1; min-height: 56px; }
-    .chartbox.short { flex: none; height: 46px; min-height: 46px; }
-    .chartbox canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .core { position: relative; min-height: 0; }
-    .aura {
-      position: absolute; left: 50%; top: 50%;
-      width: min(240px, 70%); height: min(240px, 90%);
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(196, 150, 255, .42), rgba(70, 30, 180, .08) 46%, transparent 70%);
-      animation: pulse 2.8s ease-in-out infinite;
-      pointer-events: none;
+    .huge.dn { color: var(--red); text-shadow: 0 0 16px rgba(255,59,92,.3); }
+    .sub { font-size: 7px; color: var(--muted); margin: 2px 0 3px; letter-spacing: .04em; }
+    .trakrow { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 64px; gap: 3px; }
+    .ladder { overflow: hidden; display: flex; flex-direction: column; gap: 1px; }
+    .ladder i { display: block; height: 6px; border-radius: 1px; opacity: .9; }
+    #fx {
+      position: absolute; left: 0; z-index: 5; pointer-events: none;
     }
-    .orb {
-      position: absolute; left: 50%; top: 50%;
-      width: 112px; height: 112px;
-      border: 0; border-radius: 50%; padding: 0;
-      transform: translate(-50%, -50%);
-      display: flex; align-items: center; justify-content: center; gap: 16px;
-      background: radial-gradient(circle at 34% 30%, #fff 0%, #f3f7ff 26%, #c9d7ee 60%, #93a8c8 100%);
-      box-shadow: 0 0 22px rgba(230, 240, 255, .9), 0 0 64px rgba(150, 80, 255, .5), 0 0 120px rgba(60, 20, 160, .28);
-      animation: bob 3.8s ease-in-out infinite;
-      cursor: pointer;
+    #actors { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+    .chipcard {
+      position: absolute; pointer-events: auto;
+      background: rgba(6, 8, 14, .88);
+      border: 1px solid var(--line);
+      border-radius: 3px; padding: 2px 4px; text-align: left;
+      min-width: 54px; transform: translate(-50%, -50%);
     }
-    .orb i { width: 11px; height: 28px; background: #0a0a0c; border-radius: 8px; display: block; }
-    .sat {
-      position: absolute; left: 50%; top: 50%;
-      width: 34px; height: 34px;
-      margin: -17px 0 0 -17px;
-      border: 0; border-radius: 50%; padding: 0;
-      display: flex; align-items: center; justify-content: center; gap: 3px;
-      transform: rotate(var(--rot)) translateX(var(--orbit)) rotate(calc(var(--rot) * -1));
-      box-shadow: 0 6px 16px rgba(0, 0, 0, .45), inset 0 0 8px rgba(255, 255, 255, .35);
-      cursor: pointer;
-    }
-    .sat em { width: 2px; height: 8px; background: #111; border-radius: 2px; display: block; }
-    .sat b { color: #1a0900; font-size: 14px; line-height: 1; }
-    .kit { background: radial-gradient(circle at 30% 30%, #f3e8ff, #b44dff 55%, #6d28d9); }
-    .trend { background: radial-gradient(circle at 30% 30%, #ffe0f6, #ff4ecd 55%, #c026d3); }
-    .varnost { background: radial-gradient(circle at 30% 30%, #ffe7c2, #ff9a1f 52%, #c2410c); }
-    .bik { background: radial-gradient(circle at 30% 30%, #ffd0d8, #ff3355 55%, #9f1239); }
-    .iz { background: radial-gradient(circle at 30% 30%, #e7fbff, #3df6ff 50%, #0284c7); }
-    @keyframes bob {
-      0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-      50% { transform: translate(-50%, -50%) translateY(-7px); }
-    }
-    @keyframes pulse {
-      50% { transform: translate(-50%, -50%) scale(1.08); opacity: .72; }
-    }
-    @keyframes spin {
-      from { transform: rotate(0deg) translateX(var(--orbit)) rotate(0deg); }
-      to { transform: rotate(360deg) translateX(var(--orbit)) rotate(-360deg); }
-    }
-    @keyframes slide {
-      from { transform: translateY(-8px); opacity: 0; }
-      to { transform: none; opacity: 1; }
-    }
-    .frow.new { animation: slide .35s ease; }
-    @media (prefers-reduced-motion: no-preference) {
-      .sat { animation: spin 22s linear infinite; animation-delay: calc(var(--i) * -4.4s); }
-    }
-    .back, .sheet { display: none; }
-    .back.show {
-      display: block; position: fixed; inset: 0; z-index: 20;
-      background: rgba(0, 0, 0, .62);
-    }
+    .chipcard b { display: block; font-size: 7px; letter-spacing: .08em; }
+    .chipcard span { display: block; font-size: 6px; color: var(--muted); white-space: nowrap; }
+    .sheet, .back { display: none; }
+    .back.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 30; }
     .sheet.show {
-      display: block; position: fixed; z-index: 21;
-      left: 0; right: 0; bottom: 0;
-      max-height: min(78vh, 720px);
+      display: block; position: fixed; z-index: 31; inset: 0;
+      background: #070910; color: var(--text);
       overflow: auto;
-      background: rgba(6, 6, 12, .96);
-      border-top: 1px solid rgba(180, 77, 255, .65);
-      border-radius: 16px 16px 0 0;
-      padding: 12px 14px calc(16px + var(--safe-b));
-      box-shadow: 0 -16px 40px rgba(0, 0, 0, .5);
+      padding: calc(14px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+      font-size: 13px;
     }
-    .sheet h3 { margin: 0 0 8px; font-family: "Space Grotesk", sans-serif; letter-spacing: .06em; }
+    .sheet h3 { font-family: "Space Grotesk", sans-serif; letter-spacing: .06em; margin: 12px 0 6px; }
     .sheet p { margin: 0 0 8px; }
-    .grab { width: 36px; height: 4px; border-radius: 4px; background: #334; margin: 0 auto 10px; }
-    .level { position: relative; height: 8px; border-radius: 99px; margin: 6px 0; background: linear-gradient(90deg, #ff3355, #333, #39ff7a); }
-    .level i { position: absolute; top: -3px; width: 3px; height: 14px; background: #fff; border-radius: 2px; }
-    .filters { display: flex; gap: 6px; margin-bottom: 8px; }
-    .filters button.on { color: #031; background: var(--grn); border-color: var(--grn); }
-    a.link { color: #9ad0ff; }
+    .sheet .chip { border: 1px solid var(--line); border-radius: 99px; padding: 4px 8px; margin: 0 6px 6px 0; font-size: 11px; }
+    .level { position: relative; height: 8px; border-radius: 99px; margin: 4px 0 8px; background: linear-gradient(90deg, var(--red), #333, var(--green)); }
+    .level i { position: absolute; top: -3px; width: 3px; height: 14px; background: #fff; }
     #toast {
-      position: fixed; left: 50%; bottom: calc(18px + var(--safe-b));
-      transform: translateX(-50%);
-      z-index: 40;
-      background: rgba(8, 10, 18, .94);
-      border: 1px solid rgba(57, 255, 122, .5);
-      color: #eaffe4;
-      border-radius: 999px;
-      padding: 8px 14px;
+      position: fixed; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom));
+      transform: translateX(-50%); z-index: 40; display: none;
+      background: #0c1210; border: 1px solid var(--green); color: var(--green);
+      border-radius: 99px; padding: 8px 12px; font-size: 12px;
     }
-    @media (min-width: 980px) {
-      .top { grid-template-columns: auto auto 1fr auto; }
-      .sim, .meta { grid-column: auto; }
-      .meta { justify-content: flex-end; }
-    }
-    @media (orientation: landscape) and (max-height: 520px) {
-      .desk { grid-template-rows: minmax(0, 1fr) minmax(104px, 34vh) minmax(0, 1fr); gap: 6px; }
-      .orb { width: 74px; height: 74px; gap: 10px; }
-      .orb i { width: 8px; height: 18px; }
-      .aura { width: 150px; height: 150px; }
-      .sat { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
-      .sat em { height: 6px; }
-      .core { --orbit: 50px; }
-      .mega { font-size: 22px; }
-      .top { margin-bottom: 4px; }
-      .spark { display: none; }
-      .arow { margin: 1px 0; }
-      .panel { padding: 5px 6px; }
-      .rule { font-size: 7px; }
-    }
-    @media (orientation: portrait) and (max-width: 900px) {
-      html, body { height: auto; overflow: auto; }
-      body { display: block; }
-      .desk {
-        display: grid;
-        height: auto;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: minmax(280px, 46vh) auto auto auto auto;
-        gap: 8px;
-      }
-      .core { grid-column: 1 / -1; grid-row: 1; min-height: 280px; --orbit: 88px; }
-      .heat { grid-column: 1 / -1; grid-row: 2; max-height: none; }
-      .agents { grid-column: 1; grid-row: 3; }
-      .eq { grid-column: 2; grid-row: 3; min-height: 190px; }
-      .value { grid-column: 1; grid-row: 4; }
-      .result { grid-column: 2; grid-row: 4; }
-      .tape { grid-column: 1 / -1; grid-row: 5; max-height: 320px; }
-      .panel { cursor: pointer; }
-    }
+    #toast.show { display: block; }
+    .wide .logo { font-size: 20px; }
+    .wide .logo small { font-size: 10px; }
+    .wide .clock { font-size: 28px; }
+    .wide .top { height: 78px; }
+    .wide .tri { height: 188px; }
+    .wide .mid { height: 340px; grid-template-columns: 220px 1fr 280px; }
+    .wide .navline button.nav, .wide .stat, .wide .pill { font-size: 11px; padding: 3px 8px; }
+    .wide .tick { height: 22px; font-size: 11px; }
+    .wide .srow { font-size: 11px; grid-template-columns: 8px 52px minmax(0,1fr) auto auto; padding: 3px 0; }
+    .wide .pipe { height: 34px; }
+    .wide .pipe button { font-size: 11px; }
+    .wide .bot { grid-template-columns: 380px 1fr; }
+    .wide .panel { padding: 8px 10px; }
+    .wide .panel h2 { font-size: 11px; margin-bottom: 6px; }
+    .wide .hint, .wide .sub, .wide .tag { font-size: 10px; }
+    .wide .huge { font-size: 54px; }
+    .wide .chipcard b { font-size: 11px; }
+    .wide .chipcard span { font-size: 10px; }
+    .wide .chipcard { min-width: 92px; padding: 4px 8px; }
+    .wide canvas.thin { height: 42px; }
+    .wide .ladder { width: auto; }
+    .wide .trakrow { grid-template-columns: 1fr 120px; }
+    .wide .pcard .nm { font-size: 12px; }
+    .wide .pcard canvas { height: 28px; }
     @media (prefers-reduced-motion: reduce) {
-      .orb, .aura, .sat, .frow.new { animation: none !important; }
+      .tick b { animation: none; }
     }
   </style>
 </head>
 <body>
-  <canvas id="fx" aria-hidden="true"></canvas>
-  <header class="top">
-    <div class="brand">KRIPTO <span>AGENTI</span></div>
-    <div class="clock" id="clock">00:00:00</div>
-    <div class="sim">SIMULACIJA · virtualni denar</div>
-    <div class="meta">
-      <span id="scanned">PREGLEDANIH —</span>
-      <span id="age">ZADNJI PREGLED —</span>
-      <button type="button" id="infoBtn" data-sheet="info">INFO</button>
+  <div id="fit">
+    <div id="scaler">
+      <div id="board">
+        <header class="top">
+          <div class="toprow">
+            <div class="logo">KRIPTO AGENTI DESK<small>PAPIRNA KNJIGA · BREZ PRAVEGA DENARJA</small></div>
+            <div class="clock" id="clock">00:00:00</div>
+          </div>
+          <div class="navline">
+            <button class="nav" type="button" data-sheet="agents">SINAPSA</button>
+            <button class="nav" type="button" data-sheet="trak">TRAK</button>
+            <button class="nav" type="button" data-sheet="knjiga">KNJIGA</button>
+            <span class="pill wait" id="roj">ROJ ČAKA</span>
+          </div>
+          <div class="statline">
+            <span class="stat" id="stEq">—</span>
+            <span class="stat" id="stPnl">—</span>
+            <span class="stat" id="stN">—</span>
+            <span class="stat" id="stWin">—</span>
+            <span class="pill" id="stBsc">BSC</span>
+            <span class="pill" id="stSol">SOL</span>
+          </div>
+        </header>
+        <div class="tick" id="tick">5 AGENTOV LIVE · SAMO SIMULACIJA</div>
+        <div class="tri">
+          <section class="panel" data-sheet="signal">
+            <h2>Signal rotacija</h2>
+            <canvas class="plot" id="rot"></canvas>
+            <canvas class="thin" id="stack"></canvas>
+          </section>
+          <section class="panel" data-sheet="sled">
+            <h2>Sled</h2>
+            <div id="sled" style="overflow:hidden;flex:1"></div>
+          </section>
+          <section class="panel" data-sheet="cenilec">
+            <h2>Cenilec</h2>
+            <canvas class="plot" id="fan"></canvas>
+            <p class="hint" id="fanHint">RAZPRŠITEV IZ NIHANJA · NI NAPOVED</p>
+          </section>
+        </div>
+        <div class="mid">
+          <section class="panel" data-sheet="senzor">
+            <h2>Senzorni center</h2>
+            <canvas class="plot" id="sense"></canvas>
+          </section>
+          <section class="panel syn" id="syn">
+            <h2>Sinapsa</h2>
+          </section>
+          <section class="panel" data-sheet="pozicije">
+            <h2>Pozicije</h2>
+            <div id="posCards" style="flex:1;overflow:hidden"></div>
+            <canvas class="thin" id="matrix"></canvas>
+          </section>
+        </div>
+        <div class="pipe" id="pipe"></div>
+        <div class="bot">
+          <section class="panel" data-sheet="pnl">
+            <h2>Roj PnL</h2>
+            <div class="huge" id="huge">—</div>
+            <div class="sub" id="sub">—</div>
+            <canvas class="plot" id="eq"></canvas>
+          </section>
+          <section class="panel" data-sheet="trak">
+            <h2 id="trakTitle">Trak</h2>
+            <div class="trakrow">
+              <canvas class="plot" id="candles"></canvas>
+              <div class="ladder" id="ladder"></div>
+            </div>
+          </section>
+        </div>
+        <canvas id="fx"></canvas>
+        <div id="actors"></div>
+      </div>
     </div>
-  </header>
-  <p class="err" id="error" hidden></p>
-  <main class="desk">
-    <section class="panel heat" data-sheet="heat">
-      <h2>Kandidati</h2>
-      <div class="surface" id="surface"></div>
-      <div class="scroller" id="heatTable"></div>
-    </section>
-    <section class="panel agents" data-sheet="agents">
-      <h2>Agenti</h2>
-      <div class="scroller" id="agentBars"></div>
-      <p class="rule">potrebni vsaj 4/5 glasovi, VARNOST mora vedno odobriti</p>
-    </section>
-    <section class="panel eq" data-sheet="equity">
-      <h2>Krivulja</h2>
-      <div class="chartbox"><canvas id="eqLine"></canvas></div>
-    </section>
-    <div class="core" id="core">
-      <div class="aura"></div>
-      <button type="button" class="orb" data-sheet="agents" aria-label="Koordinator"><i></i><i></i></button>
-      <button type="button" class="sat kit" data-agent="kit" style="--i:0;--rot:210deg" aria-label="KIT"><em></em><em></em></button>
-      <button type="button" class="sat trend" data-agent="trend" style="--i:1;--rot:282deg" aria-label="TREND"><em></em><em></em></button>
-      <button type="button" class="sat varnost" data-agent="varnost" style="--i:2;--rot:354deg" aria-label="VARNOST"><b>V</b></button>
-      <button type="button" class="sat bik" data-agent="bik_medved" style="--i:3;--rot:66deg" aria-label="BIK MEDVED"><em></em><em></em></button>
-      <button type="button" class="sat iz" data-agent="izvajanje" style="--i:4;--rot:138deg" aria-label="IZVAJANJE"><em></em><em></em></button>
-    </div>
-    <section class="panel value" data-sheet="positions">
-      <h2>Vrednost</h2>
-      <div class="mega" id="bigEur">—</div>
-      <div class="pct" id="bigPct">—</div>
-      <div class="chartbox short"><canvas id="eqBars"></canvas></div>
-      <p class="fine" id="openLine">odprte —</p>
-    </section>
-    <section class="panel result" data-sheet="history">
-      <h2>Izid</h2>
-      <div class="mega" id="bigPnl">—</div>
-      <div class="pct" id="winLine">—</div>
-      <div class="chartbox short"><canvas id="pnlLine"></canvas></div>
-    </section>
-    <section class="panel tape" data-sheet="tape">
-      <h2>Trak</h2>
-      <div class="scroller feed" id="feed"></div>
-    </section>
-  </main>
+  </div>
   <div class="back" id="back"></div>
-  <div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden></div>
-  <div id="toast" hidden></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+  <div id="toast"></div>
 <script>
 (function () {
   "use strict";
   const STATUS_URL = "https://raw.githubusercontent.com/AleeX9311/Kripto-app/sim-data/status.json";
   const AGENTS = [
-    { id: "kit", label: "KIT", color: "#b44dff", about: "Koncentracija nakupov v zadnjih minutah." },
-    { id: "trend", label: "TREND", color: "#ff4ecd", about: "Momentum in promet." },
-    { id: "varnost", label: "VARNOST", color: "#ff9a1f", about: "GoPlus, mint, freeze in imetniki. Obvezna odobritev." },
-    { id: "bik_medved", label: "BIK/MEDVED", color: "#ff3355", about: "Obrat navzdol in pregretje." },
-    { id: "izvajanje", label: "IZVAJANJE", color: "#3df6ff", about: "Pot na borzi in ocena zdrsa." }
+    { id: "kit", label: "KIT", color: "#ff3df2", about: "Koncentracija nakupov." },
+    { id: "trend", label: "TREND", color: "#ffb020", about: "Momentum in promet." },
+    { id: "varnost", label: "VARNOST", color: "#ff3b5c", about: "GoPlus, mint, freeze, imetniki. Obvezna odobritev." },
+    { id: "bik_medved", label: "BIK/MEDVED", color: "#39ff88", about: "Obrat in pregretje." },
+    { id: "izvajanje", label: "IZVAJANJE", color: "#3de0ff", about: "Pot in zdrs." }
   ];
   const RULE = "Potrebni vsaj 4/5 glasovi, VARNOST mora vedno odobriti.";
   const $ = (id) => document.getElementById(id);
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let data = null;
   let loading = false;
-  let histChain = "all";
-  let sheetKind = null;
-  let prevFeed = null;
-  let eurShown = null;
-  let eurTarget = null;
+  let wide = false;
+  let running = false;
   let raf = 0;
-  let boltBucket = -1;
-  let looping = false;
+  let sheetKind = null;
+  let focusAgent = null;
+  let candles = [];
+  let candleKey = "";
+  let candleNote = "";
+  let hb = {};
+  let grown = reduce ? 1 : 0;
+  let paths = [];
+  let off = null;
+  let center = { x: 200, y: 180 };
+  let prevSig = null;
+  const rng0 = mulberry32(11);
 
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    }[c]));
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
-  function safeUrl(u) {
-    try {
-      const url = new URL(String(u));
-      if (url.protocol === "https:" && url.hostname === "dexscreener.com") return url.href;
-    } catch (_) {}
-    return "";
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
   function num(n) { const v = Number(n); return Number.isFinite(v) ? v : null; }
-  function money(n) {
-    const v = num(n);
-    if (v == null) return "—";
-    return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
   function eur(n) {
     const v = num(n);
-    if (v == null) return "—";
-    return v.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+    return v == null ? "—" : v.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  }
+  function money(n) {
+    const v = num(n);
+    return v == null ? "—" : (v < 0 ? "−" : "") + "$" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   function pct(n) {
     const v = num(n);
     if (v == null) return "—";
-    const body = v.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return (v > 0 ? "+" : "") + body + " %";
-  }
-  function compact(n) {
-    const v = num(n);
-    if (v == null) return "—";
-    const a = Math.abs(v);
-    if (a >= 1e6) return "$" + (v / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 }) + "M";
-    if (a >= 1e3) return "$" + (v / 1e3).toLocaleString("en-US", { maximumFractionDigits: 1 }) + "k";
-    return "$" + v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+    const body = Math.abs(v).toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (v > 0 ? "+" : v < 0 ? "−" : "") + body + " %";
   }
   function fmtPx(n) {
     const v = num(n);
     if (v == null) return "—";
+    if (v >= 100) return v.toLocaleString("en-US", { maximumFractionDigits: 2 });
     if (v >= 1) return v.toLocaleString("en-US", { maximumFractionDigits: 4 });
-    return v.toPrecision(4);
+    if (v >= 0.01) return v.toFixed(4);
+    return v.toExponential(2);
   }
   function chainOf(x) { return x && (x.chain === "solana" || x.chain === "SOL") ? "SOL" : (x && x.chain ? "BSC" : ""); }
-  function tags(c) { return [chainOf(c), c.category || ""].filter(Boolean).join(" · "); }
   function yesCount(votes) {
     return AGENTS.reduce((n, a) => n + ((votes && votes[a.id] && votes[a.id].vote === "YES") ? 1 : 0), 0);
   }
-  function heatFill(v) {
+  function heat(v) {
     const n = num(v);
-    if (n == null) return "#16161e";
+    if (n == null) return "#1a1e28";
     const t = Math.max(-40, Math.min(40, n)) / 40;
-    if (t >= 0) return "rgb(" + Math.round(18 + (1 - t) * 24) + "," + Math.round(48 + t * 170) + "," + Math.round(36 + t * 30) + ")";
-    return "rgb(" + Math.round(70 + -t * 165) + "," + Math.round(22 + (1 + t) * 16) + ",42)";
+    if (t >= 0) return "rgb(" + (20 + (1 - t) * 20) + "," + (70 + t * 160) + ",70)";
+    return "rgb(" + (80 + -t * 150) + ",30,48)";
+  }
+  function clock() {
+    const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Ljubljana", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date());
+    const g = (t) => p.find((x) => x.type === t).value;
+    $("clock").textContent = g("hour") + ":" + g("minute") + ":" + g("second");
+  }
+  function ageText() {
+    if (!data || !data.last_update) return "—";
+    const sec = Math.max(0, Math.round((Date.now() - new Date(data.last_update).getTime()) / 1000));
+    if (!Number.isFinite(sec)) return "—";
+    return sec < 60 ? sec + " s" : Math.floor(sec / 60) + " min";
+  }
+  function hotAgent() {
+    let best = AGENTS[0].id, bestT = "";
+    AGENTS.forEach((a) => {
+      const t = ((data && data.agents && data.agents[a.id] && data.agents[a.id].latest) || {}).time || "";
+      if (t >= bestT) { bestT = t; best = a.id; }
+    });
+    return best;
+  }
+  function fit(canvas) {
+    const w = Math.max(2, canvas.clientWidth);
+    const h = Math.max(2, canvas.clientHeight);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = Math.floor(w * dpr), H = Math.floor(h * dpr);
+    if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+    const g = canvas.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    return { g, w, h };
+  }
+  function grid(g, w, h) {
+    g.strokeStyle = "rgba(255,255,255,.05)";
+    g.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      g.beginPath(); g.moveTo(0, (h * i) / 4); g.lineTo(w, (h * i) / 4); g.stroke();
+    }
+  }
+  function render(d) {
+    data = d;
+    const up = Number(d.pct_vs_eur50) >= 0;
+    const realized = (d.closed || []).reduce((s, t) => s + (Number(t.pnl_usd) || 0), 0);
+    const wins = Number(d.wins) || 0, losses = Number(d.losses) || 0, n = wins + losses;
+    const rate = n ? Math.round(100 * wins / n) + "%" : "—";
+    $("stEq").innerHTML = "<b>" + esc(eur(d.equity_eur)) + "</b>";
+    $("stEq").className = "stat " + (up ? "up" : "dn");
+    $("stPnl").innerHTML = "<b>" + esc(money(realized)) + "</b>";
+    $("stPnl").className = "stat " + (realized >= 0 ? "up" : "dn");
+    $("stN").innerHTML = "POSLI <b>" + esc(d.trades || 0) + "</b>";
+    $("stWin").innerHTML = "ZMAGE <b>" + esc(rate) + "</b>";
+    $("stBsc").textContent = "BSC " + (Number(d.scanned_bsc) || 0);
+    $("stSol").textContent = "SOL " + (Number(d.scanned_sol) || 0);
+    const sec = data.last_update ? (Date.now() - new Date(data.last_update).getTime()) / 1000 : 9999;
+    const roj = $("roj");
+    roj.textContent = sec < 8 * 60 ? "ROJ ONLINE" : "ROJ TIHO";
+    roj.className = "pill " + (sec < 8 * 60 ? "live" : "wait");
+    const hot = hotAgent();
+    const latest = (d.agents && d.agents[hot] && d.agents[hot].latest) || {};
+    $("tick").innerHTML = "5 AGENTOV LIVE · PREDAJA " + esc((AGENTS.find((a) => a.id === hot) || AGENTS[0]).label) + " " + esc(latest.symbol || "—") + " · BSC " + (Number(d.scanned_bsc) || 0) + " · SOL " + (Number(d.scanned_sol) || 0) + " · <b>SAMO SIMULACIJA · VIRTUALNI DENAR</b> · " + esc(ageText()) + " · 4/5 VARNOST OBVEZNA";
+    $("huge").textContent = eur(d.equity_eur);
+    $("huge").className = "huge" + (up ? "" : " dn");
+    $("sub").textContent = "POSLI " + (d.trades || 0) + " · ZMAGE " + rate + " · IZID " + money(realized) + " · " + pct(d.pct_vs_eur50);
+    drawRotation();
+    drawStack();
+    drawSled();
+    drawPositions();
+    drawMatrix();
+    drawEquity();
+    drawLadder();
+    drawPipe();
+    placeActors();
+    noteTrades();
+    loadCandles();
+    if (sheetKind) paintSheet();
+  }
+  function drawRotation() {
+    const c = $("rot");
+    const { g, w, h } = fit(c);
+    grid(g, w, h);
+    const cands = (data && data.candidates) || [];
+    if (!cands.length) { g.fillStyle = "#8aa"; g.font = "8px JetBrains Mono, monospace"; g.fillText("ČAKA", 4, 12); return; }
+    const xs = cands.map((c) => num(c.votes && c.votes.trend && c.votes.trend.numbers && c.votes.trend.numbers.ch5));
+    const finite = xs.filter((v) => v != null);
+    const min = finite.length ? Math.min.apply(null, finite) : -5;
+    const max = finite.length ? Math.max.apply(null, finite) : 5;
+    const span = (max - min) || 1;
+    cands.forEach((cnd) => {
+      const xRaw = num(cnd.votes && cnd.votes.trend && cnd.votes.trend.numbers && cnd.votes.trend.numbers.ch5);
+      if (xRaw == null) return;
+      const yRaw = yesCount(cnd.votes);
+      const x = 6 + (w - 12) * ((xRaw - min) / span);
+      const y = 6 + (h - 12) * (1 - yRaw / 5);
+      g.strokeStyle = chainOf(cnd) === "SOL" ? "rgba(61,224,255,.45)" : "rgba(255,61,242,.4)";
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(w / 2, h / 2);
+      g.quadraticCurveTo((w / 2 + x) / 2, y, x, y);
+      g.stroke();
+      g.fillStyle = Number(cnd.change24) >= 0 ? "#39ff88" : "#ff3b5c";
+      g.beginPath();
+      g.arc(x, y, wide ? 3.2 : 2.2, 0, 7);
+      g.fill();
+    });
+  }
+  function drawStack() {
+    const c = $("stack");
+    const { g, w, h } = fit(c);
+    const rows = ((data && data.candidates) || []).slice(0, 18).reverse();
+    if (!rows.length) return;
+    const dx = w / rows.length;
+    for (let i = 0; i < rows.length; i++) {
+      let y = h;
+      AGENTS.forEach((a) => {
+        const yes = rows[i].votes && rows[i].votes[a.id] && rows[i].votes[a.id].vote === "YES";
+        const bh = (h - 2) / 5;
+        if (yes) {
+          g.fillStyle = a.color;
+          g.globalAlpha = 0.85;
+          g.fillRect(i * dx, y - bh, Math.max(1, dx - 1), bh);
+          g.globalAlpha = 1;
+        }
+        y -= bh;
+      });
+    }
+  }
+  function sledRows() {
+    const events = (data && data.activity) || [];
+    const cands = (data && data.candidates) || [];
+    return events.filter((ev) => ev.type === "buy" || ev.type === "veto" || ev.type === "sell").slice(0, wide ? 12 : 8).map((ev) => {
+      const hit = cands.find((c) => c.symbol === ev.symbol && (c.time || "").slice(0, 16) === (ev.time || "").slice(0, 16)) || cands.find((c) => ev.symbol && c.symbol === ev.symbol);
+      const m = String(ev.text || "").match(/(\d)\/5/);
+      const votes = m ? m[1] + "/5" : (hit && hit.votes ? yesCount(hit.votes) + "/5" : "—");
+      const ok = ev.type === "buy";
+      return { ev, hit, votes, ok };
+    });
+  }
+  function drawSled() {
+    const rows = sledRows();
+    $("sled").innerHTML = rows.length ? rows.map((r) => {
+      const col = r.ok ? "#39ff88" : "#ff3b5c";
+      const tag = r.hit ? (r.hit.category || chainOf(r.hit)) : (r.ev.type || "").toUpperCase();
+      const mark = `<b class="${r.ok ? "up" : "dn"}">${esc(r.votes)} ${r.ok ? "DA" : "NE"}</b>`;
+      const extra = wide ? `<span class="tag">${esc(tag)}</span>` : "";
+      return `<div class="srow"><i class="dot" style="background:${col}"></i><span class="dim">${esc((r.ev.time || "").slice(11, 16))}</span><span>${esc(r.ev.symbol || "—")}</span>${mark}${extra}</div>`;
+    }).join("") : `<p class="dim">ČAKA NA SIGNAL</p>`;
+    $("sled").dataset.tags = rows.map((r) => (r.hit && r.hit.category) || "").join("|");
+  }
+  function drawPositions() {
+    const open = (data && data.open) || [];
+    const box = $("posCards");
+    if (!open.length) { box.innerHTML = `<p class="dim">NI ODPRTIH</p>`; return; }
+    box.innerHTML = open.slice(0, wide ? 4 : 3).map((p, i) => {
+      const pnl = Number(p.pnl_pct) || 0;
+      return `<div class="pcard"><div class="nm"><b>${esc(p.symbol)}</b><b class="${pnl >= 0 ? "up" : "dn"}">${esc(pct(pnl))}</b></div><div class="dim">${esc(chainOf(p))} · vstop ${esc(fmtPx(p.entry_price))}</div><canvas id="hb${i}"></canvas></div>`;
+    }).join("");
+    open.slice(0, wide ? 4 : 3).forEach((p, i) => drawHeart($("hb" + i), p));
+  }
+  function drawHeart(canvas, p) {
+    if (!canvas) return;
+    const rows = hb[p.url] || [];
+    const { g, w, h } = fit(canvas);
+    const vals = rows.length ? rows.map((r) => r[4]) : [num(p.entry_price), num(p.last_price)].filter((v) => v != null);
+    if (vals.length < 2) return;
+    const min = Math.min.apply(null, vals), max = Math.max.apply(null, vals), span = (max - min) || 1;
+    g.beginPath();
+    vals.forEach((v, i) => {
+      const x = (w - 2) * (vals.length === 1 ? 0.5 : i / (vals.length - 1));
+      const y = 1 + (h - 2) * (1 - (v - min) / span);
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    });
+    g.strokeStyle = (Number(p.pnl_pct) || 0) >= 0 ? "#39ff88" : "#ff3b5c";
+    g.lineWidth = 1;
+    g.stroke();
+  }
+  function drawMatrix() {
+    const c = $("matrix");
+    const { g, w, h } = fit(c);
+    const cands = ((data && data.candidates) || []).slice(0, 36);
+    const cols = wide ? 18 : 12;
+    const cw = w / cols, ch = h / Math.ceil(Math.max(cands.length, 1) / cols);
+    cands.forEach((cnd, i) => {
+      g.fillStyle = heat(cnd.change24);
+      g.fillRect((i % cols) * cw + 0.5, Math.floor(i / cols) * ch + 0.5, cw - 1, ch - 1);
+    });
+  }
+  function drawEquity() {
+    const c = $("eq");
+    const { g, w, h } = fit(c);
+    const pts = ((data && data.equity_history) || []).map((p) => num(p.eur)).filter((v) => v != null);
+    if (pts.length < 2) { g.fillStyle = "#8aa"; g.font = "8px JetBrains Mono, monospace"; g.fillText("ČAKA", 4, 14); return; }
+    const plotH = Math.max(16, h - 18);
+    grid(g, w, plotH);
+    const min = Math.min.apply(null, pts), max = Math.max.apply(null, pts), span = (max - min) || 1;
+    const x = (i) => 2 + (w - 4) * i / (pts.length - 1);
+    const y = (v) => 2 + (plotH - 4) * (1 - (v - min) / span);
+    const up = pts[pts.length - 1] >= pts[0];
+    g.beginPath();
+    pts.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
+    g.lineTo(x(pts.length - 1), plotH);
+    g.lineTo(x(0), plotH);
+    g.closePath();
+    const fill = g.createLinearGradient(0, 0, 0, plotH);
+    fill.addColorStop(0, up ? "rgba(57,255,136,.28)" : "rgba(255,59,92,.28)");
+    fill.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = fill;
+    g.fill();
+    g.beginPath();
+    pts.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
+    g.strokeStyle = up ? "#39ff88" : "#ff3b5c";
+    g.lineWidth = 1.6;
+    g.stroke();
+    const trades = ((data && data.closed) || []).slice().reverse();
+    if (trades.length) {
+      const vals = trades.map((t) => Number(t.pnl_usd) || 0);
+      const peak = Math.max.apply(null, vals.map((v) => Math.abs(v))) || 1;
+      const bw = Math.max(2, Math.min(10, (w - 4) / vals.length - 1));
+      vals.forEach((v, i) => {
+        const bh = Math.max(1, Math.abs(v) / peak * 14);
+        g.fillStyle = v >= 0 ? "#39ff88" : "#ff3b5c";
+        g.fillRect(2 + i * ((w - 4) / vals.length), h - bh, bw, bh);
+      });
+    }
+  }
+  function drawLadder() {
+    const rows = sledRows();
+    $("ladder").innerHTML = rows.length ? rows.map((r) => {
+      const n = parseInt(r.votes, 10);
+      const width = Number.isFinite(n) ? Math.max(8, (n / 5) * 100) : 30;
+      const col = r.ok ? "#39ff88" : "#ff3b5c";
+      return `<i title="${esc(r.votes)}" style="width:${width}%;background:${col}"></i>`;
+    }).join("") : "";
+  }
+  function drawPipe() {
+    const hot = data ? hotAgent() : "";
+    $("pipe").innerHTML = `<i class="wire"></i>` + AGENTS.map((a) => `<button type="button" data-agent="${a.id}" class="${a.id === hot ? "hot" : ""}">${a.label}</button>`).join("");
+  }
+  function drawFan() {
+    const c = $("fan");
+    if (!c) return;
+    const { g, w, h } = fit(c);
+    grid(g, w, h);
+    const hint = $("fanHint");
+    if (!candles.length) {
+      g.fillStyle = "#8aa";
+      g.font = (wide ? 11 : 8) + "px JetBrains Mono, monospace";
+      g.fillText(candleNote || "ČAKAM SVEČE", 4, 14);
+      if (hint) hint.textContent = "RAZPRŠITEV IZ NIHANJA · NI NAPOVED";
+      return;
+    }
+    const rets = [];
+    for (let i = 1; i < candles.length; i++) {
+      if (candles[i - 1][4] > 0 && candles[i][4] > 0) rets.push(Math.log(candles[i][4] / candles[i - 1][4]));
+    }
+    const last = candles[candles.length - 1][4];
+    const mean = rets.reduce((s, v) => s + v, 0) / (rets.length || 1);
+    const variance = rets.reduce((s, v) => s + (v - mean) * (v - mean), 0) / (rets.length || 1);
+    const sigma = Math.sqrt(variance);
+    const steps = 10;
+    const left = w * 0.68;
+    const bands = [0.5, 1, 1.6];
+    const future = bands.map((z) => {
+      const up = [], dn = [];
+      for (let i = 0; i <= steps; i++) {
+        const drift = mean * i;
+        const spread = z * sigma * Math.sqrt(i);
+        up.push(last * Math.exp(drift + spread));
+        dn.push(last * Math.exp(drift - spread));
+      }
+      return { up, dn };
+    });
+    const all = [last].concat(future[2].up, future[2].dn);
+    const min = Math.min.apply(null, all), max = Math.max.apply(null, all), span = (max - min) || 1;
+    const y = (v) => 4 + (h - 8) * (1 - (v - min) / span);
+    const hist = candles.slice(-24);
+    const hw = left - 6;
+    g.strokeStyle = "#ffd23f";
+    g.lineWidth = 1.2;
+    g.beginPath();
+    hist.forEach((r, i) => {
+      const x = 4 + hw * i / Math.max(1, hist.length - 1);
+      i ? g.lineTo(x, y(r[4])) : g.moveTo(x, y(r[4]));
+    });
+    g.stroke();
+    future.forEach((b, bi) => {
+      g.beginPath();
+      b.up.forEach((v, i) => {
+        const x = left * 0.55 + (left - left * 0.55) * i / steps;
+        i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v));
+      });
+      for (let i = b.dn.length - 1; i >= 0; i--) {
+        const x = left * 0.55 + (left - left * 0.55) * i / steps;
+        g.lineTo(x, y(b.dn[i]));
+      }
+      g.closePath();
+      g.fillStyle = "rgba(61,224,255," + (0.08 + bi * 0.05) + ")";
+      g.fill();
+    });
+    if (rets.length) {
+      const bins = 8;
+      const lo = Math.min.apply(null, rets), hi = Math.max.apply(null, rets);
+      const sp = (hi - lo) || 1;
+      const counts = new Array(bins).fill(0);
+      rets.forEach((r) => { const k = Math.min(bins - 1, Math.floor(((r - lo) / sp) * bins)); counts[k]++; });
+      const peak = Math.max.apply(null, counts) || 1;
+      counts.forEach((n, i) => {
+        const bh = (n / peak) * (w - left - 8);
+        g.fillStyle = i < bins / 2 ? "rgba(255,59,92,.8)" : "rgba(57,255,136,.8)";
+        g.fillRect(left + 4, 4 + i * ((h - 8) / bins), bh, (h - 8) / bins - 2);
+      });
+    }
+    if (hint) hint.textContent = "RAZPRŠITEV IZ NIHANJA · NI NAPOVED · " + (candleNote || "");
+  }
+  function drawCandles() {
+    const c = $("candles");
+    const { g, w, h } = fit(c);
+    grid(g, w, h);
+    if (candles.length < 2) {
+      g.fillStyle = "#8aa";
+      g.font = (wide ? 12 : 8) + "px JetBrains Mono, monospace";
+      g.fillText(candleNote || "ČAKAM SVEČE", 6, h / 2);
+      return;
+    }
+    const rows = candles.slice(- (wide ? 48 : 28));
+    const min = Math.min.apply(null, rows.map((r) => r[3]));
+    const max = Math.max.apply(null, rows.map((r) => r[2]));
+    const span = (max - min) || 1;
+    const cw = (w - 6) / rows.length;
+    const y = (v) => 4 + (h - 8) * (1 - (v - min) / span);
+    rows.forEach((r, i) => {
+      const up = r[4] >= r[1];
+      const x = 3 + i * cw + cw / 2;
+      g.strokeStyle = g.fillStyle = up ? "#39ff88" : "#ff3b5c";
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(x, y(r[2]));
+      g.lineTo(x, y(r[3]));
+      g.stroke();
+      const y1 = y(Math.max(r[1], r[4])), y2 = y(Math.min(r[1], r[4]));
+      g.fillRect(x - Math.max(1, cw * 0.28), y1, Math.max(1.5, cw * 0.56), Math.max(1, y2 - y1));
+    });
+  }
+  function poolFrom(url) {
+    const m = String(url || "").match(/dexscreener\.com\/(solana|bsc)\/([0-9A-Za-z]+)/i);
+    if (!m) return null;
+    return { network: m[1].toLowerCase() === "bsc" ? "bsc" : "solana", pool: m[2] };
+  }
+  async function fetchOhlcv(target) {
+    const pool = poolFrom(target && target.url);
+    if (!pool) return [];
+    const url = "https://api.geckoterminal.com/api/v2/networks/" + pool.network + "/pools/" + pool.pool + "/ohlcv/minute?aggregate=15&limit=48&currency=usd";
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const list = (json.data && json.data.attributes && json.data.attributes.ohlcv_list) || [];
+    return list.slice().reverse();
+  }
+  async function loadCandles() {
+    if (!data) return;
+    const open = data.open || [];
+    const pick = open.slice().sort((a, b) => Math.abs(Number(b.pnl_pct) || 0) - Math.abs(Number(a.pnl_pct) || 0))[0] || (data.candidates || [])[0];
+    if (!pick || !pick.url) { candleNote = "NI PARA"; drawFan(); drawCandles(); return; }
+    if (candleKey === pick.url && candles.length) { drawFan(); drawCandles(); return; }
+    candleKey = pick.url;
+    candleNote = (pick.symbol || "") + " · GECKO";
+    $("trakTitle").textContent = "Trak · " + (pick.symbol || "");
+    try {
+      candles = await fetchOhlcv(pick);
+      if (!candles.length) candleNote = "NI SVEČ · " + (pick.symbol || "");
+    } catch (_) {
+      candles = [];
+      candleNote = "SVEČE NEDOSTOPNE";
+    }
+    const jobs = (data.open || []).slice(0, 3).map(async (p) => {
+      try { hb[p.url] = await fetchOhlcv(p); } catch (_) { hb[p.url] = []; }
+    });
+    await Promise.all(jobs);
+    drawFan();
+    drawCandles();
+    drawPositions();
+  }
+  function noteTrades() {
+    const sig = JSON.stringify({
+      o: (data.open || []).map((p) => p.symbol + (p.opened_at || "")),
+      c: (data.closed || []).map((t) => t.symbol + (t.closed_at || t.time || ""))
+    });
+    if (prevSig && prevSig !== sig) {
+      const t = $("toast");
+      t.textContent = "Nov premik v simulaciji";
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2400);
+    }
+    prevSig = sig;
+  }
+  function quad(x1, y1, cx, cy, x2, y2, n) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, u = 1 - t;
+      pts.push([u * u * x1 + 2 * u * t * cx + t * t * x2, u * u * y1 + 2 * u * t * cy + t * t * y2]);
+    }
+    return pts;
+  }
+  function buildSynapse() {
+    const fx = $("fx");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(10, fx.clientWidth), h = Math.max(10, fx.clientHeight);
+    fx.width = Math.floor(w * dpr);
+    fx.height = Math.floor(h * dpr);
+    off = document.createElement("canvas");
+    off.width = fx.width;
+    off.height = fx.height;
+    const g = off.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.lineCap = "round";
+    g.lineJoin = "round";
+    g.globalCompositeOperation = "lighter";
+    const rand = mulberry32(29);
+    paths = [];
+    const colors = ["#39ff88", "#ffd23f", "#ff3df2", "#b44dff", "#3de0ff", "#c8ff4d", "#ff7ad9"];
+    let budget = wide ? 2600 : 900;
+    function stroke(pts, w0, color, store) {
+      g.strokeStyle = color;
+      for (let i = 1; i < pts.length; i++) {
+        const t = i / pts.length;
+        g.globalAlpha = 0.1;
+        g.lineWidth = Math.max(0.6, w0 * (2.1 - t));
+        g.beginPath();
+        g.moveTo(pts[i - 1][0], pts[i - 1][1]);
+        g.lineTo(pts[i][0], pts[i][1]);
+        g.stroke();
+        g.globalAlpha = 0.62 * (1 - t * 0.35);
+        g.lineWidth = Math.max(0.3, w0 * (1 - t * 0.78));
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+      if (store && paths.length < 48) paths.push({ pts: pts, color: color });
+    }
+    function wander(x, y, ang, len, width, depth, color) {
+      if (budget <= 0 || depth < 0 || len < 8 || width < 0.25) return;
+      budget -= 1;
+      let px = x, py = y, a = ang;
+      const all = [[x, y]];
+      const segs = 3;
+      const step = len / segs;
+      for (let s = 0; s < segs; s++) {
+        a += (rand() - 0.5) * 0.85;
+        const x2 = px + Math.cos(a) * step;
+        const y2 = py + Math.sin(a) * step;
+        const nx = Math.cos(a + Math.PI / 2), ny = Math.sin(a + Math.PI / 2);
+        const cpx = (px + x2) / 2 + nx * step * (rand() - 0.5);
+        const cpy = (py + y2) / 2 + ny * step * (rand() - 0.5);
+        const pts = quad(px, py, cpx, cpy, x2, y2, 4);
+        for (let k = 1; k < pts.length; k++) all.push(pts[k]);
+        px = x2; py = y2;
+      }
+      stroke(all, width, color, depth >= 2);
+      if (depth === 0) return;
+      const kids = depth > 3 ? 2 : (rand() < 0.72 ? 2 : 1);
+      for (let i = 0; i < kids; i++) {
+        wander(px, py, a + (rand() - 0.5) * 1.35, len * (0.52 + rand() * 0.28), width * 0.7, depth - 1, color);
+      }
+    }
+    const cx = center.x, cy = center.y;
+    const span = Math.max(w, h);
+    for (let i = 0; i < (wide ? 28 : 18); i++) {
+      const ang = rand() * Math.PI * 2;
+      const rad = wide ? 24 : 14;
+      wander(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad, ang, span * (wide ? 0.05 : 0.07), 0.9, 2, colors[i % colors.length]);
+    }
+    const roots = wide ? 20 : 14;
+    for (let i = 0; i < roots; i++) {
+      const ang = (Math.PI * 2 * i) / roots + (rand() - 0.5) * 0.3;
+      wander(cx, cy, ang, span * (wide ? 0.22 : 0.22), wide ? 1.7 : 1.35, wide ? 6 : 5, colors[i % colors.length]);
+    }
+  }
+  function sphere(g, x, y, r, bob) {
+    g.save();
+    g.translate(x, y + bob);
+    g.fillStyle = "rgba(0,0,0,.45)";
+    g.beginPath();
+    g.ellipse(0, r * 0.92, r * 0.72, r * 0.16, 0, 0, 7);
+    g.fill();
+    const body = g.createRadialGradient(-r * 0.38, -r * 0.42, r * 0.08, r * 0.1, r * 0.1, r * 1.05);
+    body.addColorStop(0, "#ffffff");
+    body.addColorStop(0.28, "#f7fbff");
+    body.addColorStop(0.62, "#d5e0ee");
+    body.addColorStop(1, "#7f93ad");
+    g.beginPath();
+    g.arc(0, 0, r, 0, 7);
+    g.fillStyle = body;
+    g.fill();
+    const spec = g.createRadialGradient(-r * 0.36, -r * 0.42, 0, -r * 0.32, -r * 0.4, r * 0.55);
+    spec.addColorStop(0, "rgba(255,255,255,.95)");
+    spec.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = spec;
+    g.beginPath();
+    g.arc(0, 0, r, 0, 7);
+    g.fill();
+    g.fillStyle = "#0c0d11";
+    g.beginPath();
+    g.ellipse(-r * 0.22, r * 0.02, r * 0.085, r * 0.22, 0, 0, 7);
+    g.ellipse(r * 0.22, r * 0.02, r * 0.085, r * 0.22, 0, 0, 7);
+    g.fill();
+    g.restore();
+  }
+  function ghost(g, x, y, r, color, bob) {
+    g.save();
+    g.translate(x, y + bob);
+    g.beginPath();
+    g.moveTo(0, -r * 1.2);
+    g.bezierCurveTo(r, -r * 0.45, r * 0.95, r * 0.45, r * 0.28, r * 0.95);
+    g.quadraticCurveTo(0, r * 0.45, 0, r * 1.05);
+    g.quadraticCurveTo(0, r * 0.45, -r * 0.28, r * 0.95);
+    g.bezierCurveTo(-r * 0.95, r * 0.45, -r, -r * 0.45, 0, -r * 1.2);
+    g.closePath();
+    const grd = g.createRadialGradient(-r * 0.25, -r * 0.35, r * 0.1, 0, 0, r * 1.2);
+    grd.addColorStop(0, "#fff");
+    grd.addColorStop(0.35, color);
+    grd.addColorStop(1, color);
+    g.fillStyle = grd;
+    g.shadowColor = color;
+    g.shadowBlur = wide ? 16 : 10;
+    g.fill();
+    g.shadowBlur = 0;
+    g.fillStyle = "#fff";
+    [[-0.22, -0.05, -0.55], [0.22, -0.05, 0.55]].forEach((e) => {
+      g.save();
+      g.translate(r * e[0], r * e[1]);
+      g.rotate(e[2]);
+      g.beginPath();
+      g.ellipse(0, 0, r * 0.07, r * 0.16, 0, 0, 7);
+      g.fill();
+      g.restore();
+    });
+    g.restore();
+  }
+  function drawSynapse(ts) {
+    const fx = $("fx");
+    if (!off || !fx.width) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const g = fx.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const w = fx.clientWidth, h = fx.clientHeight;
+    g.clearRect(0, 0, w, h);
+    if (grown < 1) grown = Math.min(1, grown + 0.012);
+    const reach = Math.hypot(w, h) * (0.25 + 0.8 * grown);
+    g.save();
+    g.beginPath();
+    g.arc(center.x, center.y, reach, 0, 7);
+    g.clip();
+    g.drawImage(off, 0, 0, w, h);
+    g.restore();
+    const t = reduce ? 0 : ts / 1000;
+    paths.forEach((p, i) => {
+      if (!p.pts.length) return;
+      const u = (t * 0.35 + i * 0.17) % 1;
+      const idx = Math.floor(u * (p.pts.length - 1));
+      for (let k = 0; k < 4; k++) {
+        const q = p.pts[Math.max(0, idx - k)];
+        if (!q) continue;
+        g.fillStyle = p.color;
+        g.globalAlpha = 0.9 - k * 0.2;
+        g.beginPath();
+        g.arc(q[0], q[1], (wide ? 2.4 : 1.6) - k * 0.25, 0, 7);
+        g.fill();
+      }
+    });
+    g.globalAlpha = 1;
+    const bob = reduce ? 0 : Math.sin(t * 1.4) * (wide ? 4 : 2.5);
+    const orbit = wide ? 132 : 68;
+    const gr = wide ? 18 : 11;
+    AGENTS.forEach((a, i) => {
+      const ang = [-2.35, -1.05, 0.35, 2.15, 3.45][i];
+      ghost(g, center.x + Math.cos(ang) * orbit, center.y + Math.sin(ang) * orbit, gr, a.color, bob * 0.4);
+    });
+    sphere(g, center.x, center.y, wide ? 54 : 30, bob);
+  }
+  function drawSensor(ts) {
+    const c = $("sense");
+    if (!c || !data) return;
+    const { g, w, h } = fit(c);
+    const t = reduce ? 0 : ts / 1000;
+    const agents = data.agents || {};
+    AGENTS.forEach((a, i) => {
+      const row = agents[a.id] || {};
+      const ev = Number(row.evaluated) || 0;
+      const ap = Number(row.approved) || 0;
+      const amp = (ev ? ap / ev : 0.15) * (w * 0.16);
+      const x0 = 8 + ((w - 16) * i) / AGENTS.length;
+      g.beginPath();
+      for (let y = 16; y < h - 22; y += 2) {
+        const x = x0 + Math.sin(y * 0.08 + t * 1.6 + i) * amp;
+        y === 16 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.strokeStyle = a.color;
+      g.globalAlpha = 0.9;
+      g.lineWidth = wide ? 2 : 1.2;
+      g.stroke();
+    });
+    g.globalAlpha = 1;
+    const cands = (data.candidates || []).slice(0, wide ? 40 : 24);
+    const cols = wide ? 10 : 6;
+    const bw = (w - 8) / cols;
+    const bh = 18 / Math.ceil(cands.length / cols);
+    cands.forEach((cnd, i) => {
+      g.fillStyle = heat(cnd.change24);
+      g.fillRect(4 + (i % cols) * bw, h - 20 + Math.floor(i / cols) * bh, bw - 1, Math.max(2, bh - 1));
+    });
+  }
+  function placeCanvas() {
+    const board = $("board");
+    const mid = document.querySelector(".mid");
+    const syn = $("syn");
+    const fx = $("fx");
+    const top = Math.max(0, mid.offsetTop - (wide ? 70 : 40));
+    const height = mid.offsetHeight + (wide ? 140 : 78);
+    fx.style.top = top + "px";
+    fx.style.left = "0px";
+    fx.style.width = board.clientWidth + "px";
+    fx.style.height = height + "px";
+    center = {
+      x: mid.offsetLeft + syn.offsetLeft + syn.offsetWidth / 2,
+      y: mid.offsetTop + syn.offsetTop + syn.offsetHeight / 2 - top
+    };
+    buildSynapse();
+    placeActors();
+  }
+  function placeActors() {
+    const box = $("actors");
+    const orbit = wide ? 132 : 68;
+    const labels = AGENTS.map((a, i) => {
+      const ang = [-2.35, -1.05, 0.35, 2.15, 3.45][i];
+      const latest = (data && data.agents && data.agents[a.id] && data.agents[a.id].latest) || {};
+      const vote = latest.vote === "YES" ? "DA" : latest.vote === "NO" ? "NE" : "—";
+      const fx = $("fx");
+      const x = fx.offsetLeft + center.x + Math.cos(ang) * (orbit + (wide ? 78 : 46));
+      const y = fx.offsetTop + center.y + Math.sin(ang) * (orbit + (wide ? 36 : 22));
+      return `<button type="button" class="chipcard" data-agent="${a.id}" style="left:${x}px;top:${y}px"><b style="color:${a.color}">${a.label}</b><span>${esc(vote)} · ${esc(latest.symbol || "—")}</span></button>`;
+    }).join("");
+    box.innerHTML = labels;
+  }
+  function layout() {
+    wide = window.innerWidth >= 980;
+    const board = $("board");
+    board.classList.toggle("wide", wide);
+    const bw = wide ? 1440 : 390;
+    const bh = wide ? 900 : 844;
+    const fitEl = $("fit");
+    const availW = fitEl.clientWidth;
+    const availH = fitEl.clientHeight;
+    const s = Math.min(availW / bw, availH / bh);
+    const scaler = $("scaler");
+    scaler.style.width = (bw * s) + "px";
+    scaler.style.height = (bh * s) + "px";
+    board.style.transform = "scale(" + s + ")";
+    placeCanvas();
+    if (data) {
+      drawRotation(); drawStack(); drawFan(); drawCandles(); drawEquity(); drawMatrix(); drawPositions(); drawSensor(performance.now());
+    }
+  }
+  function agentSheet(id) {
+    const order = id ? [AGENTS.find((a) => a.id === id)].concat(AGENTS.filter((a) => a.id !== id)).filter(Boolean) : AGENTS;
+    const agents = (data && data.agents) || {};
+    return `<p><b>${esc(RULE)}</b></p>` + order.map((a) => {
+      const row = agents[a.id] || {};
+      const latest = row.latest || {};
+      const vote = latest.vote === "YES" ? "DA" : latest.vote === "NO" ? "NE" : "ČAKA";
+      const ev = Number(row.evaluated) || 0, ap = Number(row.approved) || 0;
+      return `<h3 style="color:${a.color}">${a.label}</h3><p>${esc(a.about)}</p><p>${vote} · ${esc(latest.symbol || "")}</p><p>${esc(latest.reason || "Še ni glasu.")}</p><p class="dim">Ocenjeni ${ev} · DA ${ap} · NE ${Number(row.vetoed) || 0}${ev ? " · " + Math.round(100 * ap / ev) + " %" : ""}</p>`;
+    }).join("");
   }
   function left4h(iso) {
     const t = new Date(iso || "").getTime();
@@ -483,500 +1034,82 @@
     const m = Math.floor(ms / 60000);
     return Math.floor(m / 60) + " h " + (m % 60) + " min";
   }
-  function clock() {
-    const p = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/Ljubljana", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
-    }).formatToParts(new Date());
-    const g = (t) => p.find((x) => x.type === t).value;
-    $("clock").textContent = g("hour") + ":" + g("minute") + ":" + g("second");
-    const age = $("age");
-    if (!data || !data.last_update) { age.textContent = "ZADNJI PREGLED —"; age.classList.remove("stale"); return; }
-    const then = new Date(data.last_update).getTime();
-    if (!Number.isFinite(then)) { age.textContent = "ZADNJI PREGLED —"; return; }
-    const sec = Math.max(0, Math.round((Date.now() - then) / 1000));
-    age.textContent = sec < 60 ? "ZADNJI PREGLED " + sec + " s" : "ZADNJI PREGLED " + Math.floor(sec / 60) + " min";
-    age.classList.toggle("stale", sec > 8 * 60);
-  }
-  function setEur(v) {
-    const el = $("bigEur");
-    const target = num(v);
-    if (target == null) { el.textContent = "—"; return; }
-    if (eurShown == null || reduce || eurTarget === target && eurShown === target) {
-      eurShown = target;
-      eurTarget = target;
-      el.textContent = eur(eurShown);
-      return;
-    }
-    const from = eurShown;
-    eurTarget = target;
-    const t0 = performance.now();
-    function tick(now) {
-      if (eurTarget !== target) return;
-      const k = Math.min(1, (now - t0) / 650);
-      const e = 1 - Math.pow(1 - k, 3);
-      eurShown = from + (target - from) * e;
-      el.textContent = eur(eurShown);
-      if (k < 1) requestAnimationFrame(tick);
-      else eurShown = target;
-    }
-    requestAnimationFrame(tick);
-  }
-  function spark(series, color) {
-    if (!series.length) return "";
-    const w = 120, h = 14;
-    const pts = series.map((v, i) => {
-      const x = series.length === 1 ? w / 2 : (i / (series.length - 1)) * w;
-      const y = v ? 2.5 : h - 2.5;
-      return x.toFixed(1) + "," + y.toFixed(1);
-    }).join(" ");
-    return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.4"/></svg>`;
-  }
-  function render(d) {
-    data = d;
-    const up = Number(d.pct_vs_eur50) >= 0;
-    $("scanned").textContent = "PREGLEDANIH BSC: " + (Number(d.scanned_bsc) || 0) + " · SOL: " + (Number(d.scanned_sol) || 0);
-    setEur(d.equity_eur);
-    $("bigEur").classList.toggle("dn", !up);
-    $("bigPct").textContent = pct(d.pct_vs_eur50) + " od 100 €";
-    $("bigPct").className = "pct " + (up ? "up" : "dn");
-    const open = d.open || [];
-    $("openLine").textContent = open.length
-      ? "odprte " + open.length + " · " + (open[0].symbol || "") + " " + pct(open[0].pnl_pct)
-      : "odprte 0";
-    const realized = (d.closed || []).reduce((s, t) => s + (Number(t.pnl_usd) || 0), 0);
-    $("bigPnl").textContent = money(realized);
-    $("bigPnl").classList.toggle("dn", realized < 0);
-    const wins = Number(d.wins) || 0;
-    const losses = Number(d.losses) || 0;
-    const closedN = wins + losses;
-    const rate = closedN ? Math.round(100 * wins / closedN) + " %" : "—";
-    $("winLine").textContent = "zmag " + rate + " · " + (d.trades || 0) + " poslov";
-    $("winLine").className = "pct " + (realized >= 0 ? "up" : "dn");
-    const cands = d.candidates || [];
-    $("surface").innerHTML = cands.length ? cands.slice(0, 24).map((c) => {
-      const i = cands.indexOf(c);
-      return `<button type="button" data-cand="${i}" title="${esc(c.symbol || "")}" style="background:${heatFill(c.change24)}"></button>`;
-    }).join("") : "";
-    const head = `<div class="hrow head"><span>SIMBOL</span><span>VERIGA</span><span>RAZRED</span><span>24h</span><span>LIKV.</span></div>`;
-    $("heatTable").innerHTML = cands.length ? head + cands.slice(0, 12).map((c) => {
-      const i = cands.indexOf(c);
-      const ch = num(c.change24);
-      const chTxt = ch == null ? "—" : pct(ch);
-      const cls = ch == null ? "" : (ch >= 0 ? "up" : "dn");
-      return `<button type="button" class="hrow" data-cand="${i}"><span>${esc(c.symbol)}</span><span>${esc(chainOf(c))}</span><span>${esc(c.category || "—")}</span><span class="${cls}">${esc(chTxt)}</span><span>${esc(compact(c.liq_usd))}</span></button>`;
-    }).join("") : `<p class="empty">ČAKA NA SIGNAL</p>`;
-    const agents = d.agents || {};
-    $("agentBars").innerHTML = AGENTS.map((a) => {
-      const row = agents[a.id] || {};
-      const ev = Number(row.evaluated) || 0;
-      const ap = Number(row.approved) || 0;
-      const rateN = ev ? Math.round(100 * ap / ev) : 0;
-      const series = cands.slice(0, 18).reverse().map((c) => {
-        const v = c.votes && c.votes[a.id];
-        return v ? (v.vote === "YES" ? 1 : 0) : null;
-      }).filter((v) => v != null);
-      return `<div class="arow"><b style="color:${a.color}">${a.label}</b><div><div class="track"><i style="width:${ev ? rateN : 0}%;background:${a.color}"></i></div>${spark(series, a.color)}</div><span>${ev ? rateN + "%" : "—"}</span></div>`;
-    }).join("");
-    renderFeed(d);
-    drawCharts();
-    noteTrades(d);
-    if (sheetKind) paintSheet();
-  }
-  function renderFeed(d) {
-    const events = d.activity || [];
-    const cands = d.candidates || [];
-    const box = $("feed");
-    if (!events.length && !cands.length) { box.innerHTML = `<p class="empty">ČAKA NA SIGNAL</p>`; return; }
-    const rows = events.slice(0, 18).map((ev) => {
-      const key = (ev.time || "") + "|" + (ev.type || "") + "|" + (ev.symbol || "") + "|" + (ev.text || "");
-      const hit = cands.find((c) => c.symbol === ev.symbol && (c.time || "").slice(0, 16) === (ev.time || "").slice(0, 16))
-        || cands.find((c) => ev.symbol && c.symbol === ev.symbol);
-      const fromText = String(ev.text || "").match(/(\d)\/5/);
-      const votes = fromText ? fromText[1] + "/5" : (hit && hit.votes ? yesCount(hit.votes) + "/5" : "—");
-      const cls = ev.type === "buy" ? "up" : (ev.type === "sell" || ev.type === "veto" ? "dn" : "dim");
-      const fresh = prevFeed && !prevFeed.has(key) ? " new" : "";
-      const cand = hit ? ` data-cand="${cands.indexOf(hit)}"` : "";
-      const tip = ev.type === "buy" ? "DA" : ev.type === "sell" ? "IZHOD" : ev.type === "veto" ? "NE" : "SCAN";
-      return `<button type="button" class="frow ${cls}${fresh}"${cand}><span>${esc((ev.time || "").slice(11, 16))}</span><span>${tip}</span><span>${esc(ev.symbol || "—")}</span><span>${esc(votes)}</span><span>${esc(ev.text || "")}</span></button>`;
-    });
-    prevFeed = new Set(events.slice(0, 18).map((ev) => (ev.time || "") + "|" + (ev.type || "") + "|" + (ev.symbol || "") + "|" + (ev.text || "")));
-    box.innerHTML = rows.join("") || `<p class="empty">ČAKA NA SIGNAL</p>`;
-  }
-  function fit(canvas) {
-    const r = canvas.getBoundingClientRect();
-    const w = Math.max(2, r.width);
-    const h = Math.max(2, r.height);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const W = Math.floor(w * dpr), H = Math.floor(h * dpr);
-    if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
-    const g = canvas.getContext("2d");
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, w, h);
-    return { g, w, h };
-  }
-  function seriesOf(points, key) {
-    return (points || []).map((p) => num(p[key])).filter((v) => v != null);
-  }
-  function drawGrid(g, w, h) {
-    g.strokeStyle = "rgba(255,255,255,.06)";
-    g.lineWidth = 1;
-    for (let i = 1; i < 4; i++) {
-      g.beginPath();
-      g.moveTo(0, (h * i) / 4);
-      g.lineTo(w, (h * i) / 4);
-      g.stroke();
-    }
-  }
-  function drawLine(canvas, values, color, fill) {
-    const { g, w, h } = fit(canvas);
-    if (values.length < 1) {
-      g.fillStyle = "#7d8b9a";
-      g.font = "10px JetBrains Mono, monospace";
-      g.fillText("ČAKA NA SIGNAL", 8, h / 2);
-      return;
-    }
-    drawGrid(g, w, h);
-    const min = Math.min.apply(null, values);
-    const max = Math.max.apply(null, values);
-    const span = (max - min) || 1;
-    const x = (i) => values.length === 1 ? w / 2 : 4 + (w - 8) * i / (values.length - 1);
-    const y = (v) => 6 + (h - 12) * (1 - (v - min) / span);
-    if (fill && values.length > 1) {
-      g.beginPath();
-      values.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
-      g.lineTo(x(values.length - 1), h);
-      g.lineTo(x(0), h);
-      g.closePath();
-      g.fillStyle = "rgba(255,176,32,.12)";
-      g.fill();
-    }
-    g.beginPath();
-    values.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
-    g.strokeStyle = color;
-    g.lineWidth = 1.6;
-    g.stroke();
-  }
-  function drawCharts() {
-    if (!data) return;
-    const hist = data.equity_history || [];
-    const euros = seriesOf(hist, "eur");
-    const { g, w, h } = fit($("eqLine"));
-    if (euros.length < 1) {
-      g.fillStyle = "#7d8b9a";
-      g.font = "10px JetBrains Mono, monospace";
-      g.fillText("ČAKA NA SIGNAL", 8, 18);
-    } else {
-      const plotH = Math.max(20, h - 28);
-      drawGrid(g, w, plotH);
-      const min = Math.min.apply(null, euros);
-      const max = Math.max.apply(null, euros);
-      const span = (max - min) || 1;
-      const x = (i) => euros.length === 1 ? w / 2 : 4 + (w - 8) * i / (euros.length - 1);
-      const y = (v) => 4 + (plotH - 8) * (1 - (v - min) / span);
-      g.beginPath();
-      euros.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
-      g.strokeStyle = "#ffb020";
-      g.lineWidth = 1.7;
-      g.stroke();
-      const trades = (data.closed || []).slice().reverse();
-      if (trades.length) {
-        const vals = trades.map((t) => Number(t.pnl_usd) || 0);
-        const peak = Math.max.apply(null, vals.map((v) => Math.abs(v))) || 1;
-        const bw = Math.max(2, Math.min(8, (w - 8) / vals.length - 1));
-        vals.forEach((v, i) => {
-          const bh = Math.max(1, (Math.abs(v) / peak) * 18);
-          g.fillStyle = v >= 0 ? "#39ff7a" : "#ff3355";
-          g.fillRect(4 + i * ((w - 8) / vals.length), h - 4 - bh, bw, bh);
-        });
-      }
-    }
-    const bars = fit($("eqBars"));
-    if (euros.length) {
-      const min = Math.min.apply(null, euros);
-      const max = Math.max.apply(null, euros);
-      const span = (max - min) || 1;
-      const n = Math.min(euros.length, 40);
-      const slice = euros.slice(-n);
-      const bw = Math.max(1, (bars.w - 4) / n - 1);
-      slice.forEach((v, i) => {
-        const bh = 4 + ((v - min) / span) * (bars.h - 8);
-        const prev = i ? slice[i - 1] : v;
-        bars.g.fillStyle = v >= prev ? "rgba(57,255,122,.85)" : "rgba(255,51,85,.85)";
-        bars.g.fillRect(2 + i * ((bars.w - 4) / n), bars.h - bh, bw, bh);
-      });
-    }
-    const closed = (data.closed || []).slice().reverse();
-    const cum = [];
-    closed.reduce((s, t) => { const n = s + (Number(t.pnl_usd) || 0); cum.push(n); return n; }, 0);
-    drawLine($("pnlLine"), cum.length ? [0].concat(cum) : [], realizedColor(cum), false);
-  }
-  function realizedColor(cum) {
-    const last = cum.length ? cum[cum.length - 1] : 0;
-    return last >= 0 ? "#39ff7a" : "#ff3355";
-  }
-  function noteTrades(d) {
-    const sig = JSON.stringify({
-      o: (d.open || []).map((p) => (p.symbol || "") + (p.opened_at || "")),
-      c: (d.closed || []).map((t) => (t.symbol || "") + (t.closed_at || t.time || ""))
-    });
-    let prev = null;
-    try { prev = localStorage.getItem("kripto-agenti-seen"); } catch (_) {}
-    if (prev && prev !== sig) {
-      const toast = $("toast");
-      toast.hidden = false;
-      toast.textContent = "Nov premik v simulaciji";
-      setTimeout(() => { toast.hidden = true; }, 2600);
-      try {
-        if (localStorage.getItem("kripto-agenti-sound") === "1") {
-          const ctx = new AudioContext();
-          const o = ctx.createOscillator();
-          const gain = ctx.createGain();
-          o.frequency.value = 660;
-          o.connect(gain); gain.connect(ctx.destination);
-          gain.gain.setValueAtTime(0.03, ctx.currentTime);
-          o.start(); o.stop(ctx.currentTime + 0.12);
-        }
-      } catch (_) {}
-    }
-    try { localStorage.setItem("kripto-agenti-seen", sig); } catch (_) {}
-  }
-  function votesBlock(c) {
-    return AGENTS.map((a) => {
-      const v = (c.votes || {})[a.id] || {};
-      const mark = v.vote === "YES" ? "DA" : v.vote === "NO" ? "NE" : "—";
-      return `<p><b style="color:${a.color}">${a.label} ${mark}</b> ${esc(v.reason || "ni podatka")}</p>`;
-    }).join("");
-  }
-  function tokenSheet(c) {
-    if (!c) return;
-    const href = safeUrl(c.url);
-    const link = href ? `<p><a class="link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">DexScreener</a></p>` : "";
-    const n = c.votes ? yesCount(c.votes) + "/5" : "—";
-    return `<h3>${esc(c.symbol || "")} · ${esc(n)}</h3><p class="dim">${esc(tags(c))} ${esc(c.name || "")}</p><p>Cena ${c.price ? esc(fmtPx(c.price)) : "—"} · likv. ${esc(compact(c.liq_usd))} · 24h promet ${esc(compact(c.vol24))}</p><p>24h ${c.change24 == null ? "—" : esc(pct(c.change24))} · odločitev ${esc(c.decision || "—")}</p><p class="rule">${esc(RULE)}</p>${votesBlock(c)}<p class="dim">Varnost je glas VARNOST (GoPlus, mint, freeze, imetniki).</p>${link}`;
-  }
-  function agentSheet(focus) {
-    const order = focus ? [AGENTS.find((a) => a.id === focus)].concat(AGENTS.filter((a) => a.id !== focus)).filter(Boolean) : AGENTS;
-    const agents = (data && data.agents) || {};
-    const body = order.map((a) => {
-      const row = agents[a.id] || {};
-      const latest = row.latest || {};
-      const vote = latest.vote === "YES" ? "DA" : latest.vote === "NO" ? "NE" : "ČAKA";
-      return `<h3 style="color:${a.color}">${a.label}</h3><p>${esc(a.about)}</p><p>${vote} · ${esc(latest.symbol || "")}</p><p>${esc(latest.reason || "Še ni glasu.")}</p><p class="dim">Ocenjeni ${esc(row.evaluated || 0)} · DA ${esc(row.approved || 0)} · NE ${esc(row.vetoed || 0)}</p>`;
-    }).join("");
-    return `<p class="rule">${esc(RULE)}</p>` + body;
-  }
-  function positionsSheet() {
+  function bookSheet() {
     const open = (data && data.open) || [];
-    if (!open.length) return `<h3>Pozicije</h3><p class="empty">ČAKA NA SIGNAL</p>`;
-    return `<h3>Odprte pozicije</h3>` + open.map((p) => {
+    const body = open.length ? open.map((p) => {
       const pnl = Number(p.pnl_pct) || 0;
       const mark = Math.max(0, Math.min(100, ((pnl + 8) / 28) * 100));
-      return `<p><b>${esc(p.symbol)}</b> <span class="dim">${esc(tags(p))}</span> <b class="${pnl >= 0 ? "up" : "dn"}">${esc(money(p.pnl_usd))} · ${esc(pct(pnl))}</b></p><div class="level" title="−8 % do +20 %"><i style="left:${mark}%"></i></div><p class="dim">Vstop ${esc(fmtPx(p.entry_price))} · zdaj ${esc(fmtPx(p.last_price))} · do 4h izhoda: ${esc(left4h(p.opened_at))}</p>`;
-    }).join("");
-  }
-  function historySheet() {
-    const rows = ((data && data.closed) || []).filter((t) => histChain === "all" || (histChain === "solana" ? chainOf(t) === "SOL" : chainOf(t) === "BSC"));
-    const pnl = rows.reduce((s, t) => s + (Number(t.pnl_usd) || 0), 0);
-    const wins = rows.filter((t) => Number(t.pnl_usd) > 0).length;
-    const best = data && data.best;
-    const worst = data && data.worst;
-    const filters = ["all", "bsc", "solana"].map((id) => {
-      const label = id === "all" ? "Vse" : id === "bsc" ? "BSC" : "SOL";
-      return `<button type="button" class="chip ${histChain === id ? "on" : ""}" data-chain="${id}">${label}</button>`;
-    }).join("");
-    const list = rows.length ? rows.map((t) => `<p><b class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)}</b> ${esc(tags(t))} ${esc(money(t.pnl_usd))} <span class="dim">${esc(t.reason || "")}</span></p>`).join("") : `<p class="empty">ČAKA NA SIGNAL</p>`;
-    return `<h3>Zgodovina</h3><div class="filters">${filters}</div><p>P/L ${esc(money(pnl))} · zmag ${wins}/${rows.length}</p><p class="dim">Najboljši ${esc(best ? best.symbol + " " + money(best.pnl_usd) : "—")} · najslabši ${esc(worst ? worst.symbol + " " + money(worst.pnl_usd) : "—")}</p>${list}`;
-  }
-  function infoSheet() {
-    const soundOn = (() => { try { return localStorage.getItem("kripto-agenti-sound") === "1"; } catch (_) { return false; } })();
-    return `<h3>Simulacija</h3>
-      <p><b>SIMULACIJA · virtualni denar.</b> Brez pravega denarja, brez naročil, brez denarnice.</p>
-      <p>Obdobje: 9. 11. 2026 – 16. 11. 2026, 20:45 (Europe/Ljubljana). Osnova je 100 €.</p>
-      <p>${esc(RULE)}</p>
-      <p>10 % kapitala na pozicijo. Največ 5 odprtih skupaj (BSC in SOL).</p>
-      <p>Izstop: −8 % stop, +20 % take-profit, trailing 10 % po +10 %, časovni izhod po 4 urah.</p>
-      <p>Zdrs 1 %. Na majhnih SOL bazenih pod 80.000 $ je zdrs 2 %.</p>
-      <p>Verigi: BSC in Solana. Oznake: MEME, ALT, MAJOR.</p>
-      <p><label><input type="checkbox" id="sound" ${soundOn ? "checked" : ""}/> Zvok ob novem poslu (privzeto izklopljen)</label></p>`;
-  }
-  function equitySheet() {
-    const hist = ((data && data.equity_history) || []).slice(-8).reverse();
-    const lines = hist.length ? hist.map((p) => `<p>${esc((p.t || "").replace("T", " ").slice(0, 16))} · ${esc(eur(p.eur))} · ${esc(money(p.usd))}</p>`).join("") : `<p class="empty">ČAKA NA SIGNAL</p>`;
-    const trades = ((data && data.closed) || []).slice(0, 8).map((t) => `<p class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))}</p>`).join("");
-    return `<h3>Krivulja</h3>${lines}<h3>Zaprti posli</h3>${trades || `<p class="empty">ČAKA NA SIGNAL</p>`}`;
+      return `<p><b>${esc(p.symbol)}</b> ${esc(chainOf(p))} <b class="${pnl >= 0 ? "up" : "dn"}">${esc(money(p.pnl_usd))} · ${esc(pct(pnl))}</b></p><div class="level"><i style="left:${mark}%"></i></div><p class="dim">Vstop ${esc(p.entry_price)} · zdaj ${esc(p.last_price)} · do 4h: ${esc(left4h(p.opened_at))}</p>`;
+    }).join("") : `<p>NI ODPRTIH POZICIJ</p>`;
+    const closed = ((data && data.closed) || []).slice(0, 12).map((t) => `<p class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))} <span class="dim">${esc(t.reason || "")}</span></p>`).join("");
+    return `<h3>Knjiga</h3>${body}<h3>Zaprto</h3>${closed || "<p>ČAKA</p>"}<h3>Pravila</h3><p><b>SIMULACIJA · VIRTUALNI DENAR.</b> ${esc(RULE)}</p><p>10 % na pozicijo, največ 5 odprtih. Izstop −8 %, +20 %, trailing 10 % po +10 %, časovni izhod 4 h. Zdrs 1 % (2 % na majhnem SOL bazenu). 9. 11. 2026 – 16. 11. 2026.</p>`;
   }
   function paintSheet() {
-    if (!sheetKind) return;
     let html = "";
-    if (sheetKind === "info") html = infoSheet();
-    else if (sheetKind === "agents") html = agentSheet(sheetKindFocus);
-    else if (sheetKind === "positions") html = positionsSheet();
-    else if (sheetKind === "history") html = historySheet();
-    else if (sheetKind === "equity") html = equitySheet();
-    else if (sheetKind === "heat") html = `<h3>Kandidati</h3><p class="rule">${esc(RULE)}</p>` + ((data && data.candidates) || []).slice(0, 20).map((c, i) => `<p><button type="button" class="chip" data-cand="${i}">${esc(c.symbol)} ${yesCount(c.votes)}/5</button> ${esc(tags(c))} ${c.change24 == null ? "—" : esc(pct(c.change24))}</p>`).join("");
-    else if (sheetKind === "tape") html = `<h3>Trak</h3><p class="rule">${esc(RULE)}</p>` + ((data && data.activity) || []).slice(0, 24).map((ev) => `<p class="${ev.type === "buy" ? "up" : ev.type === "veto" || ev.type === "sell" ? "dn" : "dim"}">${esc((ev.time || "").slice(11, 16))} ${esc(ev.text || ev.type || "")}</p>`).join("");
-    else if (sheetKind === "token") html = tokenSheet(sheetToken);
-    $("sheet").innerHTML = `<div class="grab"></div><button type="button" class="chip" data-close="1">Zapri</button>` + html;
-    $("sheet").hidden = false;
+    if (sheetKind === "agents" || sheetKind === "senzor") html = agentSheet(focusAgent);
+    else if (sheetKind === "knjiga" || sheetKind === "pozicije" || sheetKind === "pnl") html = bookSheet();
+    else if (sheetKind === "signal") {
+      html = `<h3>Signal rotacija</h3><p class="dim">X je 5-minutni momentum iz glasu TREND. Y je število glasov DA. Krivulja je povezava, ne zgodovina cene.</p>` + ((data && data.candidates) || []).slice(0, 16).map((c) => `<p>${esc(c.symbol)} ${esc(chainOf(c))} ${esc(c.category || "")} ${yesCount(c.votes)}/5 ${c.change24 == null ? "—" : esc(pct(c.change24))}</p>`).join("");
+    } else if (sheetKind === "sled" || sheetKind === "trak") {
+      html = `<h3>Sled</h3><p>${esc(RULE)}</p>` + sledRows().map((r) => `<p class="${r.ok ? "up" : "dn"}">${esc((r.ev.time || "").slice(11, 16))} ${esc(r.ev.symbol || "")} ${esc(r.votes)} ${esc(r.ev.text || "")}</p>`).join("");
+    } else if (sheetKind === "cenilec") {
+      html = `<h3>Cenilec</h3><p>Pahljača je statistični stožec iz standardnega odklona zadnjih 15-minutnih donosov GeckoTerminal. <b>Ni napoved cene.</b></p><p class="dim">${esc(candleNote || "")}</p>`;
+    }
+    $("sheet").innerHTML = `<button type="button" class="chip" data-close="1">Zapri</button>` + html;
     $("sheet").classList.add("show");
     $("back").classList.add("show");
-    const sound = $("sound");
-    if (sound) sound.addEventListener("change", () => { try { localStorage.setItem("kripto-agenti-sound", sound.checked ? "1" : "0"); } catch (_) {} });
-  }
-  let sheetKindFocus = null;
-  let sheetToken = null;
-  function openSheet(kind, extra) {
-    sheetKind = kind;
-    sheetKindFocus = extra && extra.agent || null;
-    sheetToken = extra && extra.token || null;
-    paintSheet();
   }
   function closeSheet() {
     sheetKind = null;
     $("sheet").classList.remove("show");
-    $("sheet").hidden = true;
     $("back").classList.remove("show");
   }
-  function bolt(g, rnd, x1, y1, x2, y2, color, jitter) {
-    const segs = [{ x1: x1, y1: y1, x2: x2, y2: y2, w: 1.25, gen: 0 }];
-    let guard = 0;
-    while (segs.length && guard < 220) {
-      guard += 1;
-      const s = segs.pop();
-      const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
-      const len = Math.hypot(dx, dy);
-      if (s.gen > 4 || len < 16) {
-        g.strokeStyle = color;
-        g.globalAlpha = 0.62;
-        g.lineWidth = s.w;
-        g.beginPath();
-        g.moveTo(s.x1, s.y1);
-        g.lineTo(s.x2, s.y2);
-        g.stroke();
-        g.globalAlpha = 0.16;
-        g.lineWidth = s.w * 4.5;
-        g.stroke();
-        continue;
-      }
-      const j = len * jitter;
-      const mx = (s.x1 + s.x2) / 2 + (rnd() - 0.5) * j;
-      const my = (s.y1 + s.y2) / 2 + (rnd() - 0.5) * j;
-      segs.push({ x1: mx, y1: my, x2: s.x2, y2: s.y2, w: s.w, gen: s.gen + 1 });
-      segs.push({ x1: s.x1, y1: s.y1, x2: mx, y2: my, w: s.w, gen: s.gen + 1 });
-      if (rnd() < 0.3 && s.gen < 3) {
-        const ang = Math.atan2(dy, dx) + (rnd() - 0.5) * 1.4;
-        const bl = len * (0.18 + rnd() * 0.2);
-        segs.push({ x1: mx, y1: my, x2: mx + Math.cos(ang) * bl, y2: my + Math.sin(ang) * bl, w: s.w * 0.65, gen: s.gen + 2 });
-      }
-    }
-    g.globalAlpha = 1;
-  }
-  function drawLightning(seed) {
-    const canvas = $("fx");
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = window.innerWidth, h = window.innerHeight;
-    const W = Math.floor(w * dpr), H = Math.floor(h * dpr);
-    if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
-    const g = canvas.getContext("2d");
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, w, h);
-    const core = $("core");
-    if (!core) return;
-    const cr = core.getBoundingClientRect();
-    const cx = cr.left + cr.width / 2;
-    const cy = cr.top + cr.height / 2;
-    let s = seed || 1;
-    const rnd = () => { s = (Math.imul(s, 16807) + 11) % 2147483647; return s / 2147483647; };
-    const colors = ["#ff3ad4", "#ff4ecd", "#7aa2ff", "#d6b4ff", "#f4fbff"];
-    g.lineCap = "round";
-    g.globalCompositeOperation = "lighter";
-    document.querySelectorAll(".panel").forEach((el, i) => {
-      const r = el.getBoundingClientRect();
-      if (r.bottom < 0 || r.top > h || r.right < 0 || r.left > w) return;
-      const ax = Math.max(r.left + 6, Math.min(cx, r.right - 6));
-      const ay = Math.max(r.top + 6, Math.min(cy, r.bottom - 6));
-      bolt(g, rnd, cx, cy, ax, ay, colors[i % colors.length], reduce ? 0.04 : 0.26);
-      const ax2 = r.left + r.width * (0.25 + (i % 3) * 0.22);
-      const ay2 = cy < r.top + 4 ? r.top + 4 : (cy > r.bottom - 4 ? r.bottom - 4 : ay);
-      bolt(g, rnd, cx, cy, ax2, ay2, colors[(i + 2) % colors.length], reduce ? 0.03 : 0.2);
-    });
-    if (!reduce) {
-      for (let k = 0; k < 3; k++) {
-        const ang = rnd() * Math.PI * 2;
-        const len = 36 + rnd() * 54;
-        bolt(g, rnd, cx, cy, cx + Math.cos(ang) * len, cy + Math.sin(ang) * len, colors[k], 0.3);
-      }
-    }
-    g.globalCompositeOperation = "source-over";
-    g.globalAlpha = 1;
-  }
   function frame(ts) {
-    if (!looping) return;
-    const bucket = Math.floor(ts / 90);
-    if (bucket !== boltBucket) {
-      boltBucket = bucket;
-      drawLightning(bucket * 17 + 3);
-    }
+    if (!running) return;
+    drawSynapse(ts);
+    drawSensor(ts);
     raf = requestAnimationFrame(frame);
   }
-  function startLoop() {
-    if (reduce || looping) return;
-    looping = true;
+  function start() {
+    if (reduce) { drawSynapse(0); drawSensor(0); return; }
+    if (running) return;
+    running = true;
     raf = requestAnimationFrame(frame);
   }
-  function stopLoop() { looping = false; if (raf) cancelAnimationFrame(raf); }
+  function stop() { running = false; if (raf) cancelAnimationFrame(raf); }
   async function load() {
     if (loading) return;
     loading = true;
     try {
       const res = await fetch(STATUS_URL + "?t=" + Date.now(), { cache: "no-store" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
+      if (!res.ok) throw new Error(String(res.status));
       const json = await res.json();
       if (!json || json.note !== "SIMULACIJA") throw new Error("posnetek");
       render(json);
-      $("error").hidden = true;
     } catch (_) {
-      $("error").hidden = false;
-      $("error").textContent = data ? "Zadnje osveževanje ni uspelo. Prikazan je prejšnji posnetek." : "Posnetka še ni. Čaka na signal.";
-    } finally {
-      loading = false;
-    }
+      if (!data) $("tick").textContent = "POSNETKA ŠE NI · SAMO SIMULACIJA";
+    } finally { loading = false; }
   }
   document.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]") || e.target.id === "back") { closeSheet(); return; }
-    const chain = e.target.closest("[data-chain]");
-    if (chain && sheetKind === "history") { histChain = chain.dataset.chain; paintSheet(); return; }
-    const cand = e.target.closest("[data-cand]");
-    if (cand && data) {
-      openSheet("token", { token: (data.candidates || [])[Number(cand.dataset.cand)] });
-      return;
-    }
     const agent = e.target.closest("[data-agent]");
-    if (agent) { openSheet("agents", { agent: agent.dataset.agent }); return; }
+    if (agent) { sheetKind = "agents"; focusAgent = agent.dataset.agent; paintSheet(); return; }
     const panel = e.target.closest("[data-sheet]");
-    if (panel) openSheet(panel.dataset.sheet);
+    if (panel) { sheetKind = panel.dataset.sheet; focusAgent = null; paintSheet(); }
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
-  let pullY = 0;
-  window.addEventListener("touchstart", (e) => { if (window.scrollY <= 2) pullY = e.touches[0].clientY; }, { passive: true });
-  window.addEventListener("touchend", (e) => {
-    if (window.scrollY <= 2 && pullY && e.changedTouches[0].clientY - pullY > 72) load();
-    pullY = 0;
-  });
-  window.addEventListener("resize", () => { boltBucket = -1; drawLightning(reduce ? 1 : 9); drawCharts(); });
+  window.addEventListener("resize", layout);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") stopLoop();
-    else { startLoop(); load(); }
+    if (document.visibilityState === "hidden") stop();
+    else { start(); load(); }
   });
-  if (reduce) {
-    drawLightning(1);
-    window.addEventListener("scroll", () => drawLightning(1), { passive: true });
-  } else startLoop();
   clock();
   setInterval(clock, 1000);
-  setInterval(() => { if (document.visibilityState === "visible") load(); }, 20000);
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});
+  setInterval(() => { if (document.visibilityState === "visible") { const tick = $("tick"); if (data && tick) { /* age refreshes with full render */ } load(); } }, 20000);
+  layout();
+  start();
   load();
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});
 })();
 </script>
 </body>
