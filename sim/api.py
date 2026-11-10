@@ -91,6 +91,27 @@ def fetch_token_pairs(addresses: list[str], chain: str = "bsc") -> list[dict]:
     return out
 
 
+def fetch_ohlcv(pool: str, chain: str = "bsc", timeframe: str = "minute", aggregate: int = 15, limit: int = 200) -> list[list]:
+    """GeckoTerminal candles, oldest first: [ts, open, high, low, close, volume]."""
+    network = "solana" if chain == "solana" else "bsc"
+    url = (
+        "https://api.geckoterminal.com/api/v2/networks/"
+        f"{network}/pools/{pool}/ohlcv/{timeframe}"
+        f"?aggregate={int(aggregate)}&limit={int(limit)}&currency=usd"
+    )
+    data = _get(url)
+    time.sleep(config.REQUEST_PAUSE)
+    if not isinstance(data, dict) or "__error__" in data:
+        return []
+    rows = ((data.get("data") or {}).get("attributes") or {}).get("ohlcv_list") or []
+    out = []
+    for row in rows:
+        if isinstance(row, list) and len(row) >= 6:
+            out.append([float(row[0]), float(row[1]), float(row[2]), float(row[3]), float(row[4]), float(row[5])])
+    out.sort(key=lambda r: r[0])
+    return out
+
+
 def fetch_pair(pair_address: str, chain: str = "bsc") -> dict | None:
     data = _get(f"{config.DEX_BASE}/latest/dex/pairs/{chain}/{pair_address}")
     time.sleep(config.REQUEST_PAUSE)

@@ -22,6 +22,7 @@ from api import (
     fetch_frankfurter_eur_usd,
     fetch_gt_pools,
     fetch_gt_top_pools,
+    fetch_ohlcv,
     fetch_pair,
     fetch_token_boosts,
     fetch_token_boosts_top,
@@ -57,6 +58,7 @@ from learning import (
 )
 from status import write_status
 from strategy import best_pair_for_token
+from support import plan_stop, size_for_stop
 
 ROOT = Path(__file__).resolve().parent
 STATE_PATH = ROOT / config.STATE_FILE
@@ -292,12 +294,24 @@ def maybe_exit(st: dict) -> None:
         pnl_pct = (net / cost - 1.0) if cost else 0.0
         reason = None
         book = st.get("_learn")
-        if pnl_pct <= stop_loss(book):
+        stop_frac = float(pos.get("stop_frac") or config.STOP_FALLBACK)
+        learned = stop_loss(book)
+        history = " ".join(str(row.get("why") or "") for row in ((book or {}).get("history") or []))
+        # The old -8% default is not a learned tighten. Only an explicit later stop change counts.
+        if "stop " in history and learned > stop_frac:
+            stop_frac = learned
+        support_px = entry * (1.0 + stop_frac)
+        trail_px = None
+        if (peak / entry - 1.0) >= config.TRAIL_ACTIVATE:
+            trail_px = peak * (1.0 - config.TRAIL_PCT)
+            if trail_px < support_px:
+                trail_px = support_px
+        if trail_px is not None and px <= trail_px and trail_px > support_px:
+            reason = "trailing_stop"
+        elif px <= support_px:
             reason = "stop_loss"
         elif pnl_pct >= config.TAKE_PROFIT:
             reason = "take_profit"
-        elif (peak / entry - 1.0) >= config.TRAIL_ACTIVATE and px <= peak * (1.0 - config.TRAIL_PCT):
-            reason = "trailing_stop"
         elif age >= time_stop_sec(book):
             reason = "time_stop"
         if reason:
@@ -321,6 +335,11 @@ def maybe_exit(st: dict) -> None:
                 "category": pos.get("category") or "",
                 "mfe_pct": round(float(pos.get("mfe_pct", 0)), 4),
                 "mae_pct": round(float(pos.get("mae_pct", 0)), 4),
+                "support_low": pos.get("support_low"),
+                "support_high": pos.get("support_high"),
+                "buffer": pos.get("buffer"),
+                "stop_price": pos.get("stop_price"),
+                "stop_pct": pos.get("stop_pct"),
             }
             if book and pos.get("learn"):
                 on_close(book, pos["learn"], {
@@ -363,8 +382,7 @@ def maybe_enter(st: dict) -> None:
         return
     if datetime.now(LJ) >= config.END_AT:
         return
-    size = position_size_usd(st)
-    if size <= 0 or float(st["cash_usd"]) < size:
+    if equity_usd(st) <= 0 or float(st["cash_usd"]) <= 0:
         push_activity(st, {
             "time": when, "type": "scan",
             "text": "Pregled ustavljen — premalo gotovine za nov vstop",
@@ -396,7 +414,7 @@ def maybe_enter(st: dict) -> None:
             break
         if evaluated.get(chain_name, 0) >= EVAL_CAP or len(st["open"]) >= max_open(st.get("_learn")):
             continue
-        if float(st["cash_usd"]) < size:
+        if float(st["cash_usd"]) <= 0:
             break
         addr = cand["address"]
         al = addr.lower()
@@ -493,6 +511,35 @@ def maybe_enter(st: dict) -> None:
         px = float(pair.get("priceUsd") or 0)
         if px <= 0:
             continue
+        pool = str(pair.get("pairAddress") or "")
+        candles_15m = fetch_ohlcv(pool, chain_name, "minute", 15, 192) if pool else []
+        candles_1h = fetch_ohlcv(pool, chain_name, "hour", 1, 168) if pool else []
+        plan = plan_stop(px, candles_15m, candles_1h)
+        if not plan["ok"]:
+            push_activity(st, {
+                "time": stamp,
+                "type": "skip",
+                "symbol": symbol,
+                "text": (
+                    f"PRESKOČI {symbol} · {plan['reason']}"
+                    f" · stop {plan['stop_pct']:.1f} %"
+                ),
+            })
+            log(f"SKIP {symbol} {plan['reason']} stop={plan['stop_pct']:.2f}%")
+            continue
+        size = size_for_stop(equity_usd(st), float(plan["stop_frac"]))
+        if size <= 0 or float(st["cash_usd"]) < size:
+            push_activity(st, {
+                "time": stamp,
+                "type": "skip",
+                "symbol": symbol,
+                "text": f"PRESKOČI {symbol} · premalo gotovine za tveganje 1,2 %",
+            })
+            continue
+        for key in ("support_low", "support_high", "buffer", "stop_price", "stop_pct", "reward_risk"):
+            features[key] = plan.get(key)
+        features["stop_frac"] = plan["stop_frac"]
+        features["size_usd"] = round(size, 6)
         liq_now = float(((pair.get("liquidity") or {}).get("usd")) or 0)
         cost_rate = config.ENTRY_COST
         if chain_name == "solana" and liq_now < 80_000:
@@ -521,6 +568,14 @@ def maybe_enter(st: dict) -> None:
             "liq_usd": liq_now,
             "cost_rate": cost_rate,
             "votes": votes,
+            "support_low": plan.get("support_low"),
+            "support_high": plan.get("support_high"),
+            "support_touches": plan.get("touches"),
+            "buffer": plan.get("buffer"),
+            "stop_price": plan.get("stop_price"),
+            "stop_pct": plan.get("stop_pct"),
+            "stop_frac": plan.get("stop_frac"),
+            "reward_risk": plan.get("reward_risk"),
             "learn": on_open(learn_book, features, symbol, stamp) if learn_book else features,
         }
         st["cash_usd"] = round(float(st["cash_usd"]) - spend, 6)
@@ -531,13 +586,15 @@ def maybe_enter(st: dict) -> None:
             "time": stamp,
             "type": "buy",
             "symbol": symbol,
-            "text": f"NAKUP {symbol} · {yes_n}/5 DA · ${spend:.2f}",
+            "text": (
+                f"NAKUP {symbol} · {yes_n}/5 DA · ${spend:.2f}"
+                f" · stop {plan['stop_pct']:.1f} %"
+            ),
         })
         log(
             f"ENTER {symbol} spend=${spend:.2f} px={px:.10g} dex={pos['dex']} "
             f"pair={pos['pair']} cash=${st['cash_usd']:.2f}"
         )
-        size = position_size_usd(st)
     st["last_scanned_bsc"] = int(evaluated.get("bsc") or 0)
     st["last_scanned_sol"] = int(evaluated.get("solana") or 0)
     st["last_scanned"] = st["last_scanned_bsc"] + st["last_scanned_sol"]

@@ -21,7 +21,12 @@ ENTRY_COST = 0.01
 EXIT_COST = 0.01
 
 # Exit rules
-STOP_LOSS = -0.08           # -8%
+# Widest support stop. A deeper level skips the trade. Learning may only tighten.
+STOP_LOSS = -0.15
+STOP_MIN = -0.05             # stop cannot sit closer than 5%
+STOP_FALLBACK = -0.10        # used when no support is found
+RISK_PCT = 0.012             # loss at the stop is at most 1.2% of equity
+MIN_REWARD_RISK = 1.5
 TAKE_PROFIT = 0.20          # +20%
 TRAIL_ACTIVATE = 0.10        # after +10%
 TRAIL_PCT = 0.10             # 10% from peak

@@ -28,7 +28,7 @@ KNOBS: dict[str, dict[str, tuple[float, float, float, int]]] = {
     "izvajanje": {"max_slip": (0.02, 0.008, 0.02, -1)},
 }
 GLOBAL = {
-    "stop_loss": (float(config.STOP_LOSS), float(config.STOP_LOSS), -0.03, 1),  # +1 moves toward zero, never past -0.08
+    "stop_loss": (float(config.STOP_LOSS), float(config.STOP_LOSS), -0.03, 1),  # +1 tightens toward zero, never looser than -15%
     "take_profit": (float(config.TAKE_PROFIT), 0.08, float(config.TAKE_PROFIT), -1),
     "time_stop_h": (4.0, 1.0, 4.0, -1),
     "max_open": (float(config.MAX_OPEN), 1.0, float(config.MAX_OPEN), -1),

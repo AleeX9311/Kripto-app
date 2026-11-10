@@ -634,7 +634,9 @@
     if (!open.length) { box.innerHTML = `<p class="dim">NI ODPRTIH</p>`; return; }
     box.innerHTML = open.slice(0, wide ? 4 : 3).map((p, i) => {
       const pnl = Number(p.pnl_pct) || 0;
-      return `<div class="pcard"><div class="nm"><b>${esc(p.symbol)} ${esc(chainOf(p))}</b><b class="${pnl >= 0 ? "up" : "dn"}">${esc(pct(pnl))}</b></div><div class="px">vstop ${esc(fmtPx(p.entry_price))}</div><div class="px">zdaj ${esc(fmtPx(p.last_price))}</div><canvas id="hb${i}"></canvas></div>`;
+      const stopTxt = p.stop_pct == null ? "—" : pct(p.stop_pct);
+      const sup = p.support_low == null ? "—" : fmtPx(p.support_low);
+      return `<div class="pcard"><div class="nm"><b>${esc(p.symbol)} ${esc(chainOf(p))}</b><b class="${pnl >= 0 ? "up" : "dn"}">${esc(pct(pnl))}</b></div><div class="px">vstop ${esc(fmtPx(p.entry_price))} · zdaj ${esc(fmtPx(p.last_price))}</div><div class="px">podpora ${esc(sup)} · stop ${esc(stopTxt)}</div><canvas id="hb${i}"></canvas></div>`;
     }).join("");
     open.slice(0, wide ? 4 : 3).forEach((p, i) => drawHeart($("hb" + i), p));
   }
@@ -843,8 +845,15 @@
       return;
     }
     const rows = candles.slice(- (wide ? 48 : 28));
-    const min = Math.min.apply(null, rows.map((r) => r[3]));
-    const max = Math.max.apply(null, rows.map((r) => r[2]));
+    const tracked = ((data && data.open) || []).find((p) => ($("trakTitle").textContent || "").indexOf(p.symbol) >= 0) || null;
+    const extras = [];
+    if (tracked) {
+      if (tracked.support_low) extras.push(Number(tracked.support_low));
+      if (tracked.support_high) extras.push(Number(tracked.support_high));
+      if (tracked.stop_price) extras.push(Number(tracked.stop_price));
+    }
+    const min = Math.min.apply(null, rows.map((r) => r[3]).concat(extras.filter((n) => Number.isFinite(n))));
+    const max = Math.max.apply(null, rows.map((r) => r[2]).concat(extras.filter((n) => Number.isFinite(n))));
     const span = (max - min) || 1;
     const L = wide ? 52 : 36;
     const volH = Math.max(16, Math.round(h * 0.22));
@@ -878,6 +887,26 @@
       g.fillStyle = up ? "rgba(57,255,136,.75)" : "rgba(255,59,92,.75)";
       g.fillRect(L + i * cw + 1, h - bh, Math.max(1, cw - 1.5), bh);
     });
+    if (tracked && Number.isFinite(Number(tracked.support_low))) {
+      const y1 = y(Number(tracked.support_high || tracked.support_low));
+      const y2 = y(Number(tracked.support_low));
+      g.fillStyle = "rgba(61,224,255,.16)";
+      g.fillRect(L, Math.min(y1, y2), w - L - 2, Math.max(2, Math.abs(y2 - y1)));
+      g.fillStyle = "#3de0ff";
+      g.fillText("podpora", L + 2, Math.min(y1, y2) - 2);
+    }
+    if (tracked && Number.isFinite(Number(tracked.stop_price))) {
+      const ys = y(Number(tracked.stop_price));
+      g.strokeStyle = "#ff3b5c";
+      g.setLineDash([3, 2]);
+      g.beginPath();
+      g.moveTo(L, ys);
+      g.lineTo(w - 2, ys);
+      g.stroke();
+      g.setLineDash([]);
+      g.fillStyle = "#ff3b5c";
+      g.fillText("stop", w - 28, ys - 2);
+    }
   }
   function poolFrom(url) {
     const m = String(url || "").match(/dexscreener\.com\/(solana|bsc)\/([0-9A-Za-z]+)/i);
@@ -1329,10 +1358,15 @@
     const body = open.length ? open.map((p) => {
       const pnl = Number(p.pnl_pct) || 0;
       const mark = Math.max(0, Math.min(100, ((pnl + 8) / 28) * 100));
-      return `<p><b>${esc(p.symbol)}</b> ${esc(chainOf(p))} <b class="${pnl >= 0 ? "up" : "dn"}">${esc(money(p.pnl_usd))} · ${esc(pct(pnl))}</b></p><div class="level"><i style="left:${mark}%"></i></div><p class="dim">Vstop ${esc(p.entry_price)} · zdaj ${esc(p.last_price)} · do 4h: ${esc(left4h(p.opened_at))}</p>`;
+      const stopPct = Number(p.stop_pct);
+      const span = (Number.isFinite(stopPct) ? 20 - stopPct : 28);
+      const mark2 = Number.isFinite(stopPct) ? Math.max(0, Math.min(100, ((pnl - stopPct) / span) * 100)) : mark;
+      const sup = p.support_low == null ? "—" : fmtPx(p.support_low);
+      const stopTxt = p.stop_pct == null ? "—" : pct(p.stop_pct);
+      return `<p><b>${esc(p.symbol)}</b> ${esc(chainOf(p))} <b class="${pnl >= 0 ? "up" : "dn"}">${esc(money(p.pnl_usd))} · ${esc(pct(pnl))}</b></p><div class="level"><i style="left:${mark2}%"></i></div><p class="dim">Vstop ${esc(fmtPx(p.entry_price))} · zdaj ${esc(fmtPx(p.last_price))} · podpora ${esc(sup)} · stop ${esc(stopTxt)} · do 4h: ${esc(left4h(p.opened_at))}</p>`;
     }).join("") : `<p>NI ODPRTIH POZICIJ</p>`;
     const closed = ((data && data.closed) || []).slice(0, 12).map((t) => `<p class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))} <span class="dim">${esc(t.reason || "")}</span></p>`).join("");
-    return `<h3>Knjiga</h3>${body}<h3>Zaprto</h3>${closed || "<p>ČAKA</p>"}<h3>Pravila</h3><p><b>SIMULACIJA · VIRTUALNI DENAR.</b> ${esc(RULE)}</p><p>10 % na pozicijo, največ 5 odprtih. Izstop −8 %, +20 %, trailing 10 % po +10 %, časovni izhod 4 h. Zdrs 1 % (2 % na majhnem SOL bazenu). 9. 11. 2026 – 16. 11. 2026.</p>`;
+    return `<h3>Knjiga</h3>${body}<h3>Zaprto</h3>${closed || "<p>ČAKA</p>"}<h3>Pravila</h3><p><b>SIMULACIJA · VIRTUALNI DENAR.</b> ${esc(RULE)}</p><p>Največ 10 % kapitala na pozicijo, a izguba ob stopu je kvečjemu 1,2 % kapitala. Stop je pod najbližjo podporo, med −5 % in −15 %. Brez podpore je −10 %. Podpora globlje od −15 % ali razmerje dobiček/tveganje pod 1,5 posel preskoči. Cilj +20 %. Trailing 10 % po +10 % ne pade pod stop podpore. Časovni izhod 4 h. Zdrs 1 % (2 % na majhnem SOL bazenu). 9. 11. 2026 – 16. 11. 2026.</p>`;
   }
   function learnSheet() {
     const learn = (data && data.learning) || {};

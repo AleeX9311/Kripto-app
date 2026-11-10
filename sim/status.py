@@ -86,6 +86,11 @@ def public_open(p: dict) -> dict:
         "pnl_usd": round(pnl_usd, 4),
         "pnl_pct": round(pnl_pct, 4),
         "votes": p.get("votes") if isinstance(p.get("votes"), dict) else None,
+        "support_low": _num(p.get("support_low")),
+        "support_high": _num(p.get("support_high")),
+        "stop_price": _num(p.get("stop_price")),
+        "stop_pct": _num(p.get("stop_pct")),
+        "buffer": _num(p.get("buffer")),
     }
 
 

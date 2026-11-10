@@ -85,7 +85,8 @@ def test_safety_cannot_loosen():
     from learning import _merge_params
     merged = _merge_params(book["params"])
     book["params"] = merged
-    assert stop_loss(book) >= -0.08
+    assert stop_loss(book) >= -0.15
+    assert stop_loss(book) <= -0.03
     assert book["params"]["varnost"]["min_liq"] >= 30000
 
 
