@@ -49,13 +49,16 @@
       display: flex; flex-direction: column; gap: 4px;
       padding: 5px;
       color: var(--text);
+      font-size: 10px;
     }
-    #board.wide { width: 1440px; height: 900px; padding: 10px; gap: 6px; }
+    #board.wide { width: 1440px; height: 900px; padding: 10px; gap: 6px; font-size: 12px; }
     .top { height: 70px; flex: none; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .toprow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .logo { font-family: "Space Grotesk", sans-serif; font-weight: 700; letter-spacing: .08em; font-size: 12px; line-height: 1; }
     .logo small { display: block; margin-top: 2px; font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 7px; letter-spacing: .14em; color: var(--muted); }
-    .clock { font-size: 16px; letter-spacing: .06em; text-align: right; color: #fff; flex: none; }
+    .clockbox { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: none; }
+    .clock { font-size: 16px; letter-spacing: .06em; text-align: right; color: #fff; line-height: 1; }
+    .clockmeta { display: flex; gap: 3px; align-items: center; }
     .navline, .statline { display: flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; }
     .navline button.nav { font-size: 7px; letter-spacing: .12em; color: var(--cyan); padding: 2px 0; }
     .stat, .pill {
@@ -82,7 +85,7 @@
     }
     .tick b { color: var(--yel); font-weight: 600; }
     .tri { height: 136px; flex: none; display: grid; grid-template-columns: 1fr 1.12fr 1fr; gap: 4px; min-height: 0; }
-    .mid { height: 268px; flex: none; display: grid; grid-template-columns: 78px 1fr 108px; gap: 4px; min-height: 0; position: relative; z-index: 2; }
+    .mid { height: 268px; flex: none; display: grid; grid-template-columns: 74px 1fr 124px; gap: 4px; min-height: 0; position: relative; z-index: 2; }
     .pipe { height: 26px; flex: none; position: relative; z-index: 8; display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
     .pipe .wire { position: absolute; left: 8px; right: 8px; top: 50%; height: 1px; background: linear-gradient(90deg, #ff3df2, #ffb020, #ff3b5c, #39ff88, #3de0ff); opacity: .7; }
     .pipe button {
@@ -125,9 +128,22 @@
     .dn { color: var(--red); }
     .dim { color: var(--muted); }
     .tag { font-size: 6px; letter-spacing: .04em; color: var(--cyan); }
-    .pcard { border-top: 1px solid rgba(255,255,255,.05); padding: 2px 0; }
-    .pcard .nm { display: flex; justify-content: space-between; font-size: 8px; }
-    .pcard canvas { width: 100%; height: 16px; display: block; }
+    .pcard { border-top: 1px solid rgba(255,255,255,.06); padding: 2px 0 1px; min-width: 0; }
+    .pcard .nm, .pcard .px {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 9px; line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pcard .nm { display: flex; justify-content: space-between; gap: 4px; }
+    .pcard canvas { width: 100%; height: 14px; display: block; }
+    .pnlhead { display: flex; flex-direction: column; gap: 2px; flex: none; }
+    .statgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 6px; font-size: 8px; color: var(--muted); letter-spacing: .04em; }
+    .statgrid b { display: block; color: #fff; font-size: 10px; font-weight: 600; }
+    .statgrid .up b { color: var(--green); }
+    .statgrid .dn b { color: var(--red); }
+    .crow { display: grid; grid-template-columns: 46px 1fr 42px; gap: 3px; align-items: center; font-size: 8px; line-height: 1.2; }
+    .crow i { display: block; height: 6px; border-radius: 1px; }
+    #classBars { flex: none; overflow: hidden; }
     .huge {
       font-family: "Space Grotesk", sans-serif;
       font-weight: 700; font-size: 26px; letter-spacing: -.04em; line-height: .9;
@@ -135,8 +151,11 @@
     }
     .huge.dn { color: var(--red); text-shadow: 0 0 16px rgba(255,59,92,.3); }
     .sub { font-size: 7px; color: var(--muted); margin: 2px 0 3px; letter-spacing: .04em; }
-    .trakrow { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 64px; gap: 3px; }
-    .ladder { overflow: hidden; display: flex; flex-direction: column; gap: 1px; }
+    .trakrow { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 86px; gap: 3px; }
+    .ladder { overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; gap: 1px; min-height: 0; }
+    .lad { display: grid; grid-template-columns: 46px 1fr; gap: 2px; align-items: center; font-size: 7px; line-height: 1; min-width: 0; }
+    .lad span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lad i { display: block; height: 7px; border-radius: 1px; justify-self: end; }
     .ladder i { display: block; height: 6px; border-radius: 1px; opacity: .9; }
     #fx {
       position: absolute; left: 0; z-index: 5; pointer-events: none;
@@ -187,13 +206,19 @@
     .wide .panel { padding: 8px 10px; }
     .wide .panel h2 { font-size: 11px; margin-bottom: 6px; }
     .wide .hint, .wide .sub, .wide .tag { font-size: 10px; }
-    .wide .huge { font-size: 54px; }
+    .wide .huge { font-size: 42px; }
+    .wide .pnlhead { flex-direction: row; align-items: flex-end; gap: 12px; }
+    .wide .statgrid { font-size: 11px; }
+    .wide .statgrid b { font-size: 14px; }
+    .wide .crow { font-size: 11px; grid-template-columns: 72px 1fr 64px; }
+    .wide .pcard .nm, .wide .pcard .px { font-size: 11px; }
+    .wide .lad { font-size: 10px; grid-template-columns: 72px 1fr; }
     .wide .chipcard b { font-size: 11px; }
     .wide .chipcard span { font-size: 10px; }
     .wide .chipcard { min-width: 92px; padding: 4px 8px; }
     .wide canvas.thin { height: 42px; }
     .wide .ladder { width: auto; }
-    .wide .trakrow { grid-template-columns: 1fr 120px; }
+    .wide .trakrow { grid-template-columns: 1fr 160px; }
     .wide .pcard .nm { font-size: 12px; }
     .wide .pcard canvas { height: 28px; }
     @media (prefers-reduced-motion: reduce) {
@@ -208,21 +233,25 @@
         <header class="top">
           <div class="toprow">
             <div class="logo">KRIPTO AGENTI DESK<small>PAPIRNA KNJIGA · BREZ PRAVEGA DENARJA</small></div>
-            <div class="clock" id="clock">00:00:00</div>
+            <div class="clockbox">
+              <div class="clock" id="clock">00:00:00</div>
+              <div class="clockmeta">
+                <span class="pill" id="stBsc">BSC</span>
+                <span class="pill" id="stSol">SOL</span>
+                <span class="pill wait" id="roj">ROJ ČAKA</span>
+              </div>
+            </div>
           </div>
           <div class="navline">
             <button class="nav" type="button" data-sheet="agents">SINAPSA</button>
             <button class="nav" type="button" data-sheet="trak">TRAK</button>
             <button class="nav" type="button" data-sheet="knjiga">KNJIGA</button>
-            <span class="pill wait" id="roj">ROJ ČAKA</span>
           </div>
           <div class="statline">
             <span class="stat" id="stEq">—</span>
             <span class="stat" id="stPnl">—</span>
             <span class="stat" id="stN">—</span>
             <span class="stat" id="stWin">—</span>
-            <span class="pill" id="stBsc">BSC</span>
-            <span class="pill" id="stSol">SOL</span>
           </div>
         </header>
         <div class="tick" id="tick">5 AGENTOV LIVE · SAMO SIMULACIJA</div>
@@ -260,9 +289,12 @@
         <div class="bot">
           <section class="panel" data-sheet="pnl">
             <h2>Roj PnL</h2>
-            <div class="huge" id="huge">—</div>
-            <div class="sub" id="sub">—</div>
+            <div class="pnlhead">
+              <div class="huge" id="huge">—</div>
+              <div class="statgrid" id="statgrid"></div>
+            </div>
             <canvas class="plot" id="eq"></canvas>
+            <div id="classBars"></div>
           </section>
           <section class="panel" data-sheet="trak">
             <h2 id="trakTitle">Trak</h2>
@@ -338,13 +370,16 @@
     const body = Math.abs(v).toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return (v > 0 ? "+" : v < 0 ? "−" : "") + body + " %";
   }
+  function trimNum(s) { return String(s).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, ""); }
   function fmtPx(n) {
     const v = num(n);
     if (v == null) return "—";
-    if (v >= 100) return v.toLocaleString("en-US", { maximumFractionDigits: 2 });
-    if (v >= 1) return v.toLocaleString("en-US", { maximumFractionDigits: 4 });
-    if (v >= 0.01) return v.toFixed(4);
-    return v.toExponential(2);
+    const a = Math.abs(v);
+    if (a >= 1000) return v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    if (a >= 1) return trimNum(v.toFixed(4));
+    if (a >= 0.0001) return trimNum(v.toFixed(6));
+    const digits = Math.min(10, Math.ceil(-Math.log10(a)) + 2);
+    return trimNum(v.toFixed(digits));
   }
   function chainOf(x) { return x && (x.chain === "solana" || x.chain === "SOL") ? "SOL" : (x && x.chain ? "BSC" : ""); }
   function yesCount(votes) {
@@ -398,11 +433,13 @@
     data = d;
     const up = Number(d.pct_vs_eur50) >= 0;
     const realized = (d.closed || []).reduce((s, t) => s + (Number(t.pnl_usd) || 0), 0);
+    const fx = num(d.equity_usd) > 0 && num(d.equity_eur) != null ? Number(d.equity_eur) / Number(d.equity_usd) : null;
+    const realizedEur = fx != null ? realized * fx : null;
     const wins = Number(d.wins) || 0, losses = Number(d.losses) || 0, n = wins + losses;
     const rate = n ? Math.round(100 * wins / n) + "%" : "—";
     $("stEq").innerHTML = "<b>" + esc(eur(d.equity_eur)) + "</b>";
     $("stEq").className = "stat " + (up ? "up" : "dn");
-    $("stPnl").innerHTML = "<b>" + esc(money(realized)) + "</b>";
+    $("stPnl").innerHTML = "IZID <b>" + esc(realizedEur != null ? eur(realizedEur) : money(realized)) + "</b>";
     $("stPnl").className = "stat " + (realized >= 0 ? "up" : "dn");
     $("stN").innerHTML = "POSLI <b>" + esc(d.trades || 0) + "</b>";
     $("stWin").innerHTML = "ZMAGE <b>" + esc(rate) + "</b>";
@@ -417,7 +454,14 @@
     $("tick").innerHTML = "5 AGENTOV LIVE · PREDAJA " + esc((AGENTS.find((a) => a.id === hot) || AGENTS[0]).label) + " " + esc(latest.symbol || "—") + " · BSC " + (Number(d.scanned_bsc) || 0) + " · SOL " + (Number(d.scanned_sol) || 0) + " · <b>SAMO SIMULACIJA · VIRTUALNI DENAR</b> · " + esc(ageText()) + " · 4/5 VARNOST OBVEZNA";
     $("huge").textContent = eur(d.equity_eur);
     $("huge").className = "huge" + (up ? "" : " dn");
-    $("sub").textContent = "POSLI " + (d.trades || 0) + " · ZMAGE " + rate + " · IZID " + money(realized) + " · " + pct(d.pct_vs_eur50);
+    const izidTxt = realizedEur != null ? eur(realizedEur) : money(realized);
+    $("statgrid").innerHTML = [
+      ["POSLI", String(d.trades || 0), ""],
+      ["ZMAGE", rate, ""],
+      ["IZID", izidTxt, realized >= 0 ? "up" : "dn"],
+      ["ODPRTE", String((d.open || []).length), ""]
+    ].map(([k, v, cls]) => `<div class="${cls}"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
+    drawClassBars(fx);
     drawRotation();
     drawStack();
     drawSled();
@@ -434,20 +478,40 @@
   function drawRotation() {
     const c = $("rot");
     const { g, w, h } = fit(c);
-    grid(g, w, h);
+    const L = wide ? 28 : 18, B = wide ? 16 : 12;
+    g.strokeStyle = "rgba(255,255,255,.08)";
+    g.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = 2 + (h - B - 2) * i / 4;
+      g.beginPath(); g.moveTo(L, y); g.lineTo(w - 2, y); g.stroke();
+    }
+    for (let i = 0; i <= 3; i++) {
+      const x = L + (w - L - 2) * i / 3;
+      g.beginPath(); g.moveTo(x, 2); g.lineTo(x, h - B); g.stroke();
+    }
     const cands = (data && data.candidates) || [];
-    if (!cands.length) { g.fillStyle = "#8aa"; g.font = "8px JetBrains Mono, monospace"; g.fillText("ČAKA", 4, 12); return; }
+    g.font = (wide ? 10 : 7) + "px JetBrains Mono, monospace";
+    g.fillStyle = "rgba(180,196,220,.8)";
+    g.fillText("DA", 1, 9);
+    g.fillText("5m%", L, h - 1);
+    if (!cands.length) { g.fillText("ČAKA", L + 4, 16); return; }
     const xs = cands.map((c) => num(c.votes && c.votes.trend && c.votes.trend.numbers && c.votes.trend.numbers.ch5));
     const finite = xs.filter((v) => v != null);
     const min = finite.length ? Math.min.apply(null, finite) : -5;
     const max = finite.length ? Math.max.apply(null, finite) : 5;
     const span = (max - min) || 1;
+    g.fillText(min.toFixed(0), L, h - 1);
+    g.fillText(max.toFixed(0), w - 16, h - 1);
+    [0, 5].forEach((tick) => {
+      const y = 2 + (h - B - 2) * (1 - tick / 5);
+      g.fillText(String(tick), 1, y + 3);
+    });
     cands.forEach((cnd) => {
       const xRaw = num(cnd.votes && cnd.votes.trend && cnd.votes.trend.numbers && cnd.votes.trend.numbers.ch5);
       if (xRaw == null) return;
       const yRaw = yesCount(cnd.votes);
-      const x = 6 + (w - 12) * ((xRaw - min) / span);
-      const y = 6 + (h - 12) * (1 - yRaw / 5);
+      const x = L + (w - L - 4) * ((xRaw - min) / span);
+      const y = 2 + (h - B - 4) * (1 - yRaw / 5);
       g.strokeStyle = chainOf(cnd) === "SOL" ? "rgba(61,224,255,.45)" : "rgba(255,61,242,.4)";
       g.lineWidth = 1;
       g.beginPath();
@@ -509,7 +573,7 @@
     if (!open.length) { box.innerHTML = `<p class="dim">NI ODPRTIH</p>`; return; }
     box.innerHTML = open.slice(0, wide ? 4 : 3).map((p, i) => {
       const pnl = Number(p.pnl_pct) || 0;
-      return `<div class="pcard"><div class="nm"><b>${esc(p.symbol)}</b><b class="${pnl >= 0 ? "up" : "dn"}">${esc(pct(pnl))}</b></div><div class="dim">${esc(chainOf(p))} · vstop ${esc(fmtPx(p.entry_price))}</div><canvas id="hb${i}"></canvas></div>`;
+      return `<div class="pcard"><div class="nm"><b>${esc(p.symbol)} ${esc(chainOf(p))}</b><b class="${pnl >= 0 ? "up" : "dn"}">${esc(pct(pnl))}</b></div><div class="px">vstop ${esc(fmtPx(p.entry_price))}</div><div class="px">zdaj ${esc(fmtPx(p.last_price))}</div><canvas id="hb${i}"></canvas></div>`;
     }).join("");
     open.slice(0, wide ? 4 : 3).forEach((p, i) => drawHeart($("hb" + i), p));
   }
@@ -545,21 +609,36 @@
     const c = $("eq");
     const { g, w, h } = fit(c);
     const pts = ((data && data.equity_history) || []).map((p) => num(p.eur)).filter((v) => v != null);
-    if (pts.length < 2) { g.fillStyle = "#8aa"; g.font = "8px JetBrains Mono, monospace"; g.fillText("ČAKA", 4, 14); return; }
-    const plotH = Math.max(16, h - 18);
-    grid(g, w, plotH);
-    const min = Math.min.apply(null, pts), max = Math.max.apply(null, pts), span = (max - min) || 1;
-    const x = (i) => 2 + (w - 4) * i / (pts.length - 1);
-    const y = (v) => 2 + (plotH - 4) * (1 - (v - min) / span);
-    const up = pts[pts.length - 1] >= pts[0];
+    g.font = (wide ? 10 : 8) + "px JetBrains Mono, monospace";
+    if (pts.length < 2) { g.fillStyle = "#8aa"; g.fillText("ČAKA", 4, 14); return; }
+    const base = 100;
+    const min = Math.min.apply(null, pts.concat([base]));
+    const max = Math.max.apply(null, pts.concat([base]));
+    const pad = ((max - min) || 1) * 0.12;
+    const yMin = min - pad, yMax = max + pad, span = (yMax - yMin) || 1;
+    const L = wide ? 36 : 26;
+    const x = (i) => L + (w - L - 4) * i / (pts.length - 1);
+    const y = (v) => 4 + (h - 8) * (1 - (v - yMin) / span);
+    g.strokeStyle = "rgba(255,255,255,.07)";
+    for (let i = 0; i < 4; i++) {
+      const yy = 4 + (h - 8) * i / 3;
+      g.beginPath(); g.moveTo(L, yy); g.lineTo(w - 2, yy); g.stroke();
+    }
+    g.setLineDash([3, 2]);
+    g.strokeStyle = "rgba(255,210,63,.85)";
+    g.beginPath(); g.moveTo(L, y(base)); g.lineTo(w - 2, y(base)); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = "#ffd23f";
+    g.fillText("100 €", 1, Math.min(h - 2, Math.max(8, y(base) + 3)));
+    const up = pts[pts.length - 1] >= base;
     g.beginPath();
     pts.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
-    g.lineTo(x(pts.length - 1), plotH);
-    g.lineTo(x(0), plotH);
+    g.lineTo(x(pts.length - 1), y(base));
+    g.lineTo(x(0), y(base));
     g.closePath();
-    const fill = g.createLinearGradient(0, 0, 0, plotH);
-    fill.addColorStop(0, up ? "rgba(57,255,136,.28)" : "rgba(255,59,92,.28)");
-    fill.addColorStop(1, "rgba(0,0,0,0)");
+    const fill = g.createLinearGradient(0, y(Math.max(max, base)), 0, y(Math.min(min, base)));
+    fill.addColorStop(0, up ? "rgba(57,255,136,.45)" : "rgba(255,59,92,.4)");
+    fill.addColorStop(1, "rgba(57,255,136,0)");
     g.fillStyle = fill;
     g.fill();
     g.beginPath();
@@ -568,25 +647,45 @@
     g.lineWidth = 1.6;
     g.stroke();
     const trades = ((data && data.closed) || []).slice().reverse();
-    if (trades.length) {
-      const vals = trades.map((t) => Number(t.pnl_usd) || 0);
-      const peak = Math.max.apply(null, vals.map((v) => Math.abs(v))) || 1;
-      const bw = Math.max(2, Math.min(10, (w - 4) / vals.length - 1));
-      vals.forEach((v, i) => {
-        const bh = Math.max(1, Math.abs(v) / peak * 14);
-        g.fillStyle = v >= 0 ? "#39ff88" : "#ff3b5c";
-        g.fillRect(2 + i * ((w - 4) / vals.length), h - bh, bw, bh);
-      });
-    }
+    trades.forEach((t, i) => {
+      const v = Number(t.pnl_usd) || 0;
+      g.fillStyle = v >= 0 ? "#39ff88" : "#ff3b5c";
+      const bw = Math.max(3, Math.min(8, (w - L) / Math.max(trades.length, 6) - 1));
+      g.fillRect(L + i * (bw + 2), h - 10, bw, 8);
+    });
+  }
+  function drawClassBars(fx) {
+    const box = $("classBars");
+    if (!box) return;
+    const rows = (data && data.closed) || [];
+    if (!rows.length) { box.innerHTML = `<p class="dim">ni zaprtih poslov</p>`; return; }
+    const max = Math.max.apply(null, rows.map((t) => Math.abs(Number(t.pnl_usd) || 0))) || 1;
+    box.innerHTML = rows.slice(0, wide ? 5 : 3).map((t) => {
+      const v = Number(t.pnl_usd) || 0;
+      const eurV = fx != null ? v * fx : null;
+      const width = Math.max(8, Math.abs(v) / max * 100);
+      const label = chainOf(t) + " " + (t.category || "—");
+      return `<div class="crow"><span>${esc(t.symbol)}</span><i style="width:${width}%;background:${v >= 0 ? "#39ff88" : "#ff3b5c"}"></i><b class="${v >= 0 ? "up" : "dn"}">${esc(eurV != null ? eur(eurV) : money(v))}</b></div><div class="dim" style="font-size:8px">${esc(label)}</div>`;
+    }).join("");
   }
   function drawLadder() {
-    const rows = sledRows();
-    $("ladder").innerHTML = rows.length ? rows.map((r) => {
+    const box = $("ladder");
+    const rows = candles.slice(- (wide ? 14 : 10)).reverse();
+    if (rows.length) {
+      const maxV = Math.max.apply(null, rows.map((r) => Number(r[5]) || 0)) || 1;
+      box.innerHTML = rows.map((r) => {
+        const up = r[4] >= r[1];
+        const width = Math.max(12, ((Number(r[5]) || 0) / maxV) * 100);
+        return `<div class="lad"><span class="${up ? "up" : "dn"}">${esc(fmtPx(r[4]))}</span><i style="width:${width}%;background:${up ? "#39ff88" : "#ff3b5c"}"></i></div>`;
+      }).join("");
+      return;
+    }
+    const decisions = sledRows();
+    box.innerHTML = decisions.map((r) => {
       const n = parseInt(r.votes, 10);
-      const width = Number.isFinite(n) ? Math.max(8, (n / 5) * 100) : 30;
-      const col = r.ok ? "#39ff88" : "#ff3b5c";
-      return `<i title="${esc(r.votes)}" style="width:${width}%;background:${col}"></i>`;
-    }).join("") : "";
+      const width = Number.isFinite(n) ? Math.max(12, (n / 5) * 100) : 30;
+      return `<div class="lad"><span class="${r.ok ? "up" : "dn"}">${esc(r.ev.symbol || r.votes)}</span><i style="width:${width}%;background:${r.ok ? "#39ff88" : "#ff3b5c"}"></i></div>`;
+    }).join("");
   }
   function drawPipe() {
     const hot = data ? hotAgent() : "";
@@ -628,7 +727,12 @@
     });
     const all = [last].concat(future[2].up, future[2].dn);
     const min = Math.min.apply(null, all), max = Math.max.apply(null, all), span = (max - min) || 1;
-    const y = (v) => 4 + (h - 8) * (1 - (v - min) / span);
+    const y = (v) => 10 + (h - 18) * (1 - (v - min) / span);
+    g.font = (wide ? 10 : 7) + "px JetBrains Mono, monospace";
+    g.fillStyle = "rgba(180,196,220,.8)";
+    g.fillText(fmtPx(max), 1, 9);
+    g.fillText(fmtPx(min), 1, h - 2);
+    g.fillText("σ", left + 2, 9);
     const hist = candles.slice(-24);
     const hw = left - 6;
     g.strokeStyle = "#ffd23f";
@@ -671,10 +775,9 @@
   function drawCandles() {
     const c = $("candles");
     const { g, w, h } = fit(c);
-    grid(g, w, h);
+    g.font = (wide ? 10 : 8) + "px JetBrains Mono, monospace";
     if (candles.length < 2) {
       g.fillStyle = "#8aa";
-      g.font = (wide ? 12 : 8) + "px JetBrains Mono, monospace";
       g.fillText(candleNote || "ČAKAM SVEČE", 6, h / 2);
       return;
     }
@@ -682,11 +785,22 @@
     const min = Math.min.apply(null, rows.map((r) => r[3]));
     const max = Math.max.apply(null, rows.map((r) => r[2]));
     const span = (max - min) || 1;
-    const cw = (w - 6) / rows.length;
-    const y = (v) => 4 + (h - 8) * (1 - (v - min) / span);
+    const L = wide ? 52 : 36;
+    const volH = Math.max(16, Math.round(h * 0.22));
+    const top = 4, bot = h - volH - 3;
+    const y = (v) => top + (bot - top) * (1 - (v - min) / span);
+    g.strokeStyle = "rgba(255,255,255,.07)";
+    g.fillStyle = "rgba(180,196,220,.85)";
+    for (let i = 0; i < 4; i++) {
+      const val = max - span * i / 3;
+      const yy = y(val);
+      g.beginPath(); g.moveTo(L, yy); g.lineTo(w - 2, yy); g.stroke();
+      g.fillText(fmtPx(val), 1, yy + 3);
+    }
+    const cw = (w - L - 4) / rows.length;
     rows.forEach((r, i) => {
       const up = r[4] >= r[1];
-      const x = 3 + i * cw + cw / 2;
+      const x = L + i * cw + cw / 2;
       g.strokeStyle = g.fillStyle = up ? "#39ff88" : "#ff3b5c";
       g.lineWidth = 1;
       g.beginPath();
@@ -694,7 +808,14 @@
       g.lineTo(x, y(r[3]));
       g.stroke();
       const y1 = y(Math.max(r[1], r[4])), y2 = y(Math.min(r[1], r[4]));
-      g.fillRect(x - Math.max(1, cw * 0.28), y1, Math.max(1.5, cw * 0.56), Math.max(1, y2 - y1));
+      g.fillRect(x - Math.max(1.2, cw * 0.32), y1, Math.max(2, cw * 0.64), Math.max(1, y2 - y1));
+    });
+    const vmax = Math.max.apply(null, rows.map((r) => Number(r[5]) || 0)) || 1;
+    rows.forEach((r, i) => {
+      const up = r[4] >= r[1];
+      const bh = Math.max(1, ((Number(r[5]) || 0) / vmax) * (volH - 2));
+      g.fillStyle = up ? "rgba(57,255,136,.75)" : "rgba(255,59,92,.75)";
+      g.fillRect(L + i * cw + 1, h - bh, Math.max(1, cw - 1.5), bh);
     });
   }
   function poolFrom(url) {
@@ -734,6 +855,7 @@
     await Promise.all(jobs);
     drawFan();
     drawCandles();
+    drawLadder();
     drawPositions();
   }
   function noteTrades() {
