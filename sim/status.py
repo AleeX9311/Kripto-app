@@ -93,6 +93,33 @@ def public_open(p: dict) -> dict:
         "buffer": _num(p.get("buffer")),
         "partial_done": bool(p.get("partial_done")),
         "stop_note": p.get("stop_note") or "",
+        "setup": p.get("setup") or "",
+        "setup_label": p.get("setup_label") or "",
+        "setup_score": p.get("setup_score"),
+        "setup_reasons": p.get("setup_reasons") or "",
+        "swing_low": _num(p.get("swing_low")),
+        "ema20": _num(p.get("ema20")),
+        "confirm_price": _num(p.get("confirm_price")),
+        "setup_note": "ni napoved",
+    }
+
+
+def public_watch(w: dict) -> dict:
+    return {
+        "symbol": w.get("symbol") or "?",
+        "chain": w.get("chain") or "bsc",
+        "url": dex_url(w),
+        "label": w.get("label") or "Čaka na potrditev",
+        "score": w.get("score"),
+        "reasons": list(w.get("reasons") or [])[:5],
+        "since": w.get("since"),
+        "price": _num(w.get("price")),
+        "swing_low": _num(w.get("swing_low")),
+        "ema20": _num(w.get("ema20")),
+        "confirm_price": _num(w.get("confirm_price")),
+        "support_low": _num(w.get("support_low")),
+        "support_high": _num(w.get("support_high")),
+        "note": "ni napoved",
     }
 
 
@@ -164,6 +191,7 @@ def build_status(st: dict) -> dict:
         "brake": bool((st.get("day") or {}).get("brake")),
         "metrics": st.get("metrics") or None,
         "latestReport": st.get("latest_report"),
+        "watchlist": [public_watch(row) for row in (st.get("watchlist") or [])[:12]],
     }
 
 

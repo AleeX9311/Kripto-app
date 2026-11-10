@@ -308,9 +308,46 @@ def on_reject(book: dict, features: dict, symbol: str, pair: str, chain: str, wh
     book["pending"] = book["pending"][-80:]
 
 
+def _note_setup(book: dict, features: dict, won: bool) -> None:
+    """Per-setup trust. It can only be read back as an extra refusal."""
+    kind = str(features.get("setup") or "").strip()
+    if not kind:
+        return
+    stats = book.setdefault("setup_trust", {})
+    row = stats.setdefault(kind, {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "n": 0,
+        "label": features.get("setup_label") or kind,
+    })
+    if features.get("setup_label"):
+        row["label"] = features.get("setup_label")
+    row["n"] = int(row.get("n") or 0) + 1
+    if won:
+        row["alpha"] = round(float(row.get("alpha") or 2) + 1, 4)
+    else:
+        row["beta"] = round(float(row.get("beta") or 2) + 1, 4)
+
+
+def setup_refused(book: dict | None, features: dict) -> str | None:
+    """Extra refusal after a setup has a poor record. Never a new yes vote."""
+    if not book:
+        return None
+    kind = str(features.get("setup") or "").strip()
+    row = (book.get("setup_trust") or {}).get(kind)
+    if not row or int(row.get("n") or 0) < 8:
+        return None
+    alpha = float(row.get("alpha") or 2)
+    beta = float(row.get("beta") or 2)
+    if alpha + beta <= 0 or alpha / (alpha + beta) >= 0.35:
+        return None
+    return f"vzorec {row.get('label') or kind} slabo kaže"
+
+
 def on_close(book: dict, features: dict, outcome: dict, when: str) -> None:
     """Credit agents, write lessons, then maybe tighten."""
     won = _f(outcome.get("pnl_pct")) > 0
+    _note_setup(book, features, won)
     key, text = explain_feature(features)
     votes = features.get("votes") or {}
     for agent in AGENT_IDS:
@@ -611,4 +648,20 @@ def public_summary(book: dict | None) -> dict[str, Any]:
         "change": last.get("why") or "",
         "avoid": list(book.get("avoid") or [])[:8],
         "params": book.get("params") or default_params(),
+        "setup_trust": _public_setups(book),
     }
+
+
+def _public_setups(book: dict) -> list[dict]:
+    rows = []
+    for kind, row in (book.get("setup_trust") or {}).items():
+        alpha = float(row.get("alpha") or 2)
+        beta = float(row.get("beta") or 2)
+        rows.append({
+            "kind": kind,
+            "label": row.get("label") or kind,
+            "n": int(row.get("n") or 0),
+            "score": round(alpha / (alpha + beta), 4) if alpha + beta else 0.5,
+        })
+    rows.sort(key=lambda item: (-item["n"], item["kind"]))
+    return rows

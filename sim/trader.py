@@ -52,10 +52,12 @@ from learning import (
     resolve_pending,
     retune_votes,
     save_book,
+    setup_refused,
     snapshot,
     stop_loss,
     time_stop_sec,
 )
+from chart_read import read_chart
 from status import write_status
 from strategy import best_pair_for_token
 from support import plan_stop, size_for_stop
@@ -460,9 +462,123 @@ def maybe_exit(st: dict) -> None:
     st["open"] = still
 
 
+def _stamp_setup(features: dict, setup: dict) -> None:
+    features["setup"] = setup.get("kind")
+    features["setup_label"] = setup.get("label")
+    features["setup_score"] = setup.get("score")
+    features["setup_reasons"] = " · ".join(setup.get("reasons") or [])
+    features["swing_low"] = setup.get("swing_low")
+    features["ema20"] = setup.get("ema20")
+    features["confirm_price"] = setup.get("confirm_price")
+
+
+def _upsert_watch(st: dict, row: dict) -> None:
+    token = str(row.get("token") or "").lower()
+    prior = next((item for item in (st.get("watchlist") or []) if str(item.get("token") or "").lower() == token), None)
+    if prior:
+        row["since"] = prior.get("since") or row.get("since")
+        row["since_ts"] = prior.get("since_ts") or row.get("since_ts")
+    kept = [item for item in (st.get("watchlist") or []) if str(item.get("token") or "").lower() != token]
+    kept.append(row)
+    st["watchlist"] = kept[-12:]
+
+
+def _drop_watch(st: dict, token: str) -> None:
+    key = str(token or "").lower()
+    st["watchlist"] = [item for item in (st.get("watchlist") or []) if str(item.get("token") or "").lower() != key]
+
+
+def _watch_row(symbol, token, chain, pair, url, price, setup, plan) -> dict:
+    return {
+        "symbol": symbol,
+        "token": token,
+        "chain": chain,
+        "pair": pair,
+        "url": url,
+        "price": price,
+        "action": setup.get("action"),
+        "kind": setup.get("kind"),
+        "label": setup.get("label") or "Čaka na potrditev",
+        "score": setup.get("score"),
+        "reasons": list(setup.get("reasons") or [])[:6],
+        "swing_low": setup.get("swing_low"),
+        "ema20": setup.get("ema20"),
+        "confirm_price": setup.get("confirm_price"),
+        "support_low": (plan or {}).get("support_low"),
+        "support_high": (plan or {}).get("support_high"),
+        "note": "ni napoved",
+        "since": now_iso(),
+        "since_ts": now_ts(),
+        "checked_at": now_iso(),
+    }
+
+
+def _refresh_watchlist(st: dict) -> None:
+    """Re-score waiting coins. A confirmed setup is only marked ready, not bought here."""
+    now = now_ts()
+    kept = []
+    for item in list(st.get("watchlist") or [])[:8]:
+        since = float(item.get("since_ts") or now)
+        if now - since > 36 * 3600:
+            continue
+        pool = str(item.get("pair") or "")
+        chain = item.get("chain") or "bsc"
+        if not pool:
+            kept.append(item)
+            continue
+        candles_15m = fetch_ohlcv(pool, chain, "minute", 15, 192)
+        candles_1h = fetch_ohlcv(pool, chain, "hour", 1, 168)
+        price = float(candles_15m[-1][4]) if candles_15m else float(item.get("price") or 0)
+        plan = plan_stop(price, candles_15m, candles_1h) if price > 0 else {}
+        setup = read_chart(
+            candles_15m, candles_1h, price,
+            plan.get("support_low"), plan.get("support_high"),
+        )
+        if setup.get("action") == "reject":
+            push_activity(st, {
+                "time": now_iso(),
+                "type": "skip",
+                "symbol": item.get("symbol"),
+                "text": f"PRESKOČI {item.get('symbol')} · {setup.get('label')} · ni napoved",
+            })
+            continue
+        row = _watch_row(
+            item.get("symbol"), item.get("token"), chain, pool, item.get("url"),
+            price, setup, plan,
+        )
+        row["since"] = item.get("since") or row["since"]
+        row["since_ts"] = item.get("since_ts") or row["since_ts"]
+        kept.append(row)
+    st["watchlist"] = kept[-12:]
+
+
+def _promote_watch(st: dict, candidates: list[dict]) -> list[dict]:
+    seen = {str(c.get("address") or "").lower() for c in candidates}
+    extra = []
+    for item in st.get("watchlist") or []:
+        if item.get("action") != "buy":
+            continue
+        addr = str(item.get("token") or "")
+        if not addr or addr.lower() in seen:
+            continue
+        extra.append({
+            "address": addr,
+            "chain": item.get("chain") or "bsc",
+            "symbol": item.get("symbol") or "?",
+            "source": "watchlist",
+        })
+        seen.add(addr.lower())
+        if len(extra) >= 2:
+            break
+    return extra + list(candidates)
+
+
 def maybe_enter(st: dict) -> None:
     when = now_iso()
     book = st.get("_learn")
+    if datetime.now(LJ) >= config.END_AT:
+        return
+    _refresh_watchlist(st)
     if (st.get("day") or {}).get("brake"):
         push_activity(st, {
             "time": when, "type": "scan",
@@ -475,8 +591,6 @@ def maybe_enter(st: dict) -> None:
             "text": "Pregled ustavljen — odprtih je že največ 5 pozicij",
         })
         return
-    if datetime.now(LJ) >= config.END_AT:
-        return
     if equity_usd(st) <= 0 or float(st["cash_usd"]) <= 0:
         push_activity(st, {
             "time": when, "type": "scan",
@@ -484,7 +598,7 @@ def maybe_enter(st: dict) -> None:
         })
         return
 
-    candidates = next_batch(st)
+    candidates = _promote_watch(st, next_batch(st))
     st["stats"]["candidates_seen"] = int(st["stats"].get("candidates_seen", 0)) + len(candidates)
     push_activity(st, {
         "time": when,
@@ -621,6 +735,54 @@ def maybe_enter(st: dict) -> None:
         candles_15m = fetch_ohlcv(pool, chain_name, "minute", 15, 192) if pool else []
         candles_1h = fetch_ohlcv(pool, chain_name, "hour", 1, 168) if pool else []
         plan = plan_stop(px, candles_15m, candles_1h)
+        setup = read_chart(
+            candles_15m, candles_1h, px,
+            plan.get("support_low"), plan.get("support_high"),
+        )
+        _stamp_setup(features, setup)
+        record["setup"] = setup.get("kind")
+        record["setup_label"] = setup.get("label")
+        record["setup_score"] = setup.get("score")
+        record["setup_reasons"] = list(setup.get("reasons") or [])[:5]
+        record["setup_note"] = "ni napoved"
+        if setup.get("action") != "buy":
+            if setup.get("action") == "watch":
+                _upsert_watch(st, _watch_row(
+                    symbol, token, chain_name, pool, pair.get("url"), px, setup, plan,
+                ))
+                record["decision"] = "ČAKA"
+                push_activity(st, {
+                    "time": stamp,
+                    "type": "watch",
+                    "symbol": symbol,
+                    "text": (
+                        f"Čaka na potrditev · {symbol} · {setup.get('label')}"
+                        f" · {setup.get('score')} · ni napoved"
+                    ),
+                })
+                log(f"WATCH {symbol} {setup.get('kind')} {setup.get('score')}")
+            else:
+                _drop_watch(st, token)
+                record["decision"] = "PRESKOČI"
+                push_activity(st, {
+                    "time": stamp,
+                    "type": "skip",
+                    "symbol": symbol,
+                    "text": f"PRESKOČI {symbol} · {setup.get('label')} · ni napoved",
+                })
+                log(f"SKIP {symbol} chart {setup.get('label')}")
+            continue
+        refused = setup_refused(learn_book, features) if learn_book else None
+        if refused:
+            record["decision"] = "PRESKOČI"
+            push_activity(st, {
+                "time": stamp,
+                "type": "skip",
+                "symbol": symbol,
+                "text": f"PRESKOČI {symbol} · {refused} · ni napoved",
+            })
+            log(f"SKIP {symbol} {refused}")
+            continue
         if not plan["ok"]:
             push_activity(st, {
                 "time": stamp,
@@ -633,6 +795,7 @@ def maybe_enter(st: dict) -> None:
             })
             log(f"SKIP {symbol} {plan['reason']} stop={plan['stop_pct']:.2f}%")
             continue
+        _drop_watch(st, token)
         size = size_for_stop(equity_usd(st), float(plan["stop_frac"])) * float(factor or 1.0)
         if size <= 0 or float(st["cash_usd"]) < size:
             push_activity(st, {
@@ -682,6 +845,13 @@ def maybe_enter(st: dict) -> None:
             "stop_pct": plan.get("stop_pct"),
             "stop_frac": plan.get("stop_frac"),
             "reward_risk": plan.get("reward_risk"),
+            "setup": setup.get("kind"),
+            "setup_label": setup.get("label"),
+            "setup_score": setup.get("score"),
+            "setup_reasons": " · ".join(setup.get("reasons") or []),
+            "swing_low": setup.get("swing_low"),
+            "ema20": setup.get("ema20"),
+            "confirm_price": setup.get("confirm_price"),
             "learn": on_open(learn_book, features, symbol, stamp) if learn_book else features,
         }
         st["cash_usd"] = round(float(st["cash_usd"]) - spend, 6)
@@ -693,8 +863,8 @@ def maybe_enter(st: dict) -> None:
             "type": "buy",
             "symbol": symbol,
             "text": (
-                f"NAKUP {symbol} · {yes_n}/5 DA · ${spend:.2f}"
-                f" · stop {plan['stop_pct']:.1f} %"
+                f"NAKUP {symbol} · {yes_n}/5 DA · {setup.get('label')} {setup.get('score')}"
+                f" · ${spend:.2f} · stop {plan['stop_pct']:.1f} % · ni napoved"
             ),
         })
         log(
