@@ -76,7 +76,17 @@
       margin: 0 0 4px; font-size: 9px; letter-spacing: .18em; font-weight: 700;
       color: var(--cyan); text-transform: uppercase;
     }
-    .synapse { order: 1; border-color: rgba(180,77,255,.7); box-shadow: 0 0 18px rgba(180,77,255,.18); }
+    .minis { order: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .mini { border: 1px solid rgba(61,246,255,.4); padding: 4px 5px; background: #000; min-width: 0; }
+    .mini span { display: block; font-size: 8px; letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
+    .mini b { display: block; margin-top: 2px; color: var(--cyan); font-size: 12px; text-shadow: 0 0 6px rgba(61,246,255,.45); }
+    .mini:nth-child(2) { border-color: rgba(255,58,212,.55); }
+    .mini:nth-child(2) b { color: var(--mag); }
+    .mini:nth-child(3) { border-color: rgba(57,255,122,.5); }
+    .mini:nth-child(3) b { color: var(--grn); }
+    .mini:nth-child(4) { border-color: rgba(255,154,31,.55); }
+    .mini:nth-child(4) b { color: var(--ora); }
+    .synapse { order: 1; border-color: rgba(180,77,255,.75); box-shadow: 0 0 18px rgba(180,77,255,.2); }
     .mega { order: 2; border-color: rgba(255,51,85,.45); }
     .trades { order: 3; border-color: rgba(255,58,212,.45); }
     .chart { order: 4; }
@@ -85,36 +95,8 @@
     .stats { order: 7; border-color: rgba(61,246,255,.4); }
     .candles { order: 8; border-color: rgba(255,51,85,.4); }
     .tape { order: 9; }
-    .stage { position: relative; height: 430px; }
-    #syn { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .ghost {
-      position: absolute; left: 50%; top: 44%; width: 86px; height: 96px;
-      transform: translate(-50%, -50%);
-      background: radial-gradient(circle at 50% 38%, #fff 0%, #e7f2ff 42%, #b7c6e6 78%, #8ea0c4 100%);
-      border-radius: 48% 48% 44% 44%;
-      box-shadow: 0 0 18px #fff, 0 0 42px rgba(190,210,255,.75);
-      z-index: 2;
-    }
-    .eyes { position: absolute; top: 38px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; }
-    .eyes i { width: 7px; height: 16px; background: #111; border-radius: 4px; display: block; }
-    .ghost .tag {
-      position: absolute; left: 50%; bottom: -16px; transform: translateX(-50%);
-      font-size: 8px; letter-spacing: .14em; color: #fff; white-space: nowrap;
-      text-shadow: 0 0 6px var(--cyan);
-    }
-    .avatar {
-      position: absolute; z-index: 2; width: 34px; text-align: center; transform: translate(-50%, -50%);
-    }
-    .flame {
-      width: 28px; height: 40px; margin: 0 auto;
-      border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
-      background: radial-gradient(circle at 40% 30%, #fff, var(--c) 42%, #120010 80%);
-      box-shadow: 0 0 12px var(--c), 0 0 22px var(--c);
-    }
-    .avatar .v { font-size: 8px; letter-spacing: .08em; color: #fff; text-shadow: 0 0 6px var(--c); }
-    .avatar.wait .flame { filter: grayscale(.4) brightness(.7); }
-    .avatar.no .flame { box-shadow: 0 0 12px var(--red), 0 0 20px var(--red); }
-    .avatar.hot .flame { animation: pulse 1.1s ease-in-out infinite; }
+    .stage { position: relative; height: 70vh; min-height: 460px; }
+    #syn { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
     .pills { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 4px; }
     .pill {
       border: 1px solid var(--c, var(--cyan)); color: var(--c, #fff);
@@ -156,6 +138,7 @@
           "mega candles tape stats";
         gap: 6px; align-items: stretch;
       }
+      .minis { display: none; }
       .synapse { order: 0; grid-area: synapse; }
       .mega { order: 0; grid-area: mega; }
       .trades { order: 0; grid-area: trades; }
@@ -165,7 +148,7 @@
       .stats { order: 0; grid-area: stats; }
       .candles { order: 0; grid-area: candles; }
       .tape { order: 0; grid-area: tape; }
-      .stage { height: 520px; }
+      .stage { height: 620px; min-height: 0; }
       .mega-num { font-size: clamp(28px, 2.3vw, 48px); }
       .chart-row, canvas.block, #radial { height: 180px; }
     }
@@ -186,17 +169,15 @@
   <div class="warnbar err" id="error" hidden></div>
 
   <div class="grid">
+    <div class="minis" id="minis">
+      <div class="mini"><span>Vrednost</span><b id="mEq">—</b></div>
+      <div class="mini"><span>P/L</span><b id="mPnl">—</b></div>
+      <div class="mini"><span>Posli</span><b id="mTr">0</b></div>
+      <div class="mini"><span>Odprte</span><b id="mOp">0</b></div>
+    </div>
     <section class="panel synapse">
       <h2>Sinapsa · koordinator</h2>
-      <div class="stage" id="stage">
-        <canvas id="syn"></canvas>
-        <div class="ghost" id="ghost"><div class="eyes"><i></i><i></i></div><div class="tag">KOORDINATOR</div></div>
-        <div class="avatar wait" id="av-kit" style="left:18%;top:18%;--c:#b44dff"><div class="flame"></div><div class="v">ČAKA</div></div>
-        <div class="avatar wait" id="av-trend" style="left:80%;top:16%;--c:#ff4ecd"><div class="flame"></div><div class="v">ČAKA</div></div>
-        <div class="avatar wait" id="av-varnost" style="left:84%;top:54%;--c:#ff9a1f"><div class="flame"></div><div class="v">ČAKA</div></div>
-        <div class="avatar wait" id="av-bik_medved" style="left:62%;top:80%;--c:#ff3355"><div class="flame"></div><div class="v">ČAKA</div></div>
-        <div class="avatar wait" id="av-izvajanje" style="left:16%;top:68%;--c:#39ff7a"><div class="flame"></div><div class="v">ČAKA</div></div>
-      </div>
+      <div class="stage" id="stage"><canvas id="syn"></canvas></div>
       <div class="pills" id="pills"></div>
     </section>
 
@@ -262,7 +243,6 @@
   let loading = false;
   let hot = "";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const particles = AGENTS.map(() => ({ t: Math.random(), v: 0.004 + Math.random() * 0.006 }));
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
@@ -328,13 +308,13 @@
     $("pills").innerHTML = AGENTS.map((a) => {
       const latest = (agents[a.id] || {}).latest;
       const vote = latest ? (latest.vote === "YES" ? "DA" : "NE") : "ČAKA";
-      const el = $("av-" + a.id);
-      el.classList.toggle("wait", !latest);
-      el.classList.toggle("no", latest && latest.vote !== "YES");
-      el.classList.toggle("hot", a.id === hot && !!latest);
-      el.querySelector(".v").textContent = vote;
       return `<span class="pill" style="--c:${a.color}">${a.label} ${vote}</span>`;
     }).join("");
+    $("mEq").textContent = money(d.equity_usd);
+    $("mPnl").textContent = pct(d.pct_vs_eur50);
+    $("mTr").textContent = String(d.trades || 0);
+    $("mOp").textContent = String((d.open || []).length);
+    syncCoins();
 
     const cands = d.candidates || [];
     $("trades").innerHTML = cands.length ? cands.slice(0, 8).map((c) => {
@@ -503,67 +483,267 @@
     });
   }
 
-  function curve(g, x1, y1, x2, y2, color, width) {
-    const mx = (x1 + x2) / 2 + (y2 - y1) * 0.15;
-    const my = (y1 + y2) / 2 + (x1 - x2) * 0.12;
-    g.beginPath();
-    g.moveTo(x1, y1);
-    g.quadraticCurveTo(mx, my, x2, y2);
-    g.strokeStyle = color;
-    g.lineWidth = width;
-    g.shadowColor = color;
-    g.shadowBlur = 12;
-    g.stroke();
-    g.shadowBlur = 0;
-    const bx = (x1 + 2 * mx + x2) / 4;
-    const by = (y1 + 2 * my + y2) / 4;
-    g.beginPath();
-    g.moveTo(bx, by);
-    g.lineTo(bx + (y2 - y1) * 0.08, by + 18);
-    g.strokeStyle = color;
-    g.globalAlpha = 0.55;
-    g.stroke();
-    g.globalAlpha = 1;
-    return { x1, y1, cx: mx, cy: my, x2, y2 };
+  const BRANCH_COLORS = ["#ff9a1f", "#b44dff", "#ff4ecd", "#39ff7a", "#ff3355", "#3df6ff", "#ffe14a"];
+  const HELPER_COLORS = ["#b44dff", "#ff4ecd", "#ff9a1f", "#ff3355", "#39ff7a", "#3df6ff", "#ffe14a", "#ff7ad9", "#7cffb2", "#c084fc", "#ffb020"];
+  let segs = [];
+  let flow = [];
+  let bots = [];
+  let coins = [];
+  let world = { w: 0, h: 0 };
+  let lastTs = 0;
+  let eye = { x: 0, y: 0 };
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function grow(x, y, ang, len, depth, color) {
+    if (depth <= 0 || len < 16 || segs.length > 260) return;
+    const x2 = x + Math.cos(ang) * len;
+    const y2 = y + Math.sin(ang) * len;
+    segs.push({ x1: x, y1: y, x2, y2, color });
+    const wob = rand(0.35, 0.7);
+    grow(x2, y2, ang - wob, len * rand(0.62, 0.78), depth - 1, color);
+    grow(x2, y2, ang + wob * 0.85, len * rand(0.55, 0.72), depth - 1, color);
+    if (depth > 2 && Math.random() < 0.45) grow(x2, y2, ang + rand(-0.2, 0.2), len * 0.5, depth - 2, color);
   }
-  function pointOn(q, t) {
-    const u = 1 - t;
-    return {
-      x: u * u * q.x1 + 2 * u * t * q.cx + t * t * q.x2,
-      y: u * u * q.y1 + 2 * u * t * q.cy + t * t * q.y2
-    };
+  function buildWorld(w, h) {
+    segs = [];
+    const cx = w * 0.5, cy = h * 0.46;
+    for (let i = 0; i < 7; i++) {
+      grow(cx, cy, -Math.PI / 2 + i * (Math.PI * 2 / 7) + rand(-0.2, 0.2), Math.min(w, h) * 0.22, 5, BRANCH_COLORS[i % BRANCH_COLORS.length]);
+    }
+    flow = segs.filter((_, i) => i % 2 === 0).slice(0, 48).map((s) => ({ seg: s, t: Math.random(), v: rand(0.15, 0.45) }));
+    if (!bots.length) {
+      bots = AGENTS.map((a, i) => ({
+        named: true, agent: a, color: a.color, r: 16,
+        x: cx + Math.cos(i * 1.25) * w * 0.28,
+        y: cy + Math.sin(i * 1.25) * h * 0.28,
+        vx: rand(-18, 18), vy: rand(-18, 18),
+        state: "wander", timer: rand(0.4, 1.4), coin: -1, bubble: "", hop: 0
+      }));
+      for (let i = 0; i < 11; i++) {
+        bots.push({
+          named: false, agent: null, color: HELPER_COLORS[i % HELPER_COLORS.length], r: 9,
+          x: rand(30, w - 30), y: rand(30, h - 30),
+          vx: rand(-28, 28), vy: rand(-28, 28),
+          state: "wander", timer: rand(0.2, 1.1), coin: -1, bubble: "", hop: 0
+        });
+      }
+    }
   }
-  function drawSynapse() {
-    const stage = $("stage");
-    const canvas = $("syn");
-    if (!stage || !canvas) return;
-    const r = stage.getBoundingClientRect();
-    const g = fit(canvas, r.width, r.height);
-    g.clearRect(0, 0, r.width, r.height);
-    const ghost = $("ghost").getBoundingClientRect();
-    const x1 = ghost.left + ghost.width / 2 - r.left;
-    const y1 = ghost.top + ghost.height / 2 - r.top;
-    AGENTS.forEach((a, i) => {
-      const el = $("av-" + a.id);
-      const b = el.getBoundingClientRect();
-      const x2 = b.left + b.width / 2 - r.left;
-      const y2 = b.top + b.height / 2 - r.top;
-      const pulse = a.id === hot ? 2.4 : 1.4;
-      const q = curve(g, x1, y1, x2, y2, a.color, pulse);
-      if (!reduce) {
-        particles[i].t += particles[i].v;
-        if (particles[i].t > 1) particles[i].t = 0;
-        const pt = pointOn(q, particles[i].t);
-        g.fillStyle = "#fff";
-        g.shadowColor = a.color;
-        g.shadowBlur = 10;
-        g.beginPath();
-        g.arc(pt.x, pt.y, 2.2, 0, Math.PI * 2);
-        g.fill();
-        g.shadowBlur = 0;
+  function syncCoins() {
+    const cands = (data && data.candidates) || [];
+    const seen = {};
+    const next = [];
+    cands.forEach((c) => {
+      if (!c.symbol || seen[c.symbol] || next.length >= 6) return;
+      seen[c.symbol] = 1;
+      const prev = coins.find((k) => k.symbol === c.symbol);
+      next.push(prev || {
+        symbol: c.symbol, cand: c,
+        x: world.w ? rand(36, world.w - 36) : 80,
+        y: world.h ? rand(36, world.h - 36) : 80,
+        vx: rand(-8, 8), vy: rand(-8, 8)
+      });
+      next[next.length - 1].cand = c;
+    });
+    coins = next;
+  }
+  function voteText(bot, cand) {
+    if (!cand || !cand.votes) return "";
+    if (bot.agent) {
+      const v = cand.votes[bot.agent.id];
+      return v ? (v.vote === "YES" ? "DA" : "NE") : "";
+    }
+    return yesCount(cand.votes) >= 3 ? "DA" : "NE";
+  }
+  function stepBots(dt, w, h) {
+    const pad = 18;
+    bots.forEach((b) => {
+      b.hop = Math.abs(Math.sin(performance.now() / 160 + b.x)) * (b.named ? 5 : 7);
+      if (b.state === "wander") {
+        b.x += b.vx * dt; b.y += b.vy * dt;
+        if (b.x < pad || b.x > w - pad) b.vx *= -1;
+        if (b.y < pad || b.y > h - pad) b.vy *= -1;
+        b.x = Math.max(pad, Math.min(w - pad, b.x));
+        b.y = Math.max(pad, Math.min(h - pad, b.y));
+        b.timer -= dt;
+        if (b.timer <= 0 && coins.length) {
+          b.state = "seek";
+          b.coin = Math.floor(Math.random() * coins.length);
+        } else if (b.timer <= 0) b.timer = 0.8;
+      } else if (b.state === "seek") {
+        const c = coins[b.coin];
+        if (!c) { b.state = "wander"; b.timer = 0.6; return; }
+        const dx = c.x - b.x, dy = c.y - b.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const sp = b.named ? 70 : 95;
+        b.x += dx / dist * sp * dt;
+        b.y += dy / dist * sp * dt;
+        if (dist < 22) { b.state = "inspect"; b.timer = 0.55; }
+      } else if (b.state === "inspect") {
+        b.timer -= dt;
+        if (b.timer <= 0) {
+          b.bubble = voteText(b, coins[b.coin] && coins[b.coin].cand);
+          b.state = "show";
+          b.timer = 0.85;
+        }
+      } else if (b.state === "show") {
+        b.timer -= dt;
+        if (b.timer <= 0) {
+          b.bubble = "";
+          b.state = "wander";
+          b.timer = rand(0.5, 1.3);
+          b.vx = rand(-32, 32); b.vy = rand(-32, 32);
+        }
       }
     });
-    if (!reduce) requestAnimationFrame(drawSynapse);
+    coins.forEach((c) => {
+      c.x += c.vx * dt; c.y += c.vy * dt;
+      if (c.x < 28 || c.x > w - 28) c.vx *= -1;
+      if (c.y < 24 || c.y > h - 24) c.vy *= -1;
+    });
+  }
+  function drawCreature(g, x, y, r, color, hop) {
+    g.save();
+    g.translate(x, y - hop);
+    g.shadowColor = color;
+    g.shadowBlur = r > 12 ? 16 : 10;
+    const grd = g.createRadialGradient(-r * 0.2, -r * 0.3, 1, 0, 0, r * 1.3);
+    grd.addColorStop(0, "#fff");
+    grd.addColorStop(0.35, color);
+    grd.addColorStop(1, "#120010");
+    g.fillStyle = grd;
+    g.beginPath();
+    g.ellipse(0, 2, r * 0.72, r, 0, 0, Math.PI * 2);
+    g.fill();
+    g.shadowBlur = 0;
+    g.fillStyle = "#111";
+    const eye = r > 12 ? 2.2 : 1.3;
+    g.beginPath(); g.ellipse(-r * 0.22, -r * 0.05, eye * 0.7, eye * 1.5, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(r * 0.22, -r * 0.05, eye * 0.7, eye * 1.5, 0, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+  function drawSynapse(ts) {
+    const stage = $("stage");
+    const canvas = $("syn");
+    if (!stage || !canvas) { requestAnimationFrame(drawSynapse); return; }
+    const rect = stage.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    if (w < 20 || h < 20) { requestAnimationFrame(drawSynapse); return; }
+    if (Math.abs(w - world.w) > 8 || Math.abs(h - world.h) > 8) {
+      world = { w, h };
+      buildWorld(w, h);
+      syncCoins();
+    }
+    const dt = Math.min(0.05, lastTs ? (ts - lastTs) / 1000 : 0.016);
+    lastTs = ts || 0;
+    if (!reduce) stepBots(dt, w, h);
+    const g = fit(canvas, w, h);
+    g.clearRect(0, 0, w, h);
+    g.lineWidth = 1.05;
+    g.globalAlpha = 0.72;
+    segs.forEach((s, i) => {
+      g.beginPath();
+      g.moveTo(s.x1, s.y1);
+      g.lineTo(s.x2, s.y2);
+      g.strokeStyle = s.color;
+      if (i % 5 === 0) { g.shadowColor = s.color; g.shadowBlur = 6; }
+      else g.shadowBlur = 0;
+      g.stroke();
+    });
+    g.globalAlpha = 1;
+    g.shadowBlur = 0;
+    flow.forEach((f) => {
+      if (!reduce) { f.t += f.v * dt; if (f.t > 1) f.t = 0; }
+      const s = f.seg;
+      const x = s.x1 + (s.x2 - s.x1) * f.t;
+      const y = s.y1 + (s.y2 - s.y1) * f.t;
+      g.fillStyle = "#fff";
+      g.shadowColor = s.color;
+      g.shadowBlur = 8;
+      g.beginPath();
+      g.arc(x, y, 1.7, 0, Math.PI * 2);
+      g.fill();
+    });
+    g.shadowBlur = 0;
+    coins.forEach((c) => {
+      g.save();
+      g.translate(c.x, c.y);
+      g.fillStyle = "#f5c542";
+      g.shadowColor = "#f5c542";
+      g.shadowBlur = 8;
+      g.beginPath();
+      g.arc(0, 0, 8, 0, Math.PI * 2);
+      g.fill();
+      g.shadowBlur = 0;
+      g.fillStyle = "#3a2a00";
+      g.font = "7px ui-monospace, monospace";
+      g.textAlign = "center";
+      g.fillText("$", 0, 2);
+      g.restore();
+      g.fillStyle = "#ffe9a8";
+      g.font = "9px ui-monospace, monospace";
+      g.textAlign = "center";
+      g.fillText(String(c.symbol).slice(0, 8), c.x, c.y + 18);
+    });
+    const focus = bots.find((b) => b.state === "inspect" || b.state === "show") || bots[0];
+    const cx = w * 0.5, cy = h * 0.46 + Math.sin((ts || 0) / 520) * 5;
+    if (focus) {
+      eye.x += ((focus.x - cx) * 0.08 - eye.x) * 0.15;
+      eye.y += ((focus.y - cy) * 0.08 - eye.y) * 0.15;
+    }
+    g.save();
+    g.translate(cx, cy);
+    g.shadowColor = "#dbe7ff";
+    g.shadowBlur = 28;
+    const body = g.createRadialGradient(0, -8, 4, 0, 0, 46);
+    body.addColorStop(0, "#fff");
+    body.addColorStop(0.55, "#e7f0ff");
+    body.addColorStop(1, "#9aafd0");
+    g.fillStyle = body;
+    g.beginPath();
+    g.ellipse(0, 0, 40, 46, 0, 0, Math.PI * 2);
+    g.fill();
+    g.shadowBlur = 0;
+    g.fillStyle = "#111";
+    g.beginPath(); g.ellipse(-12 + eye.x, -4 + eye.y, 3.2, 8, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(12 + eye.x, -4 + eye.y, 3.2, 8, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#fff";
+    g.font = "9px ui-monospace, monospace";
+    g.textAlign = "center";
+    g.fillText("KOORDINATOR", 0, 62);
+    g.restore();
+    bots.forEach((b) => {
+      drawCreature(g, b.x, b.y, b.r, b.color, reduce ? 0 : b.hop);
+      if (b.state === "inspect") {
+        const c = coins[b.coin];
+        if (c) {
+          g.strokeStyle = b.color;
+          g.lineWidth = 1.5;
+          g.shadowColor = b.color;
+          g.shadowBlur = 8;
+          g.beginPath();
+          g.arc(c.x, c.y, 14 + (0.55 - b.timer) * 10, 0, Math.PI * 1.4);
+          g.stroke();
+          g.shadowBlur = 0;
+        }
+      }
+      if (b.bubble) {
+        g.fillStyle = b.bubble === "DA" ? "#39ff7a" : "#ff3355";
+        g.font = "bold 10px ui-monospace, monospace";
+        g.textAlign = "center";
+        g.shadowColor = g.fillStyle;
+        g.shadowBlur = 8;
+        g.fillText(b.bubble, b.x, b.y - b.r - 10 - b.hop);
+        g.shadowBlur = 0;
+      }
+      if (b.named) {
+        g.fillStyle = "#fff";
+        g.font = "8px ui-monospace, monospace";
+        g.textAlign = "center";
+        g.fillText(b.agent.label, b.x, b.y + b.r + 12);
+      }
+    });
+    requestAnimationFrame(drawSynapse);
   }
 
   async function load() {
