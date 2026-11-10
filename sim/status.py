@@ -91,6 +91,8 @@ def public_open(p: dict) -> dict:
         "stop_price": _num(p.get("stop_price")),
         "stop_pct": _num(p.get("stop_pct")),
         "buffer": _num(p.get("buffer")),
+        "partial_done": bool(p.get("partial_done")),
+        "stop_note": p.get("stop_note") or "",
     }
 
 

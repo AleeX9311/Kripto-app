@@ -52,7 +52,7 @@
       font-size: 10px;
     }
     #board.wide { width: 1440px; height: 900px; padding: 10px; gap: 6px; font-size: 12px; }
-    .top { height: 58px; flex: none; display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow: hidden; }
+    .top { height: 46px; flex: none; display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow: hidden; }
     .toprow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .logo { font-family: "Space Grotesk", sans-serif; font-weight: 700; letter-spacing: .08em; font-size: 12px; line-height: 1; }
     .logo small { display: block; margin-top: 1px; font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 6px; letter-spacing: .12em; color: var(--muted); }
@@ -84,8 +84,13 @@
       text-transform: uppercase;
     }
     .tick b { color: var(--yel); font-weight: 600; }
-    .tri { height: 168px; flex: none; display: grid; grid-template-columns: 1fr 1.12fr 1fr; gap: 4px; min-height: 0; }
-    .mid { height: 344px; flex: none; display: grid; grid-template-columns: 74px 1fr 124px; gap: 4px; min-height: 0; position: relative; z-index: 2; }
+    .stage { flex: 1; min-height: 0; position: relative; z-index: 2; }
+    .view { display: none; height: 100%; min-height: 0; }
+    .view.on { display: flex; flex-direction: column; gap: 4px; }
+    .view.page.on { display: block; overflow: auto; padding: 2px; }
+    .tri { height: 128px; flex: none; display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 4px; min-height: 0; }
+    .mid { flex: 1; min-height: 160px; position: relative; z-index: 2; display: flex; }
+    .syn { flex: 1; }
     .pipe { height: 32px; flex: none; position: relative; z-index: 8; display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
     .pipe .wire { position: absolute; left: 8px; right: 8px; top: 50%; height: 1px; background: linear-gradient(90deg, #ff3df2, #ffb020, #ff3b5c, #39ff88, #3de0ff); opacity: .7; }
     .pipe button {
@@ -231,10 +236,36 @@
     .wide .logo { font-size: 20px; }
     .wide .logo small { font-size: 10px; }
     .wide .clock { font-size: 28px; }
-    .wide .top { height: 62px; }
+    .wide .top { height: 52px; }
+    .tabbar {
+      height: 48px; flex: none; z-index: 12;
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      gap: 1px; padding: 3px 2px 2px;
+      border-top: 1px solid rgba(120, 160, 255, .28);
+      background: rgba(5, 8, 14, .96);
+    }
+    .tabbar button {
+      font-size: 7px; letter-spacing: .04em; color: var(--muted);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      border-radius: 8px;
+    }
+    .tabbar button.on { color: #e9fbff; background: rgba(61, 224, 255, .08); }
+    .tabbar button b {
+      width: 14px; height: 3px; border-radius: 2px; background: transparent;
+    }
+    .tabbar button.on b { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+    .wide .tabbar { height: 54px; }
+    .wide .tabbar button { font-size: 11px; }
+    .poscard, .closecard {
+      width: 100%; text-align: left; margin: 0 0 6px;
+      border: 1px solid var(--line); border-radius: 6px;
+      background: rgba(10, 14, 22, .9); padding: 6px 8px;
+      font-size: 10px;
+    }
+    .sensrow { font-size: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
     .wide .tick { height: 16px; }
-    .wide .tri { height: 180px; }
-    .wide .mid { height: 352px; grid-template-columns: 220px 1fr 280px; }
+    .wide .tri { height: 160px; }
+    .wide .mid { min-height: 280px; }
     .learnmini {
       height: 18px; flex: none; z-index: 8;
       display: flex; align-items: center; gap: 4px;
@@ -294,14 +325,6 @@
               </div>
             </div>
           </div>
-          <div class="navline">
-            <button class="nav" type="button" data-sheet="agents">SINAPSA</button>
-            <button class="nav" type="button" data-sheet="trak">TRAK</button>
-            <button class="nav" type="button" data-sheet="knjiga">KNJIGA</button>
-            <button class="nav" type="button" data-sheet="ucenje">UČENJE</button>
-            <button class="nav" type="button" data-sheet="metrike">METRIKE</button>
-            <button class="nav" type="button" data-sheet="porocila">POROČILA</button>
-          </div>
           <div class="statline">
             <span class="stat" id="stEq">—</span>
             <span class="stat" id="stPnl">—</span>
@@ -310,6 +333,8 @@
           </div>
         </header>
         <div class="tick" id="tick">5 AGENTOV LIVE · SAMO SIMULACIJA</div>
+        <div class="stage">
+        <div class="view on" id="view-desk">
         <div class="tri">
           <section class="panel" data-sheet="signal">
             <h2><i></i><em>01</em> Signal rotacija</h2>
@@ -327,21 +352,12 @@
           </section>
         </div>
         <div class="mid">
-          <section class="panel" data-sheet="senzor">
-            <h2><i></i><em>04</em> Senzorni center</h2>
-            <canvas class="plot" id="sense"></canvas>
-          </section>
           <section class="panel syn" id="syn">
             <h2><i></i><em>05</em> Sinapsa</h2>
           </section>
-          <section class="panel" data-sheet="pozicije">
-            <h2><i></i><em>06</em> Pozicije</h2>
-            <div id="posCards" style="flex:1;overflow:hidden"></div>
-            <canvas class="thin" id="matrix"></canvas>
-          </section>
         </div>
         <div class="pipe" id="pipe"></div>
-        <button class="learnmini" type="button" id="learnMini" data-sheet="ucenje">UČENJE · čaka vzorce</button>
+        <button class="learnmini" type="button" id="learnMini" data-tab="ucenje">UČENJE · čaka vzorce</button>
         <div class="bot">
           <section class="panel" data-sheet="pnl">
             <h2><i></i><em>07</em> Roj PnL</h2>
@@ -360,6 +376,37 @@
             </div>
           </section>
         </div>
+        </div>
+        <div class="view page" id="view-pozicije">
+          <section class="panel">
+            <h2><i></i><em>06</em> Odprte pozicije</h2>
+            <div id="posCards"></div>
+          </section>
+          <section class="panel">
+            <h2><i></i> Zaprti posli</h2>
+            <div id="closedList"></div>
+          </section>
+        </div>
+        <div class="view page" id="view-senzorji">
+          <section class="panel">
+            <h2><i></i><em>04</em> Senzorni center</h2>
+            <canvas class="plot" id="sense" style="height:180px;flex:none"></canvas>
+            <canvas class="thin" id="matrix"></canvas>
+            <div id="sensorInfo"></div>
+          </section>
+        </div>
+        <div class="view page" id="view-metrike"><section class="panel" id="metricsPage"></section></div>
+        <div class="view page" id="view-ucenje"><section class="panel" id="learnPage"></section></div>
+        <div class="view page" id="view-porocila"><section class="panel" id="reportPage"></section></div>
+        </div>
+        <nav class="tabbar" aria-label="Razdelki">
+          <button type="button" data-tab="desk" class="on"><b></b>DESK</button>
+          <button type="button" data-tab="pozicije"><b></b>POZICIJE</button>
+          <button type="button" data-tab="senzorji"><b></b>SENZORJI</button>
+          <button type="button" data-tab="metrike"><b></b>METRIKE</button>
+          <button type="button" data-tab="ucenje"><b></b>UČENJE</button>
+          <button type="button" data-tab="porocila"><b></b>POROČILA</button>
+        </nav>
         <canvas id="fx"></canvas>
         <div id="actors"></div>
       </div>
@@ -389,6 +436,8 @@
   let raf = 0;
   let sheetKind = null;
   let focusAgent = null;
+  let focusPos = null;
+  let tab = "desk";
   let candles = [];
   let candleKey = "";
   let candleNote = "";
@@ -521,6 +570,7 @@
     const learn = d.learning || {};
     const trusts = learn.trust || [];
     $("learnMini").innerHTML = "<b>UČENJE v" + esc(learn.version || 1) + "</b> · " + esc(learn.samples || 0) + " vzorcev " + trusts.map((t) => `<span class="tbit" title="${esc(t.label)}"><i style="width:${Math.round((t.score || 0) * 100)}%"></i></span>`).join("");
+    fillPages();
     rollEur(d.equity_eur);
     $("huge").className = "huge" + (up ? "" : " dn");
     const izidTxt = realizedEur != null ? eur(realizedEur) : money(realized);
@@ -643,13 +693,19 @@
     const open = (data && data.open) || [];
     const box = $("posCards");
     if (!open.length) { box.innerHTML = `<p class="dim">NI ODPRTIH</p>`; return; }
-    box.innerHTML = open.slice(0, wide ? 4 : 3).map((p, i) => {
+    box.innerHTML = open.length ? open.map((p, i) => {
       const pnl = Number(p.pnl_pct) || 0;
       const stopTxt = p.stop_pct == null ? "—" : pct(p.stop_pct);
       const sup = p.support_low == null ? "—" : fmtPx(p.support_low);
-      return `<div class="pcard"><div class="nm"><b>${esc(p.symbol)} ${esc(chainOf(p))}</b><b class="${pnl >= 0 ? "up" : "dn"}">${esc(pct(pnl))}</b></div><div class="px">vstop ${esc(fmtPx(p.entry_price))} · zdaj ${esc(fmtPx(p.last_price))}</div><div class="px">podpora ${esc(sup)} · stop ${esc(stopTxt)}</div><canvas id="hb${i}"></canvas></div>`;
-    }).join("");
-    open.slice(0, wide ? 4 : 3).forEach((p, i) => drawHeart($("hb" + i), p));
+      const part = p.partial_done ? "delni izhod 50 %" : "celotna pozicija";
+      return `<button type="button" class="poscard" data-pos="${i}"><div class="nm"><b>${esc(p.symbol)} ${esc(chainOf(p))}</b><b class="${pnl >= 0 ? "up" : "dn"}">${esc(pct(pnl))} · ${esc(money(p.pnl_usd))}</b></div><div class="px">vstop ${esc(fmtPx(p.entry_price))} · zdaj ${esc(fmtPx(p.last_price))}</div><div class="px">podpora ${esc(sup)} · stop ${esc(stopTxt)} · ${esc(part)}</div><canvas id="hb${i}"></canvas></button>`;
+    }).join("") : `<p class="dim">NI ODPRTIH</p>`;
+    open.forEach((p, i) => drawHeart($("hb" + i), p));
+    const closed = (data && data.closed) || [];
+    const closedBox = $("closedList");
+    if (closedBox) {
+      closedBox.innerHTML = closed.length ? closed.slice(0, 20).map((t) => `<div class="closecard"><b class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)}</b> ${esc(chainOf(t))} ${esc(money(t.pnl_usd))} · ${esc(pct(t.pnl_pct))}<div class="dim">${esc(t.reason || "")}</div></div>`).join("") : `<p class="dim">NI ZAPRTIH</p>`;
+    }
   }
   function drawHeart(canvas, p) {
     if (!canvas) return;
@@ -1294,20 +1350,31 @@
       g.fillRect(2 + (i % cols) * bw, top + Math.floor(i / cols) * bh, Math.max(2, bw - 1), Math.max(2, bh - 1));
     });
   }
+  function relTop(el) {
+    const board = $("board");
+    let y = 0;
+    let n = el;
+    while (n && n !== board) {
+      y += n.offsetTop;
+      n = n.offsetParent;
+    }
+    return y;
+  }
   function placeCanvas() {
+    if (tab !== "desk") return;
     const board = $("board");
     const mid = document.querySelector(".mid");
     const syn = $("syn");
     const fx = $("fx");
-    const top = Math.max(0, mid.offsetTop - (wide ? 70 : 40));
-    const height = mid.offsetHeight + (wide ? 140 : 78);
+    const bleed = wide ? 18 : 10;
+    const top = Math.max(0, relTop(mid) - bleed);
     fx.style.top = top + "px";
     fx.style.left = "0px";
     fx.style.width = board.clientWidth + "px";
-    fx.style.height = height + "px";
+    fx.style.height = (mid.offsetHeight + bleed * 2) + "px";
     center = {
-      x: mid.offsetLeft + syn.offsetLeft + syn.offsetWidth / 2,
-      y: mid.offsetTop + syn.offsetTop + syn.offsetHeight / 2 - top
+      x: board.clientWidth / 2,
+      y: bleed + syn.offsetTop + syn.offsetHeight / 2
     };
     buildSynapse();
     placeActors();
@@ -1412,6 +1479,11 @@
     const path = data && data.latestReport;
     return `<h3>Poročila</h3><p><b>SIMULACIJA · VIRTUALNI DENAR.</b> Dnevno poročilo nastane ob prvem pregledu po 21:00.</p><p>Zadnje: ${path ? esc(path) : "—"}</p><p class="dim">Datoteka je na veji sim-data, reports/YYYY-MM-DD.json in .md.</p>`;
   }
+  function onePosition(p) {
+    const pnl = Number(p.pnl_pct) || 0;
+    const part = p.partial_done ? "Delni izhod 50 % je že izveden. Ostanek ima stop na breakeven." : "Delni izhod še ni sprožen (+10 %).";
+    return `<h3>${esc(p.symbol)} ${esc(chainOf(p))}</h3><p class="${pnl >= 0 ? "up" : "dn"}"><b>${esc(pct(pnl))} · ${esc(money(p.pnl_usd))}</b></p><p>Vstop ${esc(fmtPx(p.entry_price))} · zdaj ${esc(fmtPx(p.last_price))}</p><p>Podpora ${p.support_low == null ? "—" : esc(fmtPx(p.support_low))} · stop ${p.stop_pct == null ? "—" : esc(pct(p.stop_pct))}</p><p>${esc(part)}</p><p class="dim">${esc(p.stop_note || "")} · do 4h: ${esc(left4h(p.opened_at))}</p>`;
+  }
   function learnSheet() {
     const learn = (data && data.learning) || {};
     const trusts = learn.trust || [];
@@ -1430,7 +1502,8 @@
       html = `<h3>Sled</h3><p>${esc(RULE)}</p>` + sledRows().map((r) => `<p class="${r.ok ? "up" : "dn"}">${esc((r.ev.time || "").slice(11, 16))} ${esc(r.ev.symbol || "")} ${esc(r.votes)} ${esc(r.ev.text || "")}</p>`).join("");
     }     else if (sheetKind === "cenilec") {
       html = `<h3>Cenilec</h3><p>Pahljača je statistični stožec iz standardnega odklona zadnjih 15-minutnih donosov GeckoTerminal. <b>Ni napoved cene.</b></p><p class="dim">${esc(candleNote || "")}</p>`;
-    } else if (sheetKind === "ucenje") html = learnSheet();
+    } else if (sheetKind === "ena" && focusPos) html = onePosition(focusPos);
+    else if (sheetKind === "ucenje") html = learnSheet();
     else if (sheetKind === "metrike") html = metricsSheet();
     else if (sheetKind === "porocila") html = reportSheet();
     $("sheet").innerHTML = `<button type="button" class="chip" data-close="1">Zapri</button>` + html;
@@ -1468,8 +1541,49 @@
       if (!data) $("tick").textContent = "POSNETKA ŠE NI · SAMO SIMULACIJA";
     } finally { loading = false; }
   }
+  function fillPages() {
+    const info = $("sensorInfo");
+    if (info && data) {
+      const regime = data.regime || {};
+      const varnost = ((data.agents || {}).varnost || {}).latest || {};
+      info.innerHTML = [
+        ["Režim BNB", regime.bsc || "—"],
+        ["Režim SOL", regime.solana || "—"],
+        ["Svežina", ageText()],
+        ["Viri", "DexScreener · GeckoTerminal · GoPlus"],
+        ["Varnost", (varnost.vote || "—") + " " + (varnost.reason || "")],
+        ["Pregledanih", "BSC " + (data.scanned_bsc || 0) + " · SOL " + (data.scanned_sol || 0)],
+        ["Zavora", data.brake ? "AKTIVNA" : "ni"]
+      ].map(([k, v]) => `<div class="sensrow"><b>${esc(k)}</b> ${esc(v)}</div>`).join("");
+    }
+    const mp = $("metricsPage");
+    if (mp) mp.innerHTML = metricsSheet();
+    const lp = $("learnPage");
+    if (lp) lp.innerHTML = learnSheet();
+    const rp = $("reportPage");
+    if (rp) rp.innerHTML = reportSheet();
+  }
+  function showTab(name) {
+    tab = name;
+    document.querySelectorAll(".view").forEach((el) => el.classList.toggle("on", el.id === "view-" + name));
+    document.querySelectorAll("[data-tab]").forEach((el) => el.classList.toggle("on", el.dataset.tab === name));
+    const desk = name === "desk";
+    $("fx").style.visibility = desk ? "visible" : "hidden";
+    $("actors").style.visibility = desk ? "visible" : "hidden";
+    if (desk) placeCanvas();
+    if (name === "senzorji" && data) { drawSensor(performance.now()); drawMatrix(); }
+  }
   document.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]") || e.target.id === "back") { closeSheet(); return; }
+    const tabBtn = e.target.closest("[data-tab]");
+    if (tabBtn) { showTab(tabBtn.dataset.tab); return; }
+    const posBtn = e.target.closest("[data-pos]");
+    if (posBtn && data) {
+      focusPos = (data.open || [])[Number(posBtn.dataset.pos)] || null;
+      sheetKind = "ena";
+      paintSheet();
+      return;
+    }
     const agent = e.target.closest("[data-agent]");
     if (agent) { sheetKind = "agents"; focusAgent = agent.dataset.agent; paintSheet(); return; }
     const panel = e.target.closest("[data-sheet]");
