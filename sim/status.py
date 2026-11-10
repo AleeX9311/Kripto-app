@@ -77,12 +77,15 @@ def public_open(p: dict) -> dict:
         "chain": p.get("chain") or "bsc",
         "category": p.get("category") or "",
         "url": dex_url(p),
+        "image": p.get("image") or "",
         "entry_price": _num(p.get("entry_price")),
         "last_price": _num(p.get("last_price") or p.get("entry_price")),
+        "liq_usd": _num(p.get("liq_usd")),
         "time": p.get("opened_at"),
         "opened_at": p.get("opened_at"),
         "pnl_usd": round(pnl_usd, 4),
         "pnl_pct": round(pnl_pct, 4),
+        "votes": p.get("votes") if isinstance(p.get("votes"), dict) else None,
     }
 
 

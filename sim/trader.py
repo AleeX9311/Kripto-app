@@ -409,15 +409,22 @@ def maybe_enter(st: dict) -> None:
             if st["stats"].get("goplus_ok") is None or worked:
                 st["stats"]["goplus_ok"] = worked
                 st["stats"]["goplus_probe"] = gp
+        info = pair.get("info") or {}
+        change = (pair.get("priceChange") or {}).get("h24")
         record = {
             "time": stamp,
             "symbol": symbol,
             "name": base.get("name") or symbol,
             "url": pair.get("url"),
+            "image": info.get("imageUrl") or "",
             "token": token,
             "chain": chain_name,
             "decision": "BUY" if ok else "VETO",
             "category": category,
+            "price": float(pair.get("priceUsd") or 0),
+            "liq_usd": liq,
+            "vol24": vol24,
+            "change24": float(change) if change not in (None, "") else None,
             "votes": votes,
         }
         push_candidate(st, record)
@@ -460,8 +467,10 @@ def maybe_enter(st: dict) -> None:
             "opened_ts": now,
             "opened_at": stamp,
             "url": pair.get("url"),
+            "image": (pair.get("info") or {}).get("imageUrl") or "",
             "chain": chain_name,
             "category": category,
+            "liq_usd": liq_now,
             "cost_rate": cost_rate,
             "votes": votes,
         }
