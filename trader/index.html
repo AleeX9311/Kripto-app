@@ -159,6 +159,7 @@
     <div class="logo">KRIPTO <span>AGENTI</span></div>
     <div class="chips" id="chips"></div>
     <div class="clock" id="clock">00:00:00</div>
+    <span class="chip" id="scanAge">ZADNJI PREGLED —</span>
     <div class="badges">
       <span class="badge sim">SIMULACIJA</span>
       <span class="badge live" id="live">ČAKA</span>
@@ -273,6 +274,13 @@
     }).formatToParts(new Date());
     const g = (t) => p.find((x) => x.type === t).value;
     $("clock").textContent = g("hour") + ":" + g("minute") + ":" + g("second");
+    const age = $("scanAge");
+    if (!age) return;
+    if (!data || !data.last_update) { age.textContent = "ZADNJI PREGLED —"; return; }
+    const then = new Date(data.last_update).getTime();
+    if (!Number.isFinite(then)) { age.textContent = "ZADNJI PREGLED —"; return; }
+    const sec = Math.max(0, Math.round((Date.now() - then) / 1000));
+    age.textContent = sec < 60 ? "ZADNJI PREGLED " + sec + " s" : "ZADNJI PREGLED " + Math.floor(sec / 60) + " min " + (sec % 60) + " s";
   }
   function yesCount(votes) {
     return AGENTS.reduce((n, a) => n + ((votes && votes[a.id] && votes[a.id].vote === "YES") ? 1 : 0), 0);
@@ -766,7 +774,7 @@
 
   clock();
   setInterval(clock, 1000);
-  setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
+  setInterval(() => { if (document.visibilityState === "visible") load(); }, 20000);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });
   window.addEventListener("resize", () => { if (data) { drawRadial(data); drawLine(data.equity_history || []); drawCandles(data.equity_history || []); } });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});

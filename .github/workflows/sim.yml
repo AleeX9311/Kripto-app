@@ -2,7 +2,8 @@ name: Paper simulation
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # GitHub's shortest schedule. Each run then scans several times inside the window.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -15,7 +16,8 @@ concurrency:
 jobs:
   pass:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 4 scans, 75s apart, plus network time. Stays under the next 5-minute tick.
+    timeout-minutes: 8
     steps:
       - name: Checkout main
         uses: actions/checkout@v7
@@ -34,46 +36,50 @@ jobs:
             echo "sim-data is missing — seeded from sim/seed-state.json"
           fi
 
-      - name: Run one simulation pass
-        run: python3 sim/trader.py
-
-      - name: Publish state and status to sim-data
+      - name: Scan about once a minute
         run: |
           set -euo pipefail
-          test -f sim/state.json
-          test -f sim/status.json
-          cp sim/state.json /tmp/sim-state.json
-          cp sim/status.json /tmp/sim-status.json
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if git fetch --depth=1 origin sim-data; then
-            git checkout -B sim-data FETCH_HEAD
-          else
-            git switch --orphan sim-data
-            # Newer git starts the orphan with an empty index; older git keeps
-            # the previous index. Either way, only state.json and status.json
-            # may be committed (checked below).
-            git rm -rf --cached . >/dev/null 2>&1 || true
-          fi
+          publish() {
+            test -f sim/state.json
+            test -f sim/status.json
+            WT="${RUNNER_TEMP}/sim-data-wt"
+            if [ ! -e "$WT/.git" ]; then
+              rm -rf "$WT"
+              if git fetch --depth=1 origin sim-data; then
+                git worktree add -B sim-data "$WT" FETCH_HEAD
+              else
+                git worktree add --detach "$WT" HEAD
+                git -C "$WT" switch --orphan sim-data
+                git -C "$WT" rm -rf --cached . >/dev/null 2>&1 || true
+              fi
+            fi
+            cp sim/state.json "$WT/state.json"
+            cp sim/status.json "$WT/status.json"
+            git -C "$WT" add -- state.json status.json
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                state.json|status.json) ;;
+                *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
+              esac
+            done < <(git -C "$WT" ls-files)
+            if git -C "$WT" diff --cached --quiet; then
+              echo "No snapshot changes"
+              return 0
+            fi
+            git -C "$WT" commit -m "Update paper simulation snapshot"
+            git -C "$WT" push origin HEAD:sim-data
+          }
 
-          cp /tmp/sim-state.json state.json
-          cp /tmp/sim-status.json status.json
-          git add -- state.json status.json
-
-          while IFS= read -r f; do
-            [ -z "$f" ] && continue
-            case "$f" in
-              state.json|status.json) ;;
-              *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
-            esac
-          done < <(git ls-files)
-
-          if git diff --cached --quiet; then
-            echo "No snapshot changes — leaving sim-data as-is"
-            exit 0
-          fi
-
-          git commit -m "Update paper simulation snapshot"
-          git push origin HEAD:sim-data
+          # Four passes, 75s apart: about one scan a minute, exits included each pass.
+          for i in 1 2 3 4; do
+            echo "=== scan pass ${i}/4 ==="
+            python3 sim/trader.py
+            publish
+            if [ "$i" -lt 4 ]; then
+              sleep 75
+            fi
+          done
