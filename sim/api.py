@@ -117,6 +117,41 @@ def fetch_search_pairs(query: str) -> list[dict]:
     return []
 
 
+def fetch_gt_top_pools(page: int = 1) -> list[dict]:
+    """One page of the busiest BSC pools (about 20). No API key."""
+    data = _get(f"https://api.geckoterminal.com/api/v2/networks/bsc/pools?page={int(page)}")
+    time.sleep(config.REQUEST_PAUSE)
+    out: list[dict] = []
+    if not isinstance(data, dict):
+        return out
+    for item in data.get("data") or []:
+        if not isinstance(item, dict):
+            continue
+        rel = (item.get("relationships") or {}).get("base_token") or {}
+        tid = ((rel.get("data") or {}).get("id") or "")
+        if not str(tid).startswith("bsc_0x"):
+            continue
+        attrs = item.get("attributes") or {}
+        name = str(attrs.get("name") or "")
+        symbol = name.split("/")[0].strip().split()[0] if name else ""
+        vol = attrs.get("volume_usd") or {}
+        out.append({
+            "address": tid.split("_", 1)[1],
+            "symbol": symbol,
+            "reserve_usd": _num(attrs.get("reserve_in_usd")),
+            "vol24_usd": _num(vol.get("h24") if isinstance(vol, dict) else None),
+            "mcap_usd": _num(attrs.get("market_cap_usd") or attrs.get("fdv_usd")),
+        })
+    return out
+
+
+def _num(value: object) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def fetch_gt_bsc_pools(kind: str = "trending") -> list[str]:
     """GeckoTerminal BSC trending/new pools → base token addresses. No key."""
     path = "trending_pools" if kind == "trending" else "new_pools"

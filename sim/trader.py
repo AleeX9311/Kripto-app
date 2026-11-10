@@ -21,8 +21,8 @@ from api import (
     fetch_eur_usd,
     fetch_frankfurter_eur_usd,
     fetch_gt_bsc_pools,
+    fetch_gt_top_pools,
     fetch_pair,
-    fetch_search_pairs,
     fetch_token_boosts,
     fetch_token_boosts_top,
     fetch_token_pairs,
@@ -30,8 +30,10 @@ from api import (
 )
 from agents import (
     AGENT_LABELS,
+    classify,
     evaluate_agents,
     first_veto,
+    is_stable,
     note_votes,
     push_activity,
     push_candidate,
@@ -131,46 +133,82 @@ def position_size_usd(st: dict) -> float:
     return max(size, config.MIN_POSITION_USD) if eq >= config.MIN_POSITION_USD else 0.0
 
 
-def collect_candidates() -> list[dict]:
-    """BSC token addresses plus whether DexScreener currently boosts them."""
-    global _CAND_CACHE
-    if _CAND_CACHE and now_ts() - _CAND_CACHE[0] < _CAND_TTL:
-        return [dict(item) for item in _CAND_CACHE[1]]
+UNIVERSE_TTL = 20 * 60
+PASS_BATCH = 36
+EVAL_CAP = 24
+
+
+def _add_token(found: dict[str, dict], address: str | None, **flags: object) -> None:
+    if not address:
+        return
+    address = str(address).strip()
+    key = address.lower()
+    if not key.startswith("0x"):
+        return
+    symbol = str(flags.get("symbol") or "")
+    if is_stable(symbol):
+        return
+    row = found.get(key)
+    if row is None:
+        found[key] = {
+            "address": address,
+            "boosted": bool(flags.get("boosted")),
+            "source": str(flags.get("source") or ""),
+            "symbol": symbol,
+            "mcap_usd": float(flags.get("mcap_usd") or 0),
+        }
+        return
+    if flags.get("boosted"):
+        row["boosted"] = True
+    if flags.get("source") == "new" and row.get("source") != "boost":
+        row["source"] = "new"
+    if symbol and not row.get("symbol"):
+        row["symbol"] = symbol
+
+
+def refresh_universe(st: dict) -> list[dict]:
+    """Broad BSC universe from live pool lists. Cached so passes stay inside rate limits."""
+    cached = st.get("universe") or {}
+    age = now_ts() - float(cached.get("fetched_at") or 0)
+    items = cached.get("items") if isinstance(cached.get("items"), list) else []
+    if items and age < UNIVERSE_TTL:
+        return items
 
     found: dict[str, dict] = {}
-
-    def add(a: str | None, boosted: bool = False) -> None:
-        if not a:
-            return
-        a = a.strip()
-        al = a.lower()
-        if not al.startswith("0x"):
-            return
-        row = found.get(al)
-        if row is None:
-            found[al] = {"address": a, "boosted": boosted}
-        elif boosted:
-            row["boosted"] = True
-
+    for page in range(1, 9):
+        for pool in fetch_gt_top_pools(page):
+            if pool["reserve_usd"] and pool["reserve_usd"] < config.MIN_LIQUIDITY_USD:
+                continue
+            if pool["vol24_usd"] and pool["vol24_usd"] < 20_000:
+                continue
+            _add_token(
+                found, pool["address"], source="volume",
+                symbol=pool["symbol"], mcap_usd=pool["mcap_usd"],
+            )
+    for addr in fetch_gt_bsc_pools("trending"):
+        _add_token(found, addr, source="trending")
+    for addr in fetch_gt_bsc_pools("new"):
+        _add_token(found, addr, source="new")
     for item in fetch_token_boosts() + fetch_token_boosts_top():
-        add(item.get("tokenAddress"), boosted=True)
+        _add_token(found, item.get("tokenAddress"), boosted=True, source="boost")
     for item in fetch_token_profiles():
-        add(item.get("tokenAddress"))
-    for a in fetch_gt_bsc_pools("trending") + fetch_gt_bsc_pools("new"):
-        add(a)
+        _add_token(found, item.get("tokenAddress"), source="profile")
 
-    for q in ("cake", "floki", "bsc pepe", "baby doge", "pancake"):
-        for p in fetch_search_pairs(q):
-            base = (p.get("baseToken") or {}).get("address")
-            add(base)
-            if len(found) >= 60:
-                break
-        if len(found) >= 60:
-            break
+    items = list(found.values())[:500]
+    st["universe"] = {"fetched_at": now_ts(), "items": items}
+    st["universe_cursor"] = int(st.get("universe_cursor") or 0) % max(1, len(items))
+    log(f"universe refresh {len(items)} liquid BSC tokens")
+    return items
 
-    out = list(found.values())[:60]
-    _CAND_CACHE = (now_ts(), out)
-    return [dict(item) for item in out]
+
+def next_batch(st: dict) -> list[dict]:
+    items = refresh_universe(st)
+    if not items:
+        return []
+    start = int(st.get("universe_cursor") or 0) % len(items)
+    batch = [items[(start + i) % len(items)] for i in range(min(PASS_BATCH, len(items)))]
+    st["universe_cursor"] = (start + len(batch)) % len(items)
+    return [dict(item) for item in batch]
 
 
 def mark_positions(st: dict) -> None:
@@ -274,12 +312,12 @@ def maybe_enter(st: dict) -> None:
         })
         return
 
-    candidates = collect_candidates()
+    candidates = next_batch(st)
     st["stats"]["candidates_seen"] = int(st["stats"].get("candidates_seen", 0)) + len(candidates)
     push_activity(st, {
         "time": when,
         "type": "scan",
-        "text": f"Pregled {len(candidates)} kandidatov",
+        "text": f"Kos {len(candidates)} žetonov iz {len((st.get('universe') or {}).get('items') or [])}",
     })
     if not candidates:
         log("no BSC boost/profile candidates")
@@ -291,7 +329,7 @@ def maybe_enter(st: dict) -> None:
     evaluated = 0
 
     for cand in candidates:
-        if evaluated >= 30 or len(st["open"]) >= config.MAX_OPEN:
+        if evaluated >= EVAL_CAP or len(st["open"]) >= config.MAX_OPEN:
             break
         if float(st["cash_usd"]) < size:
             break
@@ -306,12 +344,24 @@ def maybe_enter(st: dict) -> None:
             continue
 
         base = pair.get("baseToken") or {}
-        symbol = base.get("symbol") or "?"
+        symbol = base.get("symbol") or cand.get("symbol") or "?"
+        if is_stable(symbol):
+            continue
+        liq = float(((pair.get("liquidity") or {}).get("usd")) or 0)
+        vol24 = float(((pair.get("volume") or {}).get("h24")) or 0)
+        if liq < config.MIN_LIQUIDITY_USD or vol24 < 20_000:
+            continue
         token = base.get("address") or addr
+        mcap = float(pair.get("marketCap") or pair.get("fdv") or cand.get("mcap_usd") or 0)
+        category = classify(
+            symbol, base.get("name") or "", token, mcap,
+            boosted=bool(cand.get("boosted")), source=str(cand.get("source") or ""),
+        )
         ok, votes = evaluate_agents(pair, {
             "boosted": bool(cand.get("boosted")),
             "size_usd": size,
             "run_goplus": True,
+            "category": category,
         })
         evaluated += 1
         stamp = now_iso()
@@ -329,6 +379,7 @@ def maybe_enter(st: dict) -> None:
             "url": pair.get("url"),
             "token": token,
             "decision": "BUY" if ok else "VETO",
+            "category": category,
             "votes": votes,
         }
         push_candidate(st, record)
@@ -384,6 +435,12 @@ def maybe_enter(st: dict) -> None:
             f"pair={pos['pair']} cash=${st['cash_usd']:.2f}"
         )
         size = position_size_usd(st)
+    st["last_scanned"] = evaluated
+    push_activity(st, {
+        "time": now_iso(),
+        "type": "scan",
+        "text": f"PREGLEDANIH: {evaluated}",
+    })
 
 
 def probe_goplus(st: dict) -> None:

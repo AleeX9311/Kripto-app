@@ -130,6 +130,7 @@ def build_status(st: dict) -> dict:
         "equity_usd": round(equity_usd, 2),
         "pct_vs_eur50": round(pct, 4),
         "trades": len(closed),
+        "scanned": int(st.get("last_scanned") or 0),
         "wins": wins,
         "losses": losses,
         "best": extreme(closed, max),

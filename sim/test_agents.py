@@ -65,7 +65,7 @@ def test_each_agent_can_veto():
         "trend": _pair(priceChange={"m5": -1.2, "h1": 4.0}),
         "varnost": _pair(liquidity={"usd": 1000}),
         "bik_medved": _pair(priceChange={"m5": -0.4, "h1": 6.0}),
-        "izvajanje": _pair(dexId="biswap"),
+        "izvajanje": _pair(priceUsd="0"),
     }
     for agent_id, pair in cases.items():
         ok, votes = evaluate_agents(pair, _ctx())
@@ -104,9 +104,22 @@ def test_books_keep_latest_window():
     assert st["equity_history"][-1]["usd"] == 50 + 599
 
 
+def test_categories_and_alt_dip():
+    from agents import classify
+    assert classify("CAKE", "PancakeSwap", "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", 2_000_000_000) == "MAJOR"
+    assert classify("PEPE", "Pepe", "0x" + "ab" * 20, 2_000_000) == "MEME"
+    assert classify("XVS", "Venus", "0x" + "cd" * 20, 80_000_000) == "ALT"
+    ok, votes = evaluate_agents(_pair(priceChange={"m5": -0.2, "h1": 1.0}), _ctx(category="ALT"))
+    assert votes["trend"]["vote"] == "YES", votes["trend"]
+    meme_ok, meme_votes = evaluate_agents(_pair(priceChange={"m5": -0.2, "h1": 1.0}), _ctx(category="MEME"))
+    assert meme_votes["trend"]["vote"] == "NO"
+    assert not meme_ok
+
+
 if __name__ == "__main__":
     test_all_yes_buys()
     test_each_agent_can_veto()
     test_goplus_honeypot_blocks_even_if_others_pass()
     test_books_keep_latest_window()
+    test_categories_and_alt_dip()
     print("agent tests ok")
