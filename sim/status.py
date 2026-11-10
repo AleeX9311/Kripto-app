@@ -107,7 +107,7 @@ def build_status(st: dict) -> dict:
     equity_usd = cash + mark
     equity_eur = equity_usd / eur_usd
     start_eur = float(st.get("start_eur") or config.START_EUR)
-    # Percent uses the same rounded euros the page shows, so €50,00 is 0 %.
+    # Percent uses the same rounded euros the page shows, versus start_eur.
     equity_eur_r = round(equity_eur, 2)
     pct = (equity_eur_r / start_eur - 1.0) * 100.0 if start_eur else 0.0
     wins = sum(1 for t in closed if float(t.get("pnl_usd") or 0) > 0)

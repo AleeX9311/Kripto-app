@@ -108,7 +108,7 @@ def load_state() -> dict:
                 return st
         except (OSError, json.JSONDecodeError) as e:
             log(f"WARN bad {path.name}, skipping: {e}")
-    log("WARN no usable state — starting a fresh €50 book")
+    log("WARN no usable state — starting a fresh €100 book")
     return default_state()
 
 
@@ -460,7 +460,7 @@ def probe_goplus(st: dict) -> None:
 
 def loop_once(st: dict) -> None:
     # Keep the book's EUR rate when Binance is unreachable. Swapping in another
-    # source would show a fake gain or loss against the €50 start.
+    # source would show a fake gain or loss against the €100 start.
     fx = fetch_binance_eur_usd()
     if fx:
         st["eur_usd"] = fx

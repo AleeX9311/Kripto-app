@@ -10,7 +10,7 @@ END_AT = datetime(2026, 11, 16, 20, 45, 0, tzinfo=timezone(timedelta(hours=1)))
 CHAIN_ID = "bsc"
 CHAIN_LABEL = "BSC"
 
-START_EUR = 50.0
+START_EUR = 100.0
 POSITION_PCT = 0.10          # 10% of equity per position
 MIN_POSITION_USD = 3.0
 MAX_OPEN = 5
