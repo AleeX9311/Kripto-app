@@ -152,6 +152,7 @@ def build_status(st: dict) -> dict:
         "candidates": candidates,
         "activity": activity,
         "equity_history": list(st.get("equity_history") or []),
+        "learning": st.get("learning_public") or None,
     }
 
 

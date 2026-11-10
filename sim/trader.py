@@ -40,6 +40,21 @@ from agents import (
     push_candidate,
     push_equity,
 )
+from learning import (
+    decide,
+    load_book,
+    max_open,
+    on_close,
+    on_open,
+    on_reject,
+    public_summary,
+    resolve_pending,
+    retune_votes,
+    save_book,
+    snapshot,
+    stop_loss,
+    time_stop_sec,
+)
 from status import write_status
 from strategy import best_pair_for_token
 
@@ -253,7 +268,10 @@ def mark_positions(st: dict) -> None:
         if px > peak:
             pos["peak_price"] = px
             peak = px
-        pos["pnl_pct_gross"] = (px / float(pos["entry_price"]) - 1.0) * 100.0
+        gross_pct = (px / float(pos["entry_price"]) - 1.0) * 100.0
+        pos["pnl_pct_gross"] = gross_pct
+        pos["mfe_pct"] = max(float(pos.get("mfe_pct", gross_pct)), gross_pct)
+        pos["mae_pct"] = min(float(pos.get("mae_pct", gross_pct)), gross_pct)
 
 
 def maybe_exit(st: dict) -> None:
@@ -273,13 +291,14 @@ def maybe_exit(st: dict) -> None:
         pnl = net - cost
         pnl_pct = (net / cost - 1.0) if cost else 0.0
         reason = None
-        if pnl_pct <= config.STOP_LOSS:
+        book = st.get("_learn")
+        if pnl_pct <= stop_loss(book):
             reason = "stop_loss"
         elif pnl_pct >= config.TAKE_PROFIT:
             reason = "take_profit"
         elif (peak / entry - 1.0) >= config.TRAIL_ACTIVATE and px <= peak * (1.0 - config.TRAIL_PCT):
             reason = "trailing_stop"
-        elif age >= config.TIME_STOP_SEC:
+        elif age >= time_stop_sec(book):
             reason = "time_stop"
         if reason:
             trade = {
@@ -300,7 +319,18 @@ def maybe_exit(st: dict) -> None:
                 "url": pos.get("url"),
                 "chain": pos.get("chain") or "bsc",
                 "category": pos.get("category") or "",
+                "mfe_pct": round(float(pos.get("mfe_pct", 0)), 4),
+                "mae_pct": round(float(pos.get("mae_pct", 0)), 4),
             }
+            if book and pos.get("learn"):
+                on_close(book, pos["learn"], {
+                    "pnl_pct": trade["pnl_pct"],
+                    "pnl_usd": trade["pnl_usd"],
+                    "reason": reason,
+                    "held_sec": trade["held_sec"],
+                    "mfe_pct": trade["mfe_pct"],
+                    "mae_pct": trade["mae_pct"],
+                }, trade["closed_at"])
             st["cash_usd"] = round(float(st["cash_usd"]) + net, 6)
             st["closed"].append(trade)
             st["stats"]["exits"] = int(st["stats"].get("exits", 0)) + 1
@@ -324,7 +354,8 @@ def maybe_exit(st: dict) -> None:
 
 def maybe_enter(st: dict) -> None:
     when = now_iso()
-    if len(st["open"]) >= config.MAX_OPEN:
+    book = st.get("_learn")
+    if len(st["open"]) >= max_open(book):
         push_activity(st, {
             "time": when, "type": "scan",
             "text": "Pregled ustavljen — odprtih je že največ 5 pozicij",
@@ -363,7 +394,7 @@ def maybe_enter(st: dict) -> None:
         chain_name = cand.get("chain") or "bsc"
         if evaluated["bsc"] >= EVAL_CAP and evaluated["solana"] >= EVAL_CAP:
             break
-        if evaluated.get(chain_name, 0) >= EVAL_CAP or len(st["open"]) >= config.MAX_OPEN:
+        if evaluated.get(chain_name, 0) >= EVAL_CAP or len(st["open"]) >= max_open(st.get("_learn")):
             continue
         if float(st["cash_usd"]) < size:
             break
@@ -401,6 +432,13 @@ def maybe_enter(st: dict) -> None:
             "category": category,
             "chain": chain_name,
         })
+        learn_book = st.get("_learn")
+        features = snapshot(pair, votes, category, chain_name, (learn_book or {}).get("params"))
+        learn_why = ""
+        if learn_book:
+            votes = retune_votes(learn_book, votes, features)
+            features = snapshot(pair, votes, category, chain_name, learn_book.get("params"))
+            ok, learn_why = decide(learn_book, votes, features)
         evaluated[chain_name] = evaluated.get(chain_name, 0) + 1
         stamp = now_iso()
         note_votes(st, symbol, votes, stamp)
@@ -435,7 +473,12 @@ def maybe_enter(st: dict) -> None:
                 veto_id = "varnost"
             else:
                 veto_id = first_veto(votes) or "kit"
-            reason = votes[veto_id]["reason"]
+            reason = (votes.get(veto_id) or {}).get("reason") or learn_why or "zavrnjeno"
+            if learn_book:
+                on_reject(
+                    learn_book, features, symbol, str(pair.get("pairAddress") or ""),
+                    chain_name, stamp, now_ts() + config.TIME_STOP_SEC,
+                )
             st["stats"]["vetoes"] = int(st["stats"].get("vetoes", 0)) + 1
             push_activity(st, {
                 "time": stamp,
@@ -478,6 +521,7 @@ def maybe_enter(st: dict) -> None:
             "liq_usd": liq_now,
             "cost_rate": cost_rate,
             "votes": votes,
+            "learn": on_open(learn_book, features, symbol, stamp) if learn_book else features,
         }
         st["cash_usd"] = round(float(st["cash_usd"]) - spend, 6)
         st["open"].append(pos)
@@ -519,6 +563,14 @@ def probe_goplus(st: dict) -> None:
     log(f"GoPlus probe WBNB: worked={worked} reason={reason}")
 
 
+def _later_price(pair_addr: str, chain: str) -> float | None:
+    pair = fetch_pair(pair_addr, chain)
+    if not pair:
+        return None
+    px = float(pair.get("priceUsd") or 0)
+    return px or None
+
+
 def loop_once(st: dict) -> None:
     # Keep the book's EUR rate when Binance is unreachable. Swapping in another
     # source would show a fake gain or loss against the €100 start.
@@ -531,6 +583,9 @@ def loop_once(st: dict) -> None:
     else:
         log(f"Binance FX unavailable — keeping {st.get('eur_usd')}")
     probe_goplus(st)
+    book = st.get("_learn")
+    if book:
+        resolve_pending(book, now_ts(), _later_price, now_iso())
     mark_positions(st)
     maybe_exit(st)
     maybe_enter(st)
@@ -598,6 +653,13 @@ def flatten_for_end(st: dict) -> None:
 def main() -> int:
     log(f"PASS paper-trader chain={config.CHAIN_ID} end={config.END_AT.isoformat()}")
     st = load_state()
+    book = load_book()
+    st["_learn"] = book
+
+    def finish_books() -> None:
+        st["learning_public"] = public_summary(book)
+        save_book(book)
+        st.pop("_learn", None)
 
     if past_end():
         if st.get("finished"):
@@ -614,6 +676,7 @@ def main() -> int:
             return 1
         st["finished"] = True
         st["last_loop_at"] = now_iso()
+        finish_books()
         save_state(st)
         write_status(st)
         log("final status written")
@@ -623,6 +686,7 @@ def main() -> int:
         loop_once(st)
     except Exception:
         log("ERROR in pass:\n" + traceback.format_exc())
+    finish_books()
     save_state(st)
     payload = write_status(st)
     log(

@@ -85,7 +85,7 @@
     }
     .tick b { color: var(--yel); font-weight: 600; }
     .tri { height: 168px; flex: none; display: grid; grid-template-columns: 1fr 1.12fr 1fr; gap: 4px; min-height: 0; }
-    .mid { height: 366px; flex: none; display: grid; grid-template-columns: 74px 1fr 124px; gap: 4px; min-height: 0; position: relative; z-index: 2; }
+    .mid { height: 344px; flex: none; display: grid; grid-template-columns: 74px 1fr 124px; gap: 4px; min-height: 0; position: relative; z-index: 2; }
     .pipe { height: 32px; flex: none; position: relative; z-index: 8; display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
     .pipe .wire { position: absolute; left: 8px; right: 8px; top: 50%; height: 1px; background: linear-gradient(90deg, #ff3df2, #ffb020, #ff3b5c, #39ff88, #3de0ff); opacity: .7; }
     .pipe button {
@@ -234,7 +234,18 @@
     .wide .top { height: 62px; }
     .wide .tick { height: 16px; }
     .wide .tri { height: 180px; }
-    .wide .mid { height: 380px; grid-template-columns: 220px 1fr 280px; }
+    .wide .mid { height: 352px; grid-template-columns: 220px 1fr 280px; }
+    .learnmini {
+      height: 18px; flex: none; z-index: 8;
+      display: flex; align-items: center; gap: 4px;
+      border: 1px solid var(--line); background: rgba(8, 12, 20, .85);
+      color: var(--muted); font-size: 7px; letter-spacing: .05em;
+      padding: 0 6px; text-align: left; overflow: hidden; white-space: nowrap;
+    }
+    .learnmini b { color: var(--cyan); font-weight: 600; }
+    .tbit { width: 22px; height: 4px; background: #121826; border-radius: 2px; overflow: hidden; display: inline-block; }
+    .tbit i { display: block; height: 100%; background: var(--green); }
+    .wide .learnmini { height: 22px; font-size: 11px; }
     .wide .pipe { height: 36px; }
     .wide .bot { height: 176px; grid-template-columns: 380px 1fr; }
     .wide .navline button.nav, .wide .stat, .wide .pill { font-size: 11px; padding: 3px 8px; }
@@ -284,6 +295,7 @@
             <button class="nav" type="button" data-sheet="agents">SINAPSA</button>
             <button class="nav" type="button" data-sheet="trak">TRAK</button>
             <button class="nav" type="button" data-sheet="knjiga">KNJIGA</button>
+            <button class="nav" type="button" data-sheet="ucenje">UČENJE</button>
           </div>
           <div class="statline">
             <span class="stat" id="stEq">—</span>
@@ -324,6 +336,7 @@
           </section>
         </div>
         <div class="pipe" id="pipe"></div>
+        <button class="learnmini" type="button" id="learnMini" data-sheet="ucenje">UČENJE · čaka vzorce</button>
         <div class="bot">
           <section class="panel" data-sheet="pnl">
             <h2><i></i><em>07</em> Roj PnL</h2>
@@ -494,6 +507,9 @@
     const hot = hotAgent();
     const latest = (d.agents && d.agents[hot] && d.agents[hot].latest) || {};
     $("tick").innerHTML = "5 AGENTOV LIVE · PREDAJA " + esc((AGENTS.find((a) => a.id === hot) || AGENTS[0]).label) + " " + esc(latest.symbol || "—") + " · BSC " + (Number(d.scanned_bsc) || 0) + " · SOL " + (Number(d.scanned_sol) || 0) + " · <b>SAMO SIMULACIJA · VIRTUALNI DENAR</b> · " + esc(ageText()) + " · 4/5 VARNOST OBVEZNA";
+    const learn = d.learning || {};
+    const trusts = learn.trust || [];
+    $("learnMini").innerHTML = "<b>UČENJE v" + esc(learn.version || 1) + "</b> · " + esc(learn.samples || 0) + " vzorcev " + trusts.map((t) => `<span class="tbit" title="${esc(t.label)}"><i style="width:${Math.round((t.score || 0) * 100)}%"></i></span>`).join("");
     rollEur(d.equity_eur);
     $("huge").className = "huge" + (up ? "" : " dn");
     const izidTxt = realizedEur != null ? eur(realizedEur) : money(realized);
@@ -1318,6 +1334,14 @@
     const closed = ((data && data.closed) || []).slice(0, 12).map((t) => `<p class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))} <span class="dim">${esc(t.reason || "")}</span></p>`).join("");
     return `<h3>Knjiga</h3>${body}<h3>Zaprto</h3>${closed || "<p>ČAKA</p>"}<h3>Pravila</h3><p><b>SIMULACIJA · VIRTUALNI DENAR.</b> ${esc(RULE)}</p><p>10 % na pozicijo, največ 5 odprtih. Izstop −8 %, +20 %, trailing 10 % po +10 %, časovni izhod 4 h. Zdrs 1 % (2 % na majhnem SOL bazenu). 9. 11. 2026 – 16. 11. 2026.</p>`;
   }
+  function learnSheet() {
+    const learn = (data && data.learning) || {};
+    const trusts = learn.trust || [];
+    const bars = trusts.length ? trusts.map((t) => `<p><b>${esc(t.label)}</b> ${Math.round((t.score || 0) * 100)} %</p><div class="level"><i style="left:${Math.round((t.score || 0) * 100)}%"></i></div><p class="dim">Beta α ${esc(t.alpha)} · β ${esc(t.beta)}</p>`).join("") : `<p>Še ni zaupanja. Privzeto je 50 %.</p>`;
+    const lessons = (learn.lessons || []).slice().reverse().map((row) => `<p>${esc(row.text || "")}</p>`).join("") || `<p>Še ni lekcij. Pojavijo se po zaprtem poslu.</p>`;
+    const avoid = (learn.avoid || []).map((row) => `<p><b>izogibaj se</b> ${esc(row.key)} · ${esc(row.trades)} poslov · ${esc(row.why || "")}</p>`).join("") || `<p>Ni vzorcev za izogibanje.</p>`;
+    return `<h3>Učenje</h3><p><b>SIMULACIJA · VIRTUALNI DENAR.</b> ${esc(RULE)} Učenje lahko pravila samo zaostruje.</p><p>Različica ${esc(learn.version || 1)} · vzorcev ${esc(learn.samples || 0)}</p><p>${esc(learn.change || "začetek, privzete meje")}</p><h3>Zaupanje</h3>${bars}<h3>Lekcije</h3>${lessons}<h3>Izogibaj se</h3>${avoid}`;
+  }
   function paintSheet() {
     let html = "";
     if (sheetKind === "agents" || sheetKind === "senzor") html = agentSheet(focusAgent);
@@ -1326,9 +1350,9 @@
       html = `<h3>Signal rotacija</h3><p class="dim">X je 5-minutni momentum iz glasu TREND. Y je število glasov DA. Krivulja je povezava, ne zgodovina cene.</p>` + ((data && data.candidates) || []).slice(0, 16).map((c) => `<p>${esc(c.symbol)} ${esc(chainOf(c))} ${esc(c.category || "")} ${yesCount(c.votes)}/5 ${c.change24 == null ? "—" : esc(pct(c.change24))}</p>`).join("");
     } else if (sheetKind === "sled" || sheetKind === "trak") {
       html = `<h3>Sled</h3><p>${esc(RULE)}</p>` + sledRows().map((r) => `<p class="${r.ok ? "up" : "dn"}">${esc((r.ev.time || "").slice(11, 16))} ${esc(r.ev.symbol || "")} ${esc(r.votes)} ${esc(r.ev.text || "")}</p>`).join("");
-    } else if (sheetKind === "cenilec") {
+    }     else if (sheetKind === "cenilec") {
       html = `<h3>Cenilec</h3><p>Pahljača je statistični stožec iz standardnega odklona zadnjih 15-minutnih donosov GeckoTerminal. <b>Ni napoved cene.</b></p><p class="dim">${esc(candleNote || "")}</p>`;
-    }
+    } else if (sheetKind === "ucenje") html = learnSheet();
     $("sheet").innerHTML = `<button type="button" class="chip" data-close="1">Zapri</button>` + html;
     $("sheet").classList.add("show");
     $("back").classList.add("show");

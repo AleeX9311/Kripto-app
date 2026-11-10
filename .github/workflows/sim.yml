@@ -30,6 +30,10 @@ jobs:
           set -euo pipefail
           if git fetch --depth=1 origin sim-data; then
             git show FETCH_HEAD:state.json > sim/state.json
+            if git cat-file -e FETCH_HEAD:learning.json 2>/dev/null; then
+              git show FETCH_HEAD:learning.json > sim/learning.json
+              echo "Loaded learning.json from sim-data"
+            fi
             echo "Loaded state.json from sim-data"
           else
             cp sim/seed-state.json sim/state.json
@@ -58,11 +62,14 @@ jobs:
             fi
             cp sim/state.json "$WT/state.json"
             cp sim/status.json "$WT/status.json"
-            git -C "$WT" add -- state.json status.json
+            if [ -f sim/learning.json ]; then
+              cp sim/learning.json "$WT/learning.json"
+            fi
+            git -C "$WT" add -- state.json status.json learning.json
             while IFS= read -r f; do
               [ -z "$f" ] && continue
               case "$f" in
-                state.json|status.json) ;;
+                state.json|status.json|learning.json) ;;
                 *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
               esac
             done < <(git -C "$WT" ls-files)
