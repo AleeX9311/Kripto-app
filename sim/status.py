@@ -158,6 +158,10 @@ def build_status(st: dict) -> dict:
         "activity": activity,
         "equity_history": list(st.get("equity_history") or []),
         "learning": st.get("learning_public") or None,
+        "regime": st.get("regime") or {},
+        "brake": bool((st.get("day") or {}).get("brake")),
+        "metrics": st.get("metrics") or None,
+        "latestReport": st.get("latest_report"),
     }
 
 

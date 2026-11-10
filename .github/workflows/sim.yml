@@ -65,11 +65,18 @@ jobs:
             if [ -f sim/learning.json ]; then
               cp sim/learning.json "$WT/learning.json"
             fi
+            if [ -d sim/reports ]; then
+              mkdir -p "$WT/reports"
+              cp -a sim/reports/. "$WT/reports/"
+            fi
             git -C "$WT" add -- state.json status.json learning.json
+            if [ -d "$WT/reports" ]; then
+              git -C "$WT" add -- reports
+            fi
             while IFS= read -r f; do
               [ -z "$f" ] && continue
               case "$f" in
-                state.json|status.json|learning.json) ;;
+                state.json|status.json|learning.json|reports/*) ;;
                 *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
               esac
             done < <(git -C "$WT" ls-files)

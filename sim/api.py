@@ -91,6 +91,19 @@ def fetch_token_pairs(addresses: list[str], chain: str = "bsc") -> list[dict]:
     return out
 
 
+def fetch_top_pool(token: str, chain: str = "bsc") -> str | None:
+    """Most liquid GeckoTerminal pool address for a token, if the API answers."""
+    network = "solana" if chain == "solana" else "bsc"
+    data = _get(f"https://api.geckoterminal.com/api/v2/networks/{network}/tokens/{token}/pools?page=1")
+    time.sleep(config.REQUEST_PAUSE)
+    if not isinstance(data, dict) or "__error__" in data:
+        return None
+    rows = data.get("data") or []
+    if not rows or not isinstance(rows[0], dict):
+        return None
+    return ((rows[0].get("attributes") or {}).get("address")) or None
+
+
 def fetch_ohlcv(pool: str, chain: str = "bsc", timeframe: str = "minute", aggregate: int = 15, limit: int = 200) -> list[list]:
     """GeckoTerminal candles, oldest first: [ts, open, high, low, close, volume]."""
     network = "solana" if chain == "solana" else "bsc"
@@ -246,6 +259,10 @@ def goplus_ok(contract: str) -> tuple[bool, str]:
         buy_tax, sell_tax = 0.0, 0.0
     if buy_tax > 0.10 or sell_tax > 0.10:
         return False, f"tax buy={buy_tax} sell={sell_tax}"
+    from scam import lp_locked_fraction
+    locked = lp_locked_fraction(info)
+    if locked is not None and locked < 0.80:
+        return False, f"lp_locked={locked:.0%}"
 
     owner = flag("owner_address")
     renounced = owner in (
@@ -266,7 +283,12 @@ def goplus_ok(contract: str) -> tuple[bool, str]:
     if flag("transfer_pausable") in ("1", "true") and not renounced:
         return False, "transfer_pausable"
 
-    return True, f"ok buy_tax={buy_tax} sell_tax={sell_tax}"
+    note = f"ok buy_tax={buy_tax} sell_tax={sell_tax}"
+    if locked is None:
+        note += " lp=neznan"
+    else:
+        note += f" lp={locked:.0%}"
+    return True, note
 
 
 def _on(obj: object) -> bool:

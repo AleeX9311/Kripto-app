@@ -59,6 +59,10 @@ from learning import (
 from status import write_status
 from strategy import best_pair_for_token
 from support import plan_stop, size_for_stop
+from regime import classify_chain, size_multiplier
+from scam import scam_reason
+from metrics import compute_metrics
+from report import build_report, report_due, write_report
 
 ROOT = Path(__file__).resolve().parent
 STATE_PATH = ROOT / config.STATE_FILE
@@ -276,6 +280,84 @@ def mark_positions(st: dict) -> None:
         pos["mae_pct"] = min(float(pos.get("mae_pct", gross_pct)), gross_pct)
 
 
+def _take_partial(st: dict, pos: dict, px: float) -> None:
+    """Sell half at +10% and lift the remainder stop to breakeven."""
+    rate = float(pos.get("cost_rate") or config.EXIT_COST)
+    half_tokens = float(pos["tokens"]) * 0.5
+    proceeds = half_tokens * px * (1.0 - rate)
+    half_cost = float(pos["cost_usd"]) * 0.5
+    pnl = proceeds - half_cost
+    pnl_pct = (pnl / half_cost * 100.0) if half_cost else 0.0
+    closed_at = now_iso()
+    st["cash_usd"] = round(float(st["cash_usd"]) + proceeds, 6)
+    st.setdefault("closed", []).append({
+        "symbol": pos.get("symbol"),
+        "name": pos.get("name") or pos.get("symbol"),
+        "chain": pos.get("chain") or "bsc",
+        "category": pos.get("category") or "",
+        "entry_price": pos.get("entry_price"),
+        "exit_price": px,
+        "pnl_usd": round(pnl, 6),
+        "pnl_pct": round(pnl_pct, 4),
+        "opened_at": pos.get("opened_at"),
+        "closed_at": closed_at,
+        "held_sec": int(now_ts() - float(pos.get("opened_ts") or now_ts())),
+        "reason": "delno_10",
+        "url": pos.get("url"),
+        "stop_pct": pos.get("stop_pct"),
+        "support_low": pos.get("support_low"),
+    })
+    pos["tokens"] = half_tokens
+    pos["cost_usd"] = round(half_cost, 6)
+    pos["partial_done"] = True
+    entry = float(pos["entry_price"])
+    be = float(pos.get("eff_entry") or entry) / (1.0 - rate) if rate < 1 else entry
+    be_frac = be / entry - 1.0 if entry else 0.0
+    current = float(pos.get("stop_frac") or config.STOP_FALLBACK)
+    if be_frac > current:
+        pos["stop_frac"] = be_frac
+        pos["stop_price"] = be
+    pos["stop_note"] = "breakeven"
+    push_activity(st, {
+        "time": closed_at,
+        "type": "sell",
+        "symbol": pos.get("symbol"),
+        "reason": "delno_10",
+        "text": f"DELNO {pos.get('symbol')} · 50 % pri +10 % · stop na breakeven",
+        "pnl_usd": round(pnl, 4),
+    })
+    log(f"PARTIAL {pos.get('symbol')} pnl=${pnl:.3f} stop->{pos.get('stop_price')}")
+
+
+def _day_key() -> str:
+    return datetime.now(LJ).date().isoformat()
+
+
+def update_brake(st: dict) -> bool:
+    """Stop new entries after a 3% down day. Resets at Ljubljana midnight."""
+    today = _day_key()
+    day = st.setdefault("day", {})
+    equity = equity_usd(st)
+    if day.get("date") != today:
+        day.clear()
+        day["date"] = today
+        day["start_equity"] = equity
+        day["brake"] = False
+        day["brake_events"] = []
+        day["scam_rejects"] = 0
+    start = float(day.get("start_equity") or equity)
+    if start > 0 and (equity - start) / start <= -0.03:
+        if not day.get("brake"):
+            day.setdefault("brake_events", []).append(now_iso())
+            push_activity(st, {
+                "time": now_iso(),
+                "type": "scan",
+                "text": "ZAVORA AKTIVNA · dnevna izguba nad 3 %",
+            })
+        day["brake"] = True
+    return bool(day.get("brake"))
+
+
 def maybe_exit(st: dict) -> None:
     still = []
     for pos in st["open"]:
@@ -292,6 +374,13 @@ def maybe_exit(st: dict) -> None:
         cost = float(pos["cost_usd"])
         pnl = net - cost
         pnl_pct = (net / cost - 1.0) if cost else 0.0
+        if not pos.get("partial_done") and pnl_pct >= 0.10:
+            _take_partial(st, pos, px)
+            gross = float(pos["tokens"]) * px
+            net = gross * (1.0 - float(pos.get("cost_rate") or config.EXIT_COST))
+            cost = float(pos["cost_usd"])
+            pnl = net - cost
+            pnl_pct = (net / cost - 1.0) if cost else 0.0
         reason = None
         book = st.get("_learn")
         stop_frac = float(pos.get("stop_frac") or config.STOP_FALLBACK)
@@ -374,6 +463,12 @@ def maybe_exit(st: dict) -> None:
 def maybe_enter(st: dict) -> None:
     when = now_iso()
     book = st.get("_learn")
+    if (st.get("day") or {}).get("brake"):
+        push_activity(st, {
+            "time": when, "type": "scan",
+            "text": "ZAVORA AKTIVNA · novih pozicij danes ni",
+        })
+        return
     if len(st["open"]) >= max_open(book):
         push_activity(st, {
             "time": when, "type": "scan",
@@ -443,6 +538,7 @@ def maybe_enter(st: dict) -> None:
             symbol, base.get("name") or "", token, mcap,
             boosted=bool(cand.get("boosted")), source=str(cand.get("source") or ""),
         )
+        size = equity_usd(st) * config.POSITION_PCT
         ok, votes = evaluate_agents(pair, {
             "boosted": bool(cand.get("boosted")),
             "size_usd": size,
@@ -457,6 +553,12 @@ def maybe_enter(st: dict) -> None:
             votes = retune_votes(learn_book, votes, features)
             features = snapshot(pair, votes, category, chain_name, learn_book.get("params"))
             ok, learn_why = decide(learn_book, votes, features)
+        regime_name = (st.get("regime") or {}).get(chain_name) or "NEVTRALNO"
+        features["regime"] = regime_name
+        factor = size_multiplier(regime_name, category)
+        if factor is None:
+            ok = False
+            learn_why = f"režim {regime_name} · MEME ni dovoljen"
         evaluated[chain_name] = evaluated.get(chain_name, 0) + 1
         stamp = now_iso()
         note_votes(st, symbol, votes, stamp)
@@ -478,6 +580,7 @@ def maybe_enter(st: dict) -> None:
             "chain": chain_name,
             "decision": "BUY" if ok else "VETO",
             "category": category,
+            "regime": regime_name,
             "price": float(pair.get("priceUsd") or 0),
             "liq_usd": liq,
             "vol24": vol24,
@@ -492,6 +595,9 @@ def maybe_enter(st: dict) -> None:
             else:
                 veto_id = first_veto(votes) or "kit"
             reason = (votes.get(veto_id) or {}).get("reason") or learn_why or "zavrnjeno"
+            if "prevara" in str(reason):
+                st.setdefault("day", {}).setdefault("scam_rejects", 0)
+                st["day"]["scam_rejects"] = int(st["day"].get("scam_rejects") or 0) + 1
             if learn_book:
                 on_reject(
                     learn_book, features, symbol, str(pair.get("pairAddress") or ""),
@@ -527,7 +633,7 @@ def maybe_enter(st: dict) -> None:
             })
             log(f"SKIP {symbol} {plan['reason']} stop={plan['stop_pct']:.2f}%")
             continue
-        size = size_for_stop(equity_usd(st), float(plan["stop_frac"]))
+        size = size_for_stop(equity_usd(st), float(plan["stop_frac"])) * float(factor or 1.0)
         if size <= 0 or float(st["cash_usd"]) < size:
             push_activity(st, {
                 "time": stamp,
@@ -620,6 +726,52 @@ def probe_goplus(st: dict) -> None:
     log(f"GoPlus probe WBNB: worked={worked} reason={reason}")
 
 
+def _closes(candles: list) -> list[float]:
+    return [float(row[4]) for row in candles if len(row) >= 5 and float(row[4]) > 0]
+
+
+def _refresh_regime(st: dict) -> None:
+    """Classify BNB and SOL once per pass. Failures stay NEVTRALNO."""
+    from api import fetch_ohlcv, fetch_top_pool
+    majors = {
+        "bsc": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+        "solana": "So11111111111111111111111111111111111111112",
+    }
+    regime = {}
+    for chain, token in majors.items():
+        try:
+            pool = fetch_top_pool(token, chain)
+            if not pool:
+                regime[chain] = "NEVTRALNO"
+                continue
+            h1 = _closes(fetch_ohlcv(pool, chain, "hour", 1, 80))
+            h4 = _closes(fetch_ohlcv(pool, chain, "hour", 4, 60))
+            regime[chain] = classify_chain(h1, h4)
+        except Exception:
+            regime[chain] = "NEVTRALNO"
+    st["regime"] = regime
+    push_activity(st, {
+        "time": now_iso(),
+        "type": "scan",
+        "text": f"REŽIM BNB {regime.get('bsc', 'NEVTRALNO')} · SOL {regime.get('solana', 'NEVTRALNO')}",
+    })
+
+
+def _write_daily_report(st: dict) -> None:
+    now = datetime.now(LJ)
+    done = list(st.get("reports_done") or [])
+    if not report_due(now, done):
+        return
+    day = now.date().isoformat()
+    summary = public_summary(st.get("_learn")) if st.get("_learn") else {}
+    payload = build_report(day, st, summary, st.get("regime"))
+    path = write_report(ROOT / "reports", payload)
+    st["latest_report"] = path
+    done.append(day)
+    st["reports_done"] = done[-14:]
+    log(f"daily report {path}")
+
+
 def _later_price(pair_addr: str, chain: str) -> float | None:
     pair = fetch_pair(pair_addr, chain)
     if not pair:
@@ -644,8 +796,17 @@ def loop_once(st: dict) -> None:
     if book:
         resolve_pending(book, now_ts(), _later_price, now_iso())
     mark_positions(st)
+    update_brake(st)
     maybe_exit(st)
+    _refresh_regime(st)
     maybe_enter(st)
+    _write_daily_report(st)
+    st["metrics"] = compute_metrics(
+        list(st.get("closed") or []),
+        list(st.get("equity_history") or []),
+        list(st.get("open") or []),
+        equity_usd(st),
+    )
     st["stats"]["loops"] = int(st["stats"].get("loops", 0)) + 1
     st["last_loop_at"] = now_iso()
     eq = equity_usd(st)

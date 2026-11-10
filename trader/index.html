@@ -287,6 +287,9 @@
               <div class="clockmeta">
                 <span class="pill" id="stBsc">BSC</span>
                 <span class="pill" id="stSol">SOL</span>
+                <span class="pill" id="regBnb">BNB —</span>
+                <span class="pill" id="regSol">SOL —</span>
+                <span class="pill wait" id="brake" hidden>ZAVORA AKTIVNA</span>
                 <span class="pill wait" id="roj">ROJ ČAKA</span>
               </div>
             </div>
@@ -296,6 +299,8 @@
             <button class="nav" type="button" data-sheet="trak">TRAK</button>
             <button class="nav" type="button" data-sheet="knjiga">KNJIGA</button>
             <button class="nav" type="button" data-sheet="ucenje">UČENJE</button>
+            <button class="nav" type="button" data-sheet="metrike">METRIKE</button>
+            <button class="nav" type="button" data-sheet="porocila">POROČILA</button>
           </div>
           <div class="statline">
             <span class="stat" id="stEq">—</span>
@@ -500,6 +505,12 @@
     $("stWin").innerHTML = "ZMAGE <b>" + esc(rate) + "</b>";
     $("stBsc").textContent = "BSC " + (Number(d.scanned_bsc) || 0);
     $("stSol").textContent = "SOL " + (Number(d.scanned_sol) || 0);
+    const regime = d.regime || {};
+    $("regBnb").textContent = "BNB " + (regime.bsc || "—");
+    $("regSol").textContent = "SOL " + (regime.solana || "—");
+    const brake = $("brake");
+    brake.hidden = !d.brake;
+    if (d.brake) brake.textContent = "ZAVORA AKTIVNA";
     const sec = data.last_update ? (Date.now() - new Date(data.last_update).getTime()) / 1000 : 9999;
     const roj = $("roj");
     roj.textContent = sec < 8 * 60 ? "ROJ ONLINE" : "ROJ TIHO";
@@ -1368,6 +1379,39 @@
     const closed = ((data && data.closed) || []).slice(0, 12).map((t) => `<p class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))} <span class="dim">${esc(t.reason || "")}</span></p>`).join("");
     return `<h3>Knjiga</h3>${body}<h3>Zaprto</h3>${closed || "<p>ČAKA</p>"}<h3>Pravila</h3><p><b>SIMULACIJA · VIRTUALNI DENAR.</b> ${esc(RULE)}</p><p>Največ 10 % kapitala na pozicijo, a izguba ob stopu je kvečjemu 1,2 % kapitala. Stop je pod najbližjo podporo, med −5 % in −15 %. Brez podpore je −10 %. Podpora globlje od −15 % ali razmerje dobiček/tveganje pod 1,5 posel preskoči. Cilj +20 %. Trailing 10 % po +10 % ne pade pod stop podpore. Časovni izhod 4 h. Zdrs 1 % (2 % na majhnem SOL bazenu). 9. 11. 2026 – 16. 11. 2026.</p>`;
   }
+  function fmtMetric(v, digits) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return "—";
+    return n.toLocaleString("sl-SI", { maximumFractionDigits: digits == null ? 2 : digits });
+  }
+  function metricsSheet() {
+    const m = (data && data.metrics) || {};
+    const n = Number(m.n) || 0;
+    const line = (label, value) => `<p>${label}: <b>${value}</b> <span class="dim">n=${n}</span></p>`;
+    const rate = m.win_rate == null ? "—" : fmtMetric(m.win_rate * 100, 1) + " %";
+    const groups = Object.keys(m.breakdown || {}).map((key) => {
+      const row = m.breakdown[key];
+      return `<p>${esc(key)} · n=${esc(row.n)} · ${esc(money(row.pnl))} · ${esc(fmtMetric((row.win_rate || 0) * 100, 0))} %</p>`;
+    }).join("") || `<p>Ni razreza.</p>`;
+    return `<h3>Metrike</h3><p class="dim">Prave številke iz zaprtih poslov. Pri manj kot 5 poslih so razmerja —.</p>`
+      + line("Zadetki", rate)
+      + line("Faktor dobička", fmtMetric(m.profit_factor, 2))
+      + line("Pričakovani posel", m.expectancy == null ? "—" : money(m.expectancy))
+      + line("Povprečna zmaga", m.avg_win == null ? "—" : money(m.avg_win))
+      + line("Povprečen poraz", m.avg_loss == null ? "—" : money(m.avg_loss))
+      + line("Največji padec", m.max_drawdown == null ? "—" : fmtMetric(m.max_drawdown * 100, 1) + " %")
+      + line("Sharpe posel", fmtMetric(m.sharpe_trade, 2))
+      + line("Sortino posel", fmtMetric(m.sortino_trade, 2))
+      + line("Sharpe dan", fmtMetric(m.sharpe_daily, 2))
+      + line("Sortino dan", fmtMetric(m.sortino_daily, 2))
+      + line("Izpostavljenost", m.exposure == null ? "—" : fmtMetric(m.exposure * 100, 1) + " %")
+      + line("Povprečen čas", m.avg_hold_sec == null ? "—" : fmtMetric(m.avg_hold_sec / 60, 0) + " min")
+      + `<h3>Veriga in razred</h3>${groups}`;
+  }
+  function reportSheet() {
+    const path = data && data.latestReport;
+    return `<h3>Poročila</h3><p><b>SIMULACIJA · VIRTUALNI DENAR.</b> Dnevno poročilo nastane ob prvem pregledu po 21:00.</p><p>Zadnje: ${path ? esc(path) : "—"}</p><p class="dim">Datoteka je na veji sim-data, reports/YYYY-MM-DD.json in .md.</p>`;
+  }
   function learnSheet() {
     const learn = (data && data.learning) || {};
     const trusts = learn.trust || [];
@@ -1387,6 +1431,8 @@
     }     else if (sheetKind === "cenilec") {
       html = `<h3>Cenilec</h3><p>Pahljača je statistični stožec iz standardnega odklona zadnjih 15-minutnih donosov GeckoTerminal. <b>Ni napoved cene.</b></p><p class="dim">${esc(candleNote || "")}</p>`;
     } else if (sheetKind === "ucenje") html = learnSheet();
+    else if (sheetKind === "metrike") html = metricsSheet();
+    else if (sheetKind === "porocila") html = reportSheet();
     $("sheet").innerHTML = `<button type="button" class="chip" data-close="1">Zapri</button>` + html;
     $("sheet").classList.add("show");
     $("back").classList.add("show");

@@ -170,6 +170,14 @@ def agent_varnost(pair: dict, ctx: dict | None = None) -> dict:
         return _vote(False, "starost para ni znana", **numbers)
     if age_min < config.MIN_PAIR_AGE_MIN:
         return _vote(False, f"par star {age_min:.0f} min", **numbers)
+    if age_min < 120:
+        return _vote(False, f"prevara: bazen mlajši od 2 h ({age_min:.0f} min)", **numbers)
+    from scam import scam_reason
+    veto, text = scam_reason(pair, ctx.get("lp_fraction"), ctx.get("pool_stats"), ctx.get("trades"))
+    if veto:
+        return _vote(False, text, **numbers)
+    if text:
+        numbers["scam_flag"] = text
 
     if ctx.get("run_goplus", True):
         preset = ctx.get("goplus")
