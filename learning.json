@@ -1,26 +1,26 @@
 {
-  "version": 1,
+  "version": 2,
   "samples": 13,
   "trust": {
     "kit": {
-      "alpha": 74.0,
+      "alpha": 75.0,
       "beta": 20.0
     },
     "trend": {
       "alpha": 63.0,
-      "beta": 26.0
+      "beta": 27.0
     },
     "varnost": {
       "alpha": 47.0,
-      "beta": 13.0
+      "beta": 14.0
     },
     "bik_medved": {
       "alpha": 29.0,
-      "beta": 21.0
+      "beta": 22.0
     },
     "izvajanje": {
       "alpha": 2.0,
-      "beta": 6.0
+      "beta": 7.0
     }
   },
   "params": {
@@ -31,14 +31,14 @@
       "min_ch5": 0.0
     },
     "varnost": {
-      "min_liq": 30000.0,
+      "min_liq": 33000.0,
       "max_holder": 0.2
     },
     "bik_medved": {
-      "max_ch1h": 300.0
+      "max_ch1h": 270.0
     },
     "izvajanje": {
-      "max_slip": 0.02
+      "max_slip": 0.018
     },
     "global": {
       "stop_loss": -0.08,
@@ -68,6 +68,36 @@
         },
         "izvajanje": {
           "max_slip": 0.02
+        },
+        "global": {
+          "stop_loss": -0.08,
+          "take_profit": 0.2,
+          "time_stop_h": 4.0,
+          "max_open": 5.0,
+          "entry_cost": 0.01
+        }
+      }
+    },
+    {
+      "version": 2,
+      "why": "zaostritev po vsaj 5 poslih: VARNOST min_liq 3e+04 → 3.3e+04; BIK/MEDVED max_ch1h 300 → 270; IZVAJANJE max_slip 0.02 → 0.018",
+      "at": "2026-11-11T06:12:45+01:00",
+      "params": {
+        "kit": {
+          "min_ratio": 1.3
+        },
+        "trend": {
+          "min_ch5": 0.0
+        },
+        "varnost": {
+          "min_liq": 33000.0,
+          "max_holder": 0.2
+        },
+        "bik_medved": {
+          "max_ch1h": 270.0
+        },
+        "izvajanje": {
+          "max_slip": 0.018
         },
         "global": {
           "stop_loss": -0.08,
@@ -306,205 +336,75 @@
       },
       "mae_pct": -4.066,
       "mfe_pct": 1.4694
+    },
+    {
+      "chain": "solana",
+      "category": "MEME",
+      "liq_usd": 253923.93,
+      "vol24": 581217.71,
+      "vol_liq": 2.2889,
+      "age_min": 50926.9,
+      "ch5": 2.19,
+      "ch1h": 1.78,
+      "ch24": 26.76,
+      "buy_ratio": 3.0,
+      "holder": null,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "score": 1.0
+        },
+        "trend": {
+          "vote": "YES",
+          "score": 0.719
+        },
+        "varnost": {
+          "vote": "YES",
+          "score": 0.85
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "score": 0.9941
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "score": 1.0
+        }
+      },
+      "yes_count": 4,
+      "price": 0.005447,
+      "regime": "NEVTRALNO",
+      "setup": "povratek",
+      "setup_label": "povratek v trendu",
+      "setup_score": 50,
+      "setup_reasons": "blizu podpore · višje dno · padec 50% od vrha",
+      "swing_low": 0.003265618443392232,
+      "ema20": 0.005201409625424122,
+      "confirm_price": 0.005472955823591468,
+      "support_low": 0.005326124931298754,
+      "support_high": 0.005327167418193192,
+      "buffer": 9.69951476787528e-05,
+      "stop_price": 0.005174649999999999,
+      "stop_pct": -5.0,
+      "reward_risk": 4.0,
+      "stop_frac": -0.05,
+      "size_usd": 10.35205,
+      "symbol": "CBUCKS",
+      "opened_at": "2026-11-11T04:17:01+01:00",
+      "version": 1,
+      "outcome": {
+        "pnl_pct": -8.4045,
+        "pnl_usd": -0.870036,
+        "reason": "stop_loss",
+        "held_sec": 7100,
+        "mfe_pct": -0.5324,
+        "mae_pct": -6.5541
+      },
+      "mae_pct": -6.5541,
+      "mfe_pct": -0.5324
     }
   ],
   "pending": [
-    {
-      "symbol": "GLITCH",
-      "pair": "Em6RvzGXhd35pZ7CVUjCTPEnv4jAztScaVHaXBXCBcG7",
-      "chain": "solana",
-      "price": 0.002493,
-      "features": {
-        "chain": "solana",
-        "category": "MEME",
-        "liq_usd": 134972.42,
-        "vol24": 294986.98,
-        "vol_liq": 2.1855,
-        "age_min": 36531.0,
-        "ch5": -0.9,
-        "ch1h": 2.31,
-        "ch24": 16.14,
-        "buy_ratio": 1.75,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.41
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 0.9923
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.995
-          }
-        },
-        "yes_count": 2,
-        "price": 0.002493,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794371149.9863293,
-      "time": "2026-11-11T01:25:49+01:00",
-      "resolved": true,
-      "later_pct": -13.718,
-      "missed_winner": false
-    },
-    {
-      "symbol": "BULLHARIS",
-      "pair": "CxJ4mLGpwre4WfkJwx8FeLFNLBRETNzHxy25y3JtXzyr",
-      "chain": "solana",
-      "price": 0.0004807,
-      "features": {
-        "chain": "solana",
-        "category": "MEME",
-        "liq_usd": 52372.34,
-        "vol24": 315580.02,
-        "vol_liq": 6.0257,
-        "age_min": 375.2,
-        "ch5": -1.84,
-        "ch1h": -4.58,
-        "ch24": 1287.0,
-        "buy_ratio": 0.8,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.6154
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.316
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.49
-          }
-        },
-        "yes_count": 2,
-        "price": 0.0004807,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794371150.5924368,
-      "time": "2026-11-11T01:25:50+01:00",
-      "resolved": true,
-      "later_pct": -27.814,
-      "missed_winner": false
-    },
-    {
-      "symbol": "GTA6KODAK",
-      "pair": "BKaAgFUMhQVgXA3BQzyabMibSMvietUiaPU95praUhx7",
-      "chain": "solana",
-      "price": 0.000198,
-      "features": {
-        "chain": "solana",
-        "category": "MEME",
-        "liq_usd": 33341.53,
-        "vol24": 160822.78,
-        "vol_liq": 4.8235,
-        "age_min": 2944.3,
-        "ch5": -3.32,
-        "ch1h": -2.96,
-        "ch24": 185.0,
-        "buy_ratio": 1.4,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.168
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.485
-          }
-        },
-        "yes_count": 2,
-        "price": 0.000198,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794371151.1964912,
-      "time": "2026-11-11T01:25:51+01:00",
-      "resolved": true,
-      "later_pct": 99.192,
-      "missed_winner": true
-    },
-    {
-      "symbol": "Leonida",
-      "pair": "5GxdoPcK2LJ6QYcJ3uvtC37tgsFHma55ULFkufTYe49R",
-      "chain": "solana",
-      "price": 0.0003909,
-      "features": {
-        "chain": "solana",
-        "category": "MEME",
-        "liq_usd": 50212.1,
-        "vol24": 313084.91,
-        "vol_liq": 6.2352,
-        "age_min": 7484.6,
-        "ch5": -6.04,
-        "ch1h": -9.75,
-        "ch24": 84.58,
-        "buy_ratio": 0.6957,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.5352
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.0
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.49
-          }
-        },
-        "yes_count": 2,
-        "price": 0.0003909,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794371153.3440135,
-      "time": "2026-11-11T01:25:53+01:00",
-      "resolved": true,
-      "later_pct": 1.356,
-      "missed_winner": false
-    },
     {
       "symbol": "CBUCKS",
       "pair": "B4Cp45PGifVM5FAXfh6AeV8QZ3eUNQnqGBw7KuC7MHnB",
@@ -4012,39 +3912,193 @@
       },
       "check_after": 1794388289.019587,
       "time": "2026-11-11T06:11:29+01:00"
+    },
+    {
+      "symbol": "Impeach",
+      "pair": "12Y1mRKWEWEwoYqhSwybEsJzM8gAGnig1XqGQLC5uW3V",
+      "chain": "solana",
+      "price": 0.0002033,
+      "features": {
+        "chain": "solana",
+        "category": "MEME",
+        "liq_usd": 39438.94,
+        "vol24": 107997.39,
+        "vol_liq": 2.7383,
+        "age_min": 10554.8,
+        "ch5": -0.22,
+        "ch1h": 7.22,
+        "ch24": -8.8,
+        "buy_ratio": 1.0,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.7692
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.478
+          },
+          "varnost": {
+            "vote": "YES",
+            "score": 0.85
+          },
+          "bik_medved": {
+            "vote": "NO",
+            "score": 0.9733
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.4278
+          }
+        },
+        "yes_count": 2,
+        "price": 0.0002033,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794388391.8392594,
+      "time": "2026-11-11T06:13:11+01:00"
+    },
+    {
+      "symbol": "GATO",
+      "pair": "5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m",
+      "chain": "solana",
+      "price": 0.008333,
+      "features": {
+        "chain": "solana",
+        "category": "MEME",
+        "liq_usd": 302761.47,
+        "vol24": 2125650.34,
+        "vol_liq": 7.0209,
+        "age_min": 111886.1,
+        "ch5": -0.2,
+        "ch1h": 6.07,
+        "ch24": -20.51,
+        "buy_ratio": 0.75,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.5769
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.48
+          },
+          "varnost": {
+            "vote": "YES",
+            "score": 0.85
+          },
+          "bik_medved": {
+            "vote": "NO",
+            "score": 0.9775
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 1.0
+          }
+        },
+        "yes_count": 2,
+        "price": 0.008333,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794388423.820552,
+      "time": "2026-11-11T06:13:43+01:00"
+    },
+    {
+      "symbol": "ClapCat",
+      "pair": "4eR3ddyPzgrLgwbgfEA2MP1XUsQpYCvMT2zGgwY5XaQt",
+      "chain": "solana",
+      "price": 0.0001541,
+      "features": {
+        "chain": "solana",
+        "category": "MEME",
+        "liq_usd": 36067.43,
+        "vol24": 94528.94,
+        "vol_liq": 2.6209,
+        "age_min": 62526.8,
+        "ch5": -0.89,
+        "ch1h": 17.32,
+        "ch24": 194.0,
+        "buy_ratio": 4.0,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 1.0
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.411
+          },
+          "varnost": {
+            "vote": "YES",
+            "score": 0.85
+          },
+          "bik_medved": {
+            "vote": "NO",
+            "score": 0.9359
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.4278
+          }
+        },
+        "yes_count": 2,
+        "price": 0.0001541,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794388439.2363002,
+      "time": "2026-11-11T06:13:59+01:00"
+    },
+    {
+      "symbol": "咪好",
+      "pair": "GSucfCJDqx8pShmYr2KokoAbjUHjq6ivvAfkmi5A8KSB",
+      "chain": "solana",
+      "price": 0.0005039,
+      "features": {
+        "chain": "solana",
+        "category": "MEME",
+        "liq_usd": 54490.36,
+        "vol24": 636982.63,
+        "vol_liq": 11.6898,
+        "age_min": 287.8,
+        "ch5": -1.47,
+        "ch1h": 11.13,
+        "ch24": 1250.0,
+        "buy_ratio": 2.1316,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.353
+          },
+          "varnost": {
+            "vote": "YES",
+            "score": 0.85
+          },
+          "bik_medved": {
+            "vote": "NO",
+            "score": 0.9588
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.4333
+          }
+        },
+        "yes_count": 3,
+        "price": 0.0005039,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794388454.668604,
+      "time": "2026-11-11T06:14:14+01:00"
     }
   ],
   "lessons": [
-    {
-      "time": "2026-11-11T06:06:30+01:00",
-      "agent": "bik_medved",
-      "text": "Lekcija BIK/MEDVED: NE je bil upravičen. likvidnost ($50896). Cena -1.2 % po 4 h."
-    },
-    {
-      "time": "2026-11-11T06:06:30+01:00",
-      "agent": "kit",
-      "text": "Lekcija KIT: NE je bil upravičen. razmerje nakupov (0.50). Cena -11.3 % po 4 h."
-    },
-    {
-      "time": "2026-11-11T06:06:30+01:00",
-      "agent": "trend",
-      "text": "Lekcija TREND: NE je bil upravičen. razmerje nakupov (0.50). Cena -11.3 % po 4 h."
-    },
-    {
-      "time": "2026-11-11T06:06:30+01:00",
-      "agent": "trend",
-      "text": "Lekcija TREND: rekel je NE, a pozneje je šlo navzgor. Najbolj izstopa 1h sprememba (-6.7%). Cena +12.8 % po 4 h."
-    },
-    {
-      "time": "2026-11-11T06:06:30+01:00",
-      "agent": "bik_medved",
-      "text": "Lekcija BIK/MEDVED: rekel je NE, a pozneje je šlo navzgor. Najbolj izstopa 1h sprememba (-6.7%). Cena +12.8 % po 4 h."
-    },
-    {
-      "time": "2026-11-11T06:06:30+01:00",
-      "agent": "kit",
-      "text": "Lekcija KIT: NE je bil upravičen. 1h sprememba (4.7%). Cena -11.4 % po 4 h."
-    },
     {
       "time": "2026-11-11T06:06:30+01:00",
       "agent": "trend",
@@ -4214,15 +4268,53 @@
       "time": "2026-11-11T06:06:30+01:00",
       "agent": "bik_medved",
       "text": "Lekcija BIK/MEDVED: NE je bil upravičen. razmerje nakupov (1.06). Cena +2.3 % po 4 h."
+    },
+    {
+      "time": "2026-11-11T06:12:45+01:00",
+      "agent": "kit",
+      "text": "Lekcija KIT: NE je bil upravičen. 1h sprememba (1.8%)."
+    },
+    {
+      "time": "2026-11-11T06:12:45+01:00",
+      "agent": "trend",
+      "text": "Lekcija TREND: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (1.8%)."
+    },
+    {
+      "time": "2026-11-11T06:12:45+01:00",
+      "agent": "varnost",
+      "text": "Lekcija VARNOST: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (1.8%)."
+    },
+    {
+      "time": "2026-11-11T06:12:45+01:00",
+      "agent": "bik_medved",
+      "text": "Lekcija BIK/MEDVED: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (1.8%)."
+    },
+    {
+      "time": "2026-11-11T06:12:45+01:00",
+      "agent": "izvajanje",
+      "text": "Lekcija IZVAJANJE: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (1.8%)."
+    },
+    {
+      "time": "2026-11-11T06:12:45+01:00",
+      "agent": "varnost",
+      "text": "Lekcija knjige: zaostritev po vsaj 5 poslih: VARNOST min_liq 3e+04 → 3.3e+04; BIK/MEDVED max_ch1h 300 → 270; IZVAJANJE max_slip 0.02 → 0.018"
     }
   ],
   "avoid": [],
   "since_adjust": {
-    "kit": 4,
-    "trend": 4,
-    "varnost": 4,
-    "bik_medved": 4,
-    "izvajanje": 4
+    "kit": 0,
+    "trend": 0,
+    "varnost": 0,
+    "bik_medved": 0,
+    "izvajanje": 0
   },
-  "global_since": 4
+  "global_since": 0,
+  "setup_trust": {
+    "povratek": {
+      "alpha": 2.0,
+      "beta": 3.0,
+      "n": 1,
+      "label": "povratek v trendu"
+    }
+  }
 }
