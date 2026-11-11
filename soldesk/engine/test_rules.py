@@ -32,9 +32,19 @@ def _mid_for_net(risk: Risk, pos: Position, net: float) -> float:
     return pos.fill_price * (1.0 + net) / factor
 
 
-def test_top10_cap_is_35():
-    assert config.MAX_TOP10_HOLDER_PCT == 35.0
+def test_top10_cap_is_75_and_excludes_curve():
+    from agents.filter import Filter, _excluded_holder
+    assert config.MAX_TOP10_HOLDER_PCT == 75.0
+    assert config.LAUNCH_MAX_POSITION_PCT <= config.MAX_POSITION_PCT
     assert config.PAPER_MODE is True
+    assert _excluded_holder("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", {}, set(), "mint")
+    pct = Filter(None)._sum_top10([
+        {"owner": "walletA", "pct": 30},
+        {"owner": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", "pct": 40},
+        {"owner": "curve", "pct": 20, "label": "bonding curve"},
+        {"owner": "walletB", "pct": 10},
+    ], set(), "mint")
+    assert pct == 40.0
 
 
 def test_hard_stop_uses_net_pnl():
@@ -79,6 +89,25 @@ def test_learning_only_tightens():
     assert why == ""
 
 
+def test_launch_stop_and_half():
+    risk = Risk(day_start_balance=1000, day_start_date="2026-11-11")
+    pos = _pos(1.0)
+    pos.lane = "novi_lans"
+    mild = _mid_for_net(risk, pos, -0.08)
+    assert risk.check_exit(pos, mild) is None
+    hard = _pos(1.0)
+    hard.lane = "novi_lans"
+    reason = risk.check_exit(hard, _mid_for_net(risk, hard, -0.11))
+    assert reason and reason.startswith("HARD STOP")
+    part = _pos(1.0)
+    part.lane = "novi_lans"
+    mid = _mid_for_net(risk, part, 0.31)
+    assert risk.check_exit(part, mid) == "PARTIAL_30"
+    before = part.qty
+    risk.take_partial(part, mid, "PARTIAL_30")
+    assert part.qty < before * 0.6
+
+
 def test_time_stop_when_flat():
     risk = Risk(day_start_balance=1000, day_start_date="2026-11-11")
     opened = (datetime.now(timezone.utc) - timedelta(minutes=50)).isoformat()
@@ -88,7 +117,8 @@ def test_time_stop_when_flat():
 
 
 if __name__ == "__main__":
-    test_top10_cap_is_35()
+    test_top10_cap_is_75_and_excludes_curve()
+    test_launch_stop_and_half()
     test_hard_stop_uses_net_pnl()
     test_partial_then_remainder()
     test_learning_only_tightens()

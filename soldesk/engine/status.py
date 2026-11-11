@@ -50,6 +50,8 @@ def build_status(state: dict, events: list, rejections: list, positions: list, c
     equity = float(state.get("last_equity") or state.get("balance") or 0)
     start = float(state.get("starting_balance") or config.STARTING_BALANCE_USD)
     pnl_pct = (equity / start - 1.0) if start else 0.0
+    plain = [to_plain(t) for t in closed]
+    hist = list(state.get("equity_history") or [])
     return {
         "note": "PAPER",
         "banner": "PAPER · VIRTUALNI DENAR",
@@ -63,7 +65,10 @@ def build_status(state: dict, events: list, rejections: list, positions: list, c
         "pnl_pct": round(pnl_pct, 4),
         "open_n": len(positions),
         "closed_n": len(closed),
-        "stats": _stats([to_plain(t) for t in closed], list(state.get("equity_history") or [])),
+        "nonstop": True,
+        "stats": _stats(plain, hist),
+        "stats_glavni": _stats([t for t in plain if (t.get("lane") or "glavni") != "novi_lans"], hist),
+        "stats_lans": _stats([t for t in plain if t.get("lane") == "novi_lans"], hist),
         "open": [to_plain(p) for p in positions],
         "closed": [to_plain(t) for t in list(closed)[-40:]],
         "rejections": list(rejections)[-40:],
@@ -73,6 +78,9 @@ def build_status(state: dict, events: list, rejections: list, positions: list, c
         "learning": public_rows(state.get("learning") or {}),
         "rules": {
             "top10_max": config.MAX_TOP10_HOLDER_PCT,
+            "launch_top10_max": config.MAX_TOP10_HOLDER_PCT,
+            "launch_size": config.LAUNCH_MAX_POSITION_PCT,
+            "launch_stop": config.LAUNCH_HARD_STOP_PCT,
             "hard_stop": config.HARD_STOP_PCT,
             "partials": list(config.PARTIAL_TP),
             "trail_arm": config.TRAIL_ACTIVATE_PCT,

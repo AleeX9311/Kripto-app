@@ -65,13 +65,21 @@ class Http:
         cached = self.cache.get(cache_key)
         if cached is not None:
             return cached
-        limiter.wait()
-        try:
-            resp = self.session.get(url, params=params, timeout=config.HTTP_TIMEOUT_SEC)
-            if resp.status_code == 429:
-                self.last_error = f"429 rate limited: {url}"
-                time.sleep(1.5)
+        delay = 2.0
+        for attempt in range(4):
+            limiter.wait()
+            try:
+                resp = self.session.get(url, params=params, timeout=config.HTTP_TIMEOUT_SEC)
+            except requests.RequestException as exc:
+                self.last_error = f"{type(exc).__name__}: {exc}"
                 return None
+            if resp.status_code == 429 and attempt < 3:
+                self.last_error = f"429 rate limited: {url}"
+                time.sleep(delay)
+                delay = min(delay * 2, 20)
+                continue
+            break
+        try:
             if resp.status_code >= 400:
                 self.last_error = f"HTTP {resp.status_code}: {url}"
                 return None
@@ -454,6 +462,29 @@ class Market:
             if not existing or cand.liquidity_usd > existing.liquidity_usd:
                 by_mint[cand.mint] = cand
         return list(by_mint.values())
+
+    def token_pool_stats(self, mint: str) -> dict:
+        """Unique buyers and volume from the token's busiest Gecko pool. Empty if missing."""
+        data = self.http._get(
+            self.gecko_rl,
+            f"{config.GECKO_BASE}/networks/solana/tokens/{mint}/pools",
+            params={"page": 1},
+        )
+        pools = (data or {}).get("data") if isinstance(data, dict) else None
+        if not pools:
+            return {}
+        attrs = (pools[0].get("attributes") or {})
+        tx = attrs.get("transactions") or {}
+        h1 = tx.get("h1") or {}
+        m5 = tx.get("m5") or {}
+        vol = attrs.get("volume_usd") or {}
+        return {
+            "buyers_1h": _i(h1.get("buyers")),
+            "buyers_5m": _i(m5.get("buyers")),
+            "volume_1h": _f(vol.get("h1"), 0) or None,
+            "volume_5m": _f(vol.get("m5"), 0) or None,
+            "pool": attrs.get("address") or "",
+        }
 
     def sol_change_1h(self) -> Optional[float]:
         """SOL 1h percent change from the deepest SOL/USDC pair. None if missing."""

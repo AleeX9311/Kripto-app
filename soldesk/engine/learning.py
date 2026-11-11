@@ -5,14 +5,14 @@ from __future__ import annotations
 import config
 
 
-def bucket_key(score: float, setup: str) -> str:
+def bucket_key(score: float, setup: str, lane: str = "glavni") -> str:
     lo = max(0.0, min(0.9, int(float(score) * 10) / 10.0))
-    return f"{lo:.2f}-{lo + 0.10:.2f}|{setup or 'drugo'}"
+    return f"{lane or 'glavni'}|{lo:.2f}-{lo + 0.10:.2f}|{setup or 'drugo'}"
 
 
-def note_close(book: dict, score: float, setup: str, won: bool, pnl_usd: float) -> None:
+def note_close(book: dict, score: float, setup: str, won: bool, pnl_usd: float, lane: str = "glavni") -> None:
     stats = book.setdefault("buckets", {})
-    key = bucket_key(score, setup)
+    key = bucket_key(score, setup, lane)
     row = stats.setdefault(key, {"wins": 0, "losses": 0, "pnl": 0.0})
     if won:
         row["wins"] = int(row["wins"]) + 1
@@ -21,10 +21,10 @@ def note_close(book: dict, score: float, setup: str, won: bool, pnl_usd: float) 
     row["pnl"] = round(float(row["pnl"]) + float(pnl_usd), 4)
 
 
-def threshold(book: dict, score: float, setup: str) -> tuple[float, str]:
+def threshold(book: dict, score: float, setup: str, lane: str = "glavni") -> tuple[float, str]:
     """Return (required score, reason). Never below the config floor."""
     base = float(config.MIN_ANALYST_SCORE)
-    row = (book.get("buckets") or {}).get(bucket_key(score, setup))
+    row = (book.get("buckets") or {}).get(bucket_key(score, setup, lane))
     if not row:
         return base, ""
     n = int(row.get("wins") or 0) + int(row.get("losses") or 0)

@@ -88,6 +88,11 @@ class Risk:
         proceeds = pos.qty * mid * self.exit_factor()
         return (proceeds - pos.size_usd) / pos.size_usd
 
+    def _limits(self, pos: Position) -> tuple[float, float, float, bool]:
+        if getattr(pos, "lane", "glavni") == "novi_lans":
+            return config.LAUNCH_HARD_STOP_PCT, config.LAUNCH_TRAIL_ACTIVATE_PCT, config.LAUNCH_TIME_STOP_SEC, False
+        return config.HARD_STOP_PCT, config.TRAIL_ACTIVATE_PCT, config.TIME_STOP_SEC, True
+
     def mark(self, pos: Position, mid: float) -> None:
         if mid <= 0:
             return
@@ -95,12 +100,15 @@ class Risk:
         if mid > pos.peak_price:
             pos.peak_price = mid
         net = self.net_pnl_pct(pos, mid)
-        if net >= config.BREAKEVEN_ARM_PCT:
+        stop, trail_at, _time_stop, breakeven = self._limits(pos)
+        if breakeven and net >= config.BREAKEVEN_ARM_PCT:
             pos.breakeven = True
-        if net >= config.TRAIL_ACTIVATE_PCT:
+        if net >= trail_at:
             pos.trail_armed = True
         if pos.trail_armed:
             pos.trail_stop_price = pos.peak_price * (1.0 - config.TRAIL_PCT)
+        pos.hard_stop_price = pos.fill_price  # informational; the trigger is net PnL
+        _ = stop
 
     def check_exit(self, pos: Position, mid: float) -> Optional[str]:
         """Return an exit or partial reason. The hard stop uses net PnL, not the mid print."""
@@ -108,21 +116,27 @@ class Risk:
             return None
         self.mark(pos, mid)
         net = self.net_pnl_pct(pos, mid)
-        if net <= config.HARD_STOP_PCT:
+        stop, trail_at, time_stop, _be = self._limits(pos)
+        launch = getattr(pos, "lane", "glavni") == "novi_lans"
+        if net <= stop:
             return (
-                f"HARD STOP  neto {net:.2%} ≤ {config.HARD_STOP_PCT:.0%} "
+                f"HARD STOP  neto {net:.2%} ≤ {stop:.0%} "
                 f"(vključuje zdrs {config.EXIT_SLIPPAGE_PCT:.2%} in provizijo {config.EXIT_FEE_PCT:.2%})"
             )
-        if not pos.tp1_done and net >= config.PARTIAL_TP[0]:
-            return "PARTIAL_15"
-        if pos.tp1_done and not pos.tp2_done and net >= config.PARTIAL_TP[1]:
-            return "PARTIAL_30"
+        if launch:
+            if not pos.tp1_done and net >= config.LAUNCH_PARTIAL_PCT:
+                return "PARTIAL_30"
+        else:
+            if not pos.tp1_done and net >= config.PARTIAL_TP[0]:
+                return "PARTIAL_15"
+            if pos.tp1_done and not pos.tp2_done and net >= config.PARTIAL_TP[1]:
+                return "PARTIAL_30"
         if pos.breakeven and net <= 0:
             return f"BREAKEVEN  neto {net:.2%} po +{config.BREAKEVEN_ARM_PCT:.0%}"
         if pos.trail_armed and pos.trail_stop_price is not None and mid <= pos.trail_stop_price:
             return (
                 f"TRAIL STOP  mid ${mid:.8g} ≤ trail ${pos.trail_stop_price:.8g} "
-                f"(oborožen pri neto +{config.TRAIL_ACTIVATE_PCT:.0%})"
+                f"(oborožen pri neto +{trail_at:.0%})"
             )
         try:
             opened = datetime.fromisoformat(pos.opened_at)
@@ -131,14 +145,15 @@ class Risk:
             held = (utcnow() - opened).total_seconds()
         except (TypeError, ValueError):
             held = 0
-        if held >= config.TIME_STOP_SEC and abs(net) < config.TIME_STOP_FLAT_PCT:
+        if held >= time_stop and abs(net) < config.TIME_STOP_FLAT_PCT:
             return f"ČASOVNI IZHOD  {held / 60:.0f} min, ploščat neto {net:.2%}"
         return None
 
     def take_partial(self, pos: Position, mid: float, which: str) -> tuple[ClosedTrade, Event]:
         """Sell one third of the original size. The rest stays open."""
         original_qty = pos.original_qty or pos.qty
-        sell_qty = min(pos.qty, original_qty * config.PARTIAL_FRACTION)
+        fraction = config.LAUNCH_PARTIAL_FRACTION if getattr(pos, "lane", "") == "novi_lans" else config.PARTIAL_FRACTION
+        sell_qty = min(pos.qty, original_qty * fraction)
         if sell_qty <= 0 or pos.qty <= 0:
             sell_qty = pos.qty / 3.0
         portion = sell_qty / pos.qty
@@ -172,6 +187,7 @@ class Risk:
             closed_at=iso(),
             source=pos.source,
             analyst_score=pos.analyst_score,
+            lane=getattr(pos, "lane", "glavni"),
         )
         ev = Event(
             ts=iso(),
@@ -211,6 +227,7 @@ class Risk:
             closed_at=iso(),
             source=pos.source,
             analyst_score=pos.analyst_score,
+            lane=getattr(pos, "lane", "glavni"),
         )
         # Stops (hard or trail) ban the token. No revenge re-entry.
         if "STOP" in reason.upper():

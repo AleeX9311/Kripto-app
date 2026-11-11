@@ -8,16 +8,19 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
+  # Separate from sol-desk-data so the two paper books can publish at the same time.
   group: sim-data
   cancel-in-progress: false
 
 jobs:
   pass:
     runs-on: ubuntu-latest
-    # 4 scans, 75s apart, plus network time. Stays under the next 5-minute tick.
-    timeout-minutes: 8
+    timeout-minutes: 350
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v7
@@ -88,12 +91,17 @@ jobs:
             git -C "$WT" push origin HEAD:sim-data
           }
 
-          # Four passes, 75s apart: about one scan a minute, exits included each pass.
-          for i in 1 2 3 4; do
-            echo "=== scan pass ${i}/4 ==="
-            python3 sim/trader.py
-            publish
-            if [ "$i" -lt 4 ]; then
-              sleep 75
+          # About 5h50m of scans. */5 cron only restarts the chain if this job dies.
+          deadline=$((SECONDS + 348 * 60))
+          last_pub=0
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            echo "=== scan $(date -u +%H:%M:%S) ==="
+            python3 sim/trader.py || echo "pass failed — backing off"
+            if [ $((SECONDS - last_pub)) -ge 90 ]; then
+              publish || echo "publish skipped"
+              last_pub=$SECONDS
             fi
+            sleep 45
           done
+          publish || echo "final publish skipped"
+          gh workflow run "Paper simulation" --ref main || echo "re-dispatch failed; the */5 cron is the backup"

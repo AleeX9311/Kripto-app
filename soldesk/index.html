@@ -72,6 +72,9 @@
     .card h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
     #age { font-size: 13px; margin: 0 0 8px; }
     #age.stale { color: var(--filter); }
+    .badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 99px; font-size: 10px; letter-spacing: .06em; border: 1px solid var(--line); }
+    .badge.lans { color: #ffb020; border-color: rgba(255,176,32,.6); }
+    .badge.glavni { color: #3de0ff; border-color: rgba(61,224,255,.45); }
     .pipe { position: relative; height: 168px; }
     #flow { position: absolute; inset: 0; width: 100%; height: 100%; }
     .nodes { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding-top: 18px; }
@@ -140,7 +143,7 @@
     <section class="view on" id="view-desk">
       <article class="card">
         <h2>Cev agentov</h2>
-        <p id="age">Zadnji krog · čakam posnetek</p>
+        <p id="age">NONSTOP · čakam posnetek</p>
         <div class="pipe">
           <canvas id="flow"></canvas>
           <div class="nodes" id="nodes"></div>
@@ -213,12 +216,15 @@
     if (!Number.isFinite(v)) return "—";
     return (v * 100).toFixed(1) + " %";
   }
+  function laneBadge(lane) {
+    const lans = lane === "novi_lans";
+    return `<span class="badge ${lans ? "lans" : "glavni"}">${lans ? "NOVI LANS" : "GLAVNI"}</span>`;
+  }
   function ageText() {
-    if (!data || !data.last_update) return "Zadnji krog · ni posnetka";
-    const sec = Math.max(0, (Date.now() - new Date(data.last_update).getTime()) / 1000);
-    const mins = sec < 60 ? "<1" : String(Math.floor(sec / 60));
-    $("age").classList.toggle("stale", sec > 2 * 3600);
-    return "Zadnji krog pred " + mins + " min";
+    if (!data || !data.last_update) return "NONSTOP · ni posnetka";
+    const sec = Math.max(0, Math.round((Date.now() - new Date(data.last_update).getTime()) / 1000));
+    $("age").classList.toggle("stale", sec > 5 * 60);
+    return "NONSTOP · zadnji pregled pred " + sec + "s";
   }
   function paintAge() { $("age").textContent = ageText(); }
 
@@ -248,22 +254,23 @@
         p.breakeven ? "breakeven" : "",
         p.trail_armed ? "sled" : "trdi stop"
       ].filter(Boolean).join(" · ");
-      return `<div class="row"><b>${esc(p.symbol)}</b> <span class="${net >= 0 ? "up" : "dn"}">${esc((net * 100).toFixed(1))} %</span><div class="dim">vstop ${esc(p.fill_price)} · zdaj ${esc(p.last_price)} · ${esc(flags)}</div></div>`;
+      return `<div class="row"><b>${esc(p.symbol)}</b> ${laneBadge(p.lane)} <span class="${net >= 0 ? "up" : "dn"}">${esc((net * 100).toFixed(1))} %</span><div class="dim">vstop ${esc(p.fill_price)} · zdaj ${esc(p.last_price)} · ${esc(flags)}</div></div>`;
     }).join("") : `<p class="dim">Ni odprtih pozicij.</p>`;
     const closed = (d.closed || []).slice().reverse();
-    $("closed").innerHTML = closed.length ? closed.map((t) => `<div class="row"><b class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))}</b><div class="dim">${esc(t.reason || "")}</div></div>`).join("") : `<p class="dim">Ni zaprtih poslov.</p>`;
+    $("closed").innerHTML = closed.length ? closed.map((t) => `<div class="row"><b class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))}</b> ${laneBadge(t.lane)}<div class="dim">${esc(t.reason || "")}</div></div>`).join("") : `<p class="dim">Ni zaprtih poslov.</p>`;
     const rej = d.rejections || [];
-    $("rej").innerHTML = rej.length ? rej.slice().reverse().map((r) => `<div class="rej"><b>${esc(r.symbol || "—")}</b> ${esc(r.kind || "")}<div class="dim">${esc((r.reasons || []).slice(0, 3).join(" · "))}</div></div>`).join("") : `<p class="dim">Ni zabeleženih zavrnitev.</p>`;
-    const m = d.stats || {};
+    $("rej").innerHTML = rej.length ? rej.slice().reverse().map((r) => `<div class="rej"><b>${esc(r.symbol || "—")}</b> ${laneBadge(r.lane)} ${esc(r.kind || "")}<div class="dim">${esc((r.reasons || []).slice(0, 3).join(" · "))}</div></div>`).join("") : `<p class="dim">Ni zabeleženih zavrnitev.</p>`;
     const line = (k, v) => `<div class="row"><span>${k}</span><b>${v}</b></div>`;
-    $("metrics").innerHTML = [
-      line("Zadetki", m.win_rate == null ? "—" : pct(m.win_rate)),
-      line("Faktor dobička", m.profit_factor == null ? "—" : m.profit_factor),
-      line("Pričakovani posel", m.expectancy == null ? "—" : money(m.expectancy)),
-      line("Največji padec", m.max_drawdown == null ? "—" : pct(m.max_drawdown)),
-      line("Povprečen R", m.avg_r == null ? "—" : m.avg_r),
-      line("Posli", String(m.n || 0))
-    ].join("") + `<p class="dim">${d.market && d.market.pause_reason ? esc(d.market.pause_reason) : "Trg ne zaustavlja novih vstopov."} SOL 1h ${d.market && d.market.sol_1h != null ? esc(d.market.sol_1h) + " %" : "—"}.</p>`;
+    const block = (title, m) => `<h2>${title}</h2>` + [
+      line("Zadetki", !m || m.win_rate == null ? "—" : pct(m.win_rate)),
+      line("Faktor dobička", !m || m.profit_factor == null ? "—" : m.profit_factor),
+      line("Pričakovani posel", !m || m.expectancy == null ? "—" : money(m.expectancy)),
+      line("Največji padec", !m || m.max_drawdown == null ? "—" : pct(m.max_drawdown)),
+      line("Povprečen R", !m || m.avg_r == null ? "—" : m.avg_r),
+      line("Posli", String((m && m.n) || 0))
+    ].join("");
+    $("metrics").innerHTML = block("Skupaj", d.stats) + block("GLAVNI", d.stats_glavni) + block("NOVI LANS", d.stats_lans)
+      + `<p class="dim">${d.market && d.market.pause_reason ? esc(d.market.pause_reason) : "Trg ne zaustavlja novih vstopov."} SOL 1h ${d.market && d.market.sol_1h != null ? esc(d.market.sol_1h) + " %" : "—"}.</p>`;
     const learn = d.learning || [];
     $("learn").innerHTML = learn.length ? learn.map((row) => `<div class="row"><b>${esc(row.bucket)}</b><div class="dim">n=${esc(row.n)} · zadetki ${row.win_rate == null ? "—" : esc(pct(row.win_rate))} · ${esc(money(row.pnl))}</div></div>`).join("") : `<p class="dim">Še ni vzorcev.</p>`;
     const ev = (d.events || []).slice().reverse();
@@ -339,7 +346,8 @@
       g.shadowColor = col; g.shadowBlur = 12;
       g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
       g.shadowBlur = 0;
-      g.font = "11px sans-serif"; g.fillText(particle.ev.symbol || "", x + 8, y - 8);
+      const tag = particle.ev.extra && particle.ev.extra.lane === "novi_lans" ? "NOVI LANS" : (particle.ev.extra && particle.ev.extra.lane ? "GLAVNI" : "");
+      g.font = "11px sans-serif"; g.fillText(((particle.ev.symbol || "") + " " + tag).trim(), x + 8, y - 8);
       if (k >= 1 && particle.drop) {
         dropText = (particle.ev.symbol || "") + " · " + (particle.ev.message || "");
         $("drop").textContent = dropText;
@@ -357,7 +365,7 @@
       if (!json || json.note !== "PAPER") throw new Error("posnetek");
       render(json);
     } catch (_) {
-      if (!data) $("age").textContent = "Posnetka še ni · samo papir";
+      if (!data) $("age").textContent = "NONSTOP · posnetka še ni";
     }
   }
   document.querySelector(".tabs").addEventListener("click", (e) => {

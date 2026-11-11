@@ -54,6 +54,7 @@ class Candidate:
     fdv_usd: Optional[float] = None
     quote_mint: Optional[str] = None
     source: str = "LIVE"  # LIVE or SIM
+    lane: str = "glavni"  # glavni | novi_lans
     raw: dict = field(default_factory=dict)
 
     def age_seconds(self, now: Optional[datetime] = None) -> Optional[float]:
@@ -141,6 +142,7 @@ class Position:
     tp2_done: bool = False
     breakeven: bool = False
     setup: str = ""
+    lane: str = "glavni"
 
     def mark_pnl_pct(self, price: Optional[float] = None) -> float:
         px = self.fill_price
@@ -170,6 +172,7 @@ class ClosedTrade:
     closed_at: str
     source: str = "LIVE"
     analyst_score: float = 0.0
+    lane: str = "glavni"
 
 
 @dataclass

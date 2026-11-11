@@ -37,7 +37,7 @@ PARTIAL_TP = (0.15, 0.30)        # sell 1/3 of the original size at each
 PARTIAL_FRACTION = 1.0 / 3.0
 TIME_STOP_SEC = 40 * 60          # flat for 30–45 min
 TIME_STOP_FLAT_PCT = 0.03
-MIN_TOKEN_AGE_MIN = 45           # inside the 30–60 min window
+MIN_TOKEN_AGE_MIN = 45           # main lane only; the launch lane has no minimum age
 DUMP_AFTER_BOND_1H = -25.0       # young coin already down hard
 SOL_1H_PAUSE_PCT = -2.5          # pause entries if SOL 1h is down at least this many percent
 MIN_BREADTH = 0.35               # pause if fewer than this share of scanned coins are green 1h
@@ -52,9 +52,29 @@ BAN_TOKEN_AFTER_STOP = True
 # Filter (capital preservation: missing data = FAIL)
 # ---------------------------------------------------------------------------
 MIN_VOLUME_1H_USD = 50_000.0
-MAX_TOP10_HOLDER_PCT = 35.0
+MAX_TOP10_HOLDER_PCT = 75.0          # both lanes; LP, curve, and programs are excluded first
 # Liquidity collapse vs the first observed liquidity for that mint
 RUG_LIQUIDITY_COLLAPSE_PCT = 0.80
+
+# ---------------------------------------------------------------------------
+# Launch lane (NOVI LANS). Fresh coins only. Never loosens the 8% size cap.
+# ---------------------------------------------------------------------------
+LAUNCH_MAX_AGE_MIN = 180
+LAUNCH_MAX_DEV_PCT = 10.0
+LAUNCH_MAX_BUNDLE_PCT = 25.0
+LAUNCH_MIN_BUYERS = 40
+LAUNCH_MIN_VOLUME_USD = 8_000.0   # scaled to the first 15 minutes of life
+LAUNCH_VOLUME_WINDOW_MIN = 15.0
+LAUNCH_MAX_MULTIPLE = 5.0         # skip once price is already >5x from launch
+LAUNCH_MAX_POSITION_PCT = 0.03    # 3% of equity; still never above MAX_POSITION_PCT
+LAUNCH_MAX_POSITIONS = 2
+LAUNCH_HARD_STOP_PCT = -0.10      # net, including slip and fee
+LAUNCH_PARTIAL_PCT = 0.30         # sell half once at +30% net
+LAUNCH_PARTIAL_FRACTION = 0.50
+LAUNCH_TRAIL_ACTIVATE_PCT = 0.20
+LAUNCH_TIME_STOP_SEC = 20 * 60
+LAUNCH_BATCH = 8
+LAUNCH_RECHECK_SEC = 90
 
 # ---------------------------------------------------------------------------
 # Analyst
@@ -106,6 +126,19 @@ TIMEZONE = "Europe/Ljubljana"
 EVENT_HISTORY = 80
 EQUITY_HISTORY_MAX = 600
 REJECTION_HISTORY = 40
+
+# Programs, pools, and the bonding curve are not "holders" for the top-10 cap.
+PROTOCOL_ACCOUNTS = {
+    "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",  # pump.fun
+    "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",  # PumpSwap
+    "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp2",  # Raydium AMM v4
+    "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1",  # Raydium authority
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",  # Orca whirlpool
+    "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",  # Meteora DLMM
+}
 
 # Known burn / null addresses (excluded from holder concentration)
 BURN_ADDRESSES = {

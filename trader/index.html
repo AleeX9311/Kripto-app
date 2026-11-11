@@ -539,14 +539,11 @@
     return sec < 60 ? sec + " s" : Math.floor(sec / 60) + " min";
   }
   function passLabelText() {
-    if (!data || !data.last_update) return "ZADNJI KROG · ni posnetka";
+    if (!data || !data.last_update) return "NONSTOP · ni posnetka";
     const then = new Date(data.last_update).getTime();
-    if (!Number.isFinite(then)) return "ZADNJI KROG · ni posnetka";
-    const sec = Math.max(0, (Date.now() - then) / 1000);
-    const mins = sec < 60 ? "<1" : String(Math.floor(sec / 60));
-    const next = new Date(then + 5 * 60 * 1000);
-    const hhmm = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Ljubljana", hour: "2-digit", minute: "2-digit", hour12: false }).format(next);
-    return "ZADNJI KROG pred " + mins + " min · naslednji ~" + hhmm;
+    if (!Number.isFinite(then)) return "NONSTOP · ni posnetka";
+    const sec = Math.max(0, Math.round((Date.now() - then) / 1000));
+    return "NONSTOP · zadnji krog pred " + sec + "s";
   }
   function paintPassLabel() {
     const el = $("passLabel");
@@ -554,7 +551,7 @@
     el.textContent = passLabelText();
     const then = data && data.last_update ? new Date(data.last_update).getTime() : NaN;
     const sec = Number.isFinite(then) ? (Date.now() - then) / 1000 : 0;
-    el.classList.toggle("stale", sec > 2 * 3600);
+    el.classList.toggle("stale", sec > 5 * 60);
   }
   function lastDecision() {
     const cands = (data && data.candidates) || [];

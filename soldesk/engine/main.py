@@ -140,7 +140,7 @@ class Desk:
         self.poll_sec = args.poll or (
             8.0 if (args.sim or self.state["data_source"] == "SIM") else (20.0 if cloud else config.POSITION_POLL_SEC)
         )
-        self.scout_sec = 20.0 if self.state["data_source"] == "SIM" else (25.0 if cloud else config.SCOUT_INTERVAL_SEC)
+        self.scout_sec = 20.0 if self.state["data_source"] == "SIM" else (20.0 if cloud else config.SCOUT_INTERVAL_SEC)
 
     # ----- portfolio ---------------------------------------------------
     @property
@@ -205,7 +205,11 @@ class Desk:
     def reject(self, kind: str, mint: str, symbol: str, reasons: list[str], score=None, details=None) -> None:
         d = self.logger.decision(kind, mint, symbol, reasons, score=score, details=details)
         self.rejections.append(
-            {"ts": d.ts, "kind": kind, "mint": mint, "symbol": symbol, "reasons": reasons, "score": score}
+            {
+                "ts": d.ts, "kind": kind, "mint": mint, "symbol": symbol,
+                "reasons": reasons, "score": score,
+                "lane": (details or {}).get("lane") or "glavni",
+            }
         )
 
     # ----- cycles ------------------------------------------------------
@@ -238,19 +242,26 @@ class Desk:
         processed = 0
         this_cycle = 0
         handed = 0
+        launch_n = 0
         for cand in cands:
             if self.stop:
                 break
+            _assign_lane(cand)
             last = self.seen.get(cand.mint)
-            if last and (now - last) < RECHECK_SEC:
+            wait = config.LAUNCH_RECHECK_SEC if cand.lane == "novi_lans" else RECHECK_SEC
+            if last and (now - last) < wait:
                 continue
-            # Volume-only kills are cheap; only cap expensive safety checks.
             vol_ok = cand.volume_1h_usd is not None and cand.volume_1h_usd >= config.MIN_VOLUME_1H_USD
-            if self.state["data_source"] == "LIVE" and vol_ok and processed >= 12:
+            if cand.lane == "novi_lans":
+                if self.state["data_source"] == "LIVE" and launch_n >= config.LAUNCH_BATCH:
+                    continue
+            elif self.state["data_source"] == "LIVE" and vol_ok and processed >= 12:
                 continue
             self.process_candidate(cand)
             self.seen[cand.mint] = time.time()
-            if vol_ok:
+            if cand.lane == "novi_lans":
+                launch_n += 1
+            elif vol_ok:
                 processed += 1
             this_cycle += 1
         if this_cycle:
@@ -261,25 +272,26 @@ class Desk:
                     ts=iso(),
                     agent="SCOUT",
                     level="info",
-                    message=f"handed {handed} candidate(s) to FILTER ({processed} with volume ≥ ${config.MIN_VOLUME_1H_USD:,.0f})",
+                    message=f"handed {handed} candidate(s) to FILTER ({processed} glavni, {launch_n} novi lans)",
                 )
             )
 
     def process_candidate(self, cand: Candidate) -> None:
-        # Filter
-        result, ev = self.filter.check(cand)
+        lane = getattr(cand, "lane", "glavni") or "glavni"
+        result, ev = (self.filter.check_launch(cand) if lane == "novi_lans" else self.filter.check(cand))
+        ev.extra = {**(ev.extra or {}), "lane": lane}
         self._emit(ev)
         if result.creator and cand.mint in self.risk.banned_tokens:
             # if we already marked this mint as a liquidity rug, ban its creator
             self.filter.blacklisted_creators.add(result.creator)
         if not result.passed:
-            self.reject("reject_filter", cand.mint, cand.symbol, result.kill_reasons, details={"source": result.data_source})
+            self.reject("reject_filter", cand.mint, cand.symbol, result.kill_reasons, details={"source": result.data_source, "lane": lane})
             return
 
         # Analyst
         analysis, ev = self.analyst.score(cand, result)
         self._emit(ev)
-        need, learn_why = learning.threshold(self.state.setdefault("learning", {"buckets": {}}), analysis.total, analysis.structure_label)
+        need, learn_why = learning.threshold(self.state.setdefault("learning", {"buckets": {}}), analysis.total, analysis.structure_label, lane)
         if analysis.passed and analysis.total < need:
             analysis.passed = False
             ev = Event(
@@ -295,23 +307,30 @@ class Desk:
             ] + [f"{c.name}={c.score:.2f} ({c.note})" for c in analysis.components]
             if learn_why:
                 reasons.append(learn_why)
-            self.reject("reject_analyst", cand.mint, cand.symbol, reasons, score=analysis.total)
+            self.reject("reject_analyst", cand.mint, cand.symbol, reasons, score=analysis.total, details={"lane": lane})
             return
 
-        ok_time, time_reasons, setup = timing_evaluate(
-            cand, self.market, self.sim, self.state["data_source"], self.maker_memory,
-        )
-        if not ok_time:
-            ev = Event(
-                ts=iso(), agent="ANALYST", level="kill",
-                message=f"{cand.symbol}  čas vstopa  {'; '.join(time_reasons)}",
-                mint=cand.mint, symbol=cand.symbol,
-                extra={"reasons": time_reasons},
+        if lane == "novi_lans":
+            self._emit(Event(
+                ts=iso(), agent="ANALYST", level="info",
+                message=f"{cand.symbol}  NOVI LANS  čas vstopa je v pravilih pasu, brez umika glavnega pasu",
+                mint=cand.mint, symbol=cand.symbol, extra={"lane": lane},
+            ))
+        else:
+            ok_time, time_reasons, setup = timing_evaluate(
+                cand, self.market, self.sim, self.state["data_source"], self.maker_memory,
             )
-            self._emit(ev)
-            self.reject("reject_timing", cand.mint, cand.symbol, time_reasons, score=analysis.total)
-            return
-        analysis.structure_label = setup
+            if not ok_time:
+                ev = Event(
+                    ts=iso(), agent="ANALYST", level="kill",
+                    message=f"{cand.symbol}  čas vstopa  {'; '.join(time_reasons)}",
+                    mint=cand.mint, symbol=cand.symbol,
+                    extra={"reasons": time_reasons, "lane": lane},
+                )
+                self._emit(ev)
+                self.reject("reject_timing", cand.mint, cand.symbol, time_reasons, score=analysis.total, details={"lane": lane})
+                return
+            analysis.structure_label = setup
 
         pause = self.market_note.get("pause_reason") or ""
         if pause:
@@ -321,7 +340,7 @@ class Desk:
                 mint=cand.mint, symbol=cand.symbol,
             )
             self._emit(ev)
-            self.reject("reject_market", cand.mint, cand.symbol, [pause], score=analysis.total)
+            self.reject("reject_market", cand.mint, cand.symbol, [pause], score=analysis.total, details={"lane": lane})
             return
 
         # Risk gate
@@ -330,14 +349,14 @@ class Desk:
         if not ok:
             ev = Event(ts=iso(), agent="RISK", level="kill", message=f"{cand.symbol}  blocked  {why}", mint=cand.mint, symbol=cand.symbol)
             self._emit(ev)
-            self.reject("reject_risk", cand.mint, cand.symbol, [why], score=analysis.total)
+            self.reject("reject_risk", cand.mint, cand.symbol, [why], score=analysis.total, details={"lane": lane})
             return
 
         # Executor (paper)
         pos, ev = self.executor.try_entry(cand, analysis, self.equity, self.cash, self.positions, mid_price=cand.price_usd)
         self._emit(ev)
         if pos is None:
-            self.reject("reject_executor", cand.mint, cand.symbol, [ev.message], score=analysis.total)
+            self.reject("reject_executor", cand.mint, cand.symbol, [ev.message], score=analysis.total, details={"lane": lane})
             return
         self.cash -= pos.size_usd
         self.positions.append(pos)
@@ -396,6 +415,7 @@ class Desk:
                 pos.setup,
                 trade.pnl_usd > 0,
                 trade.pnl_usd,
+                getattr(pos, "lane", "glavni"),
             )
         self.positions = still
         self.risk.rollover_day(self.equity)
@@ -542,6 +562,18 @@ class Desk:
         self.persist(force=True)
         console.print(f"[bold]stopped[/]  equity {_fmt(self.equity)}  closed {len(self.closed)}  source={self.state['data_source']}")
         return 0
+
+
+def _assign_lane(cand: Candidate) -> None:
+    """Young and bonding-curve coins use the launch lane. The main lane keeps the 45-minute floor."""
+    age = cand.age_seconds()
+    dex = (cand.dex or "").lower()
+    via = str((cand.raw or {}).get("via") or "")
+    bonding = dex in {"pumpfun", "pump.fun"} or (dex.startswith("pump") and "swap" not in dex)
+    young = age is not None and age < config.MIN_TOKEN_AGE_MIN * 60
+    fresh = age is None and "new_pools" in via
+    curve = bonding and (age is None or age < config.LAUNCH_MAX_AGE_MIN * 60)
+    cand.lane = "novi_lans" if (young or fresh or curve) else "glavni"
 
 
 def _fmt(x: float) -> str:

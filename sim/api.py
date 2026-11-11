@@ -14,15 +14,25 @@ UA = "PaperTraderSim/1.0 (simulation-only; contact=local)"
 
 
 def _get(url: str, timeout: float = 20.0) -> Any | None:
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw = resp.read()
-            if not raw:
-                return None
-            return json.loads(raw.decode("utf-8"))
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, ValueError) as e:
-        return {"__error__": str(e)}
+    """Read-only GET. A 429 waits and retries; it does not change a trading decision."""
+    delay = 1.5
+    for attempt in range(4):
+        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read()
+                if not raw:
+                    return None
+                return json.loads(raw.decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 3:
+                time.sleep(delay)
+                delay = min(delay * 2, 20)
+                continue
+            return {"__error__": str(e)}
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError) as e:
+            return {"__error__": str(e)}
+    return {"__error__": "429 rate limited"}
 
 
 def _positive_price(value) -> float | None:

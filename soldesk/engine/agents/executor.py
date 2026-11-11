@@ -12,12 +12,13 @@ class Executor:
     def __init__(self) -> None:
         assert config.PAPER_MODE, "Executor refuses to start unless PAPER_MODE is True"
         assert config.MAX_POSITION_PCT <= 0.08 + 1e-12, "max size cannot exceed 8%"
+        assert config.LAUNCH_MAX_POSITION_PCT <= config.MAX_POSITION_PCT + 1e-12
 
-    def size_usd(self, equity: float, cash: float) -> float:
-        cap_equity = equity * config.MAX_POSITION_PCT
-        cap_cash = cash * config.MAX_POSITION_PCT
+    def size_usd(self, equity: float, cash: float, pct: float | None = None) -> float:
+        cap_pct = config.MAX_POSITION_PCT if pct is None else min(pct, config.MAX_POSITION_PCT)
+        cap_equity = equity * cap_pct
+        cap_cash = cash * cap_pct
         size = min(cap_equity, cap_cash, cash)
-        # Hard guarantee the brief asked for
         assert size <= equity * config.MAX_POSITION_PCT + 1e-9, "size exceeds 8% of current balance"
         assert size <= cash + 1e-9, "size exceeds available cash"
         return size
@@ -54,6 +55,19 @@ class Executor:
             )
             return None, ev
 
+        launch = getattr(cand, "lane", "glavni") == "novi_lans"
+        launch_open = sum(1 for p in open_positions if getattr(p, "lane", "") == "novi_lans")
+        if launch and launch_open >= config.LAUNCH_MAX_POSITIONS:
+            ev = Event(
+                ts=iso(),
+                agent="EXECUTOR",
+                level="kill",
+                message=f"{cand.symbol}  refused — max {config.LAUNCH_MAX_POSITIONS} launch positions",
+                mint=cand.mint,
+                symbol=cand.symbol,
+                extra={"lane": "novi_lans"},
+            )
+            return None, ev
         if len(open_positions) >= config.MAX_CONCURRENT_POSITIONS:
             ev = Event(
                 ts=iso(),
@@ -77,7 +91,7 @@ class Executor:
             )
             return None, ev
 
-        size = self.size_usd(equity, cash)
+        size = self.size_usd(equity, cash, config.LAUNCH_MAX_POSITION_PCT if launch else config.MAX_POSITION_PCT)
         if size < 1.0:
             ev = Event(
                 ts=iso(),
@@ -105,7 +119,8 @@ class Executor:
 
         fill = mid * (1.0 + config.ENTRY_SLIPPAGE_PCT) * (1.0 + config.ENTRY_FEE_PCT)
         qty = size / fill
-        hard_stop = fill * (1.0 + config.HARD_STOP_PCT)
+        stop_pct = config.LAUNCH_HARD_STOP_PCT if launch else config.HARD_STOP_PCT
+        hard_stop = fill * (1.0 + stop_pct)
         pct_used = (size / equity) * 100 if equity else 0.0
         assert pct_used <= config.MAX_POSITION_PCT * 100 + 1e-6
 
@@ -128,6 +143,7 @@ class Executor:
             original_qty=qty,
             original_size_usd=size,
             setup=analysis.structure_label,
+            lane=getattr(cand, "lane", "glavni"),
             entry_reasons=[
                 f"paper BUY {cand.symbol}",
                 f"score {analysis.total:.2f}",

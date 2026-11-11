@@ -10,6 +10,16 @@ from models import Candidate, Event, FilterCheck, FilterResult, iso
 from simfeed import SimFeed
 
 
+def _excluded_holder(owner: str, row: dict, known_lp: set[str], mint: Optional[str]) -> bool:
+    """LP, bonding-curve, and known program accounts are not holders."""
+    if not owner or owner == mint:
+        return True
+    if owner in config.BURN_ADDRESSES or owner in config.PROTOCOL_ACCOUNTS or owner in known_lp:
+        return True
+    blob = " ".join(str(v).lower() for v in row.values() if isinstance(v, (str, int, float)))
+    return any(word in blob for word in ("bonding", "bonding curve", "curve", "amm vault", "liquidity pool", "lp vault"))
+
+
 def _as_addr(value: Any) -> Optional[str]:
     if value is None or value is False:
         return None
@@ -234,6 +244,195 @@ class Filter:
             )
         return result, ev
 
+    def check_launch(self, cand: Candidate) -> tuple[FilterResult, Event]:
+        """Fresh-coin lane. No 45-minute age floor. Every kill is logged."""
+        checks: list[FilterCheck] = []
+        if self.data_source != "SIM" and cand.buyers_1h is None and cand.buyers_5m is None:
+            stats = self.market.token_pool_stats(cand.mint)
+            if stats.get("buyers_1h") is not None:
+                cand.buyers_1h = stats["buyers_1h"]
+            if stats.get("buyers_5m") is not None:
+                cand.buyers_5m = stats["buyers_5m"]
+            if not cand.volume_5m_usd and stats.get("volume_5m"):
+                cand.volume_5m_usd = stats["volume_5m"]
+            if not cand.volume_1h_usd and stats.get("volume_1h"):
+                cand.volume_1h_usd = stats["volume_1h"]
+            if not cand.pair_address and stats.get("pool"):
+                cand.pair_address = stats["pool"]
+        age = cand.age_seconds()
+        minutes = None if age is None else age / 60.0
+        volume = self._launch_volume(cand, minutes)
+        need = config.LAUNCH_MIN_VOLUME_USD
+        if minutes is not None:
+            need = config.LAUNCH_MIN_VOLUME_USD * min(max(minutes, 1.0), config.LAUNCH_VOLUME_WINDOW_MIN) / config.LAUNCH_VOLUME_WINDOW_MIN
+        if volume is None:
+            checks.append(FilterCheck("launch_volume", False, "ni podatka (volumen lansiranja)", None))
+        elif volume < need:
+            checks.append(FilterCheck("launch_volume", False, f"volumen ${volume:,.0f} < ${need:,.0f} za starost", volume))
+        else:
+            checks.append(FilterCheck("launch_volume", True, f"volumen ${volume:,.0f} (prag ${need:,.0f})", volume))
+        buyers = cand.buyers_5m if cand.buyers_5m is not None else cand.buyers_1h
+        if buyers is None:
+            checks.append(FilterCheck("launch_buyers", False, "ni podatka (unikatni kupci)", None))
+        elif buyers < config.LAUNCH_MIN_BUYERS:
+            checks.append(FilterCheck("launch_buyers", False, f"unikatni kupci {buyers} < {config.LAUNCH_MIN_BUYERS}", buyers))
+        else:
+            checks.append(FilterCheck("launch_buyers", True, f"unikatni kupci {buyers}", buyers))
+        multiple = self._launch_multiple(cand)
+        if multiple is None:
+            checks.append(FilterCheck("launch_multiple", False, "ni podatka (cena od lansiranja)", None))
+        elif multiple > config.LAUNCH_MAX_MULTIPLE:
+            checks.append(FilterCheck("launch_multiple", False, f"že {multiple:.1f}x od lansiranja > {config.LAUNCH_MAX_MULTIPLE:.0f}x", multiple))
+        else:
+            checks.append(FilterCheck("launch_multiple", True, f"{multiple:.2f}x od lansiranja", multiple))
+        if any(not c.passed for c in checks):
+            return self._finish(cand, checks, None, "launch-cheap", False)
+
+        safety = self._safety(cand)
+        creator = safety.get("creator")
+        mint_set = safety.get("mint_authority_set")
+        if mint_set is None:
+            checks.append(FilterCheck("mint_authority", False, "ni podatka (mint authority)", None))
+        elif mint_set:
+            checks.append(FilterCheck("mint_authority", False, "mint authority not revoked", True))
+        else:
+            checks.append(FilterCheck("mint_authority", True, "mint authority revoked", False))
+        frz = safety.get("freeze_authority_set")
+        if frz is None:
+            checks.append(FilterCheck("freeze_authority", False, "ni podatka (freeze authority)", None))
+        elif frz:
+            checks.append(FilterCheck("freeze_authority", False, "freeze authority is set", True))
+        else:
+            checks.append(FilterCheck("freeze_authority", True, "freeze authority unset", False))
+        bonding = self._on_bonding_curve(cand, safety)
+        lp_ok = safety.get("lp_locked_or_burned")
+        if bonding:
+            checks.append(FilterCheck("lp_lock", True, "bonding curve — LP lock ne velja", "curve"))
+        elif lp_ok is None:
+            checks.append(FilterCheck("lp_lock", False, "ni podatka (LP lock/burn)", None))
+        elif not lp_ok:
+            checks.append(FilterCheck("lp_lock", False, "LP not locked/burned", safety.get("lp_detail")))
+        else:
+            checks.append(FilterCheck("lp_lock", True, "LP locked/burned", safety.get("lp_detail")))
+        dev = safety.get("creator_pct")
+        if dev is None:
+            checks.append(FilterCheck("dev_hold", False, "ni podatka (delež razvijalca)", None))
+        elif dev > config.LAUNCH_MAX_DEV_PCT:
+            checks.append(FilterCheck("dev_hold", False, f"razvijalec drži {dev:.1f}% > {config.LAUNCH_MAX_DEV_PCT:.0f}%", dev))
+        else:
+            checks.append(FilterCheck("dev_hold", True, f"razvijalec drži {dev:.1f}%", dev))
+        top10 = safety.get("top10_pct")
+        if top10 is None:
+            checks.append(FilterCheck("top10_holders", False, "ni podatka (top 10 holders)", None))
+        elif top10 > config.MAX_TOP10_HOLDER_PCT:
+            checks.append(FilterCheck("top10_holders", False, f"top 10 holders {top10:.1f}% > {config.MAX_TOP10_HOLDER_PCT:.0f}%", top10))
+        else:
+            checks.append(FilterCheck("top10_holders", True, f"top 10 holders {top10:.1f}% (brez krivulje/LP)", top10))
+        bundle = safety.get("bundle_pct")
+        if safety.get("bundle_flag") and bundle is None:
+            checks.append(FilterCheck("bundle", False, "bundle/sniper oznaka brez deleža", None))
+        elif bundle is not None and bundle > config.LAUNCH_MAX_BUNDLE_PCT:
+            checks.append(FilterCheck("bundle", False, f"bundle/sniper {bundle:.1f}% > {config.LAUNCH_MAX_BUNDLE_PCT:.0f}%", bundle))
+        elif not safety.get("history_evaluated"):
+            checks.append(FilterCheck("bundle", False, "ni podatka (bundle/sniper)", None))
+        else:
+            checks.append(FilterCheck("bundle", True, f"bundle/sniper {float(bundle or 0):.1f}%", bundle))
+        if safety.get("dev_sold") is True:
+            checks.append(FilterCheck("dev_sold", False, "razvijalec je že prodal", True))
+        elif not safety.get("history_evaluated"):
+            checks.append(FilterCheck("dev_sold", False, "ni podatka (dev prodaja)", None))
+        else:
+            checks.append(FilterCheck("dev_sold", True, "ni sledi prodaje razvijalca", False))
+        rug_link, rug_reason = self._dev_rug_link(safety, creator)
+        if rug_link is None:
+            checks.append(FilterCheck("dev_rug_link", False, "ni podatka (creator history)", None))
+        elif rug_link:
+            checks.append(FilterCheck("dev_rug_link", False, rug_reason or "dev wallet linked to previous rugs", creator))
+        else:
+            checks.append(FilterCheck("dev_rug_link", True, "no creator rug link found", creator))
+        return self._finish(cand, checks, safety, safety.get("source") or "launch", bonding)
+
+    def _finish(self, cand: Candidate, checks: list[FilterCheck], safety: Optional[dict], source: str, bonding: bool) -> tuple[FilterResult, Event]:
+        passed = all(c.passed for c in checks)
+        result = FilterResult(
+            mint=cand.mint,
+            symbol=cand.symbol,
+            passed=passed,
+            checks=checks,
+            creator=None if not safety else safety.get("creator"),
+            top10_pct=None if not safety else safety.get("top10_pct"),
+            mint_revoked=None if not safety else (False if safety.get("mint_authority_set") else True if safety.get("mint_authority_set") is False else None),
+            freeze_set=None if not safety else safety.get("freeze_authority_set"),
+            lp_locked_or_burned=True if bonding else (None if not safety else safety.get("lp_locked_or_burned")),
+            volume_1h_usd=cand.volume_1h_usd,
+            data_source=source,
+        )
+        lane = "NOVI LANS"
+        if passed:
+            ev = Event(ts=iso(), agent="FILTER", level="ok", message=f"{cand.symbol}  {lane} PASS  ({source})", mint=cand.mint, symbol=cand.symbol, extra={"lane": "novi_lans"})
+        else:
+            reasons = "; ".join(result.kill_reasons)
+            ev = Event(ts=iso(), agent="FILTER", level="kill", message=f"{cand.symbol}  {lane} KILL  {reasons}", mint=cand.mint, symbol=cand.symbol, extra={"lane": "novi_lans", "reasons": result.kill_reasons})
+        return result, ev
+
+    def _launch_volume(self, cand: Candidate, minutes: Optional[float]) -> Optional[float]:
+        if minutes is not None and minutes <= 20 and cand.volume_5m_usd:
+            return float(cand.volume_5m_usd) * min(max(minutes, 1.0) / 5.0, 3.0)
+        if cand.volume_1h_usd:
+            return float(cand.volume_1h_usd)
+        if cand.volume_5m_usd:
+            return float(cand.volume_5m_usd)
+        return None
+
+    def _launch_multiple(self, cand: Candidate) -> Optional[float]:
+        if cand.pair_address and self.data_source != "SIM":
+            rows = self.market.gecko_ohlcv(cand.pair_address, aggregate=1, limit=40)
+            if rows:
+                rows = sorted(rows, key=lambda row: row[0])
+                first = float(rows[0][1] or 0)
+                last = float(rows[-1][4] or 0)
+                if first > 0 and last > 0:
+                    return last / first
+        age = cand.age_seconds()
+        if age is not None and age <= 3600 and cand.price_change_1h is not None:
+            return 1.0 + cand.price_change_1h / 100.0
+        if age is not None and age <= 900 and cand.price_change_5m is not None:
+            return 1.0 + cand.price_change_5m / 100.0
+        return None
+
+    def _on_bonding_curve(self, cand: Candidate, safety: dict) -> bool:
+        dex = (cand.dex or "").lower()
+        if dex in {"pumpfun", "pump.fun"} or (dex.startswith("pump") and "swap" not in dex):
+            return True
+        return bool(safety.get("bonding_curve"))
+
+    def _holder_flags(self, holders: list, creator: Optional[str], known_lp: set[str]) -> tuple[Optional[float], Optional[float], bool]:
+        if not isinstance(holders, list):
+            return None, None, False
+        creator_pct = None
+        bundle = 0.0
+        flagged = False
+        seen = False
+        for h in holders:
+            if not isinstance(h, dict):
+                continue
+            owner = _as_addr(h.get("owner") or h.get("address") or h.get("pubkey") or h.get("account"))
+            try:
+                pct = float(h.get("pct") if h.get("pct") is not None else h.get("percentage") if h.get("percentage") is not None else h.get("percent"))
+            except (TypeError, ValueError):
+                continue
+            seen = True
+            text = " ".join(str(v).lower() for v in h.values() if isinstance(v, str))
+            if h.get("insider") or any(word in text for word in ("sniper", "bundle", "insider")):
+                flagged = True
+                if owner and not _excluded_holder(owner, h, known_lp, None):
+                    bundle += pct
+            if creator and owner == creator:
+                creator_pct = pct
+        if creator and creator_pct is None and seen:
+            creator_pct = 0.0
+        return creator_pct, (bundle if seen else None), flagged
+
     def _launch_risks(self, checks: list[FilterCheck], safety: dict) -> None:
         """Bundled or sniper-heavy launches and concentrated LP fail closed."""
         if not safety.get("history_evaluated"):
@@ -350,6 +549,7 @@ class Filter:
         top10 = self._sum_top10(holders, known_lp_accounts, report.get("mint"))
 
         creator = _as_addr(report.get("creator") or report.get("deployer") or (report.get("tokenMeta") or {}).get("updateAuthority"))
+        creator_pct, bundle_pct, bundle_flag = self._holder_flags(holders, creator, known_lp_accounts)
         risks = report.get("risks") or []
         prior = 0
         creator_rugged = bool(report.get("rugged"))
@@ -375,6 +575,11 @@ class Filter:
             "prior_rugs": prior,
             "creator_rugged": creator_rugged and prior > 0,  # current token rugged != prior rugs; prior only
             "history_evaluated": True,
+            "creator_pct": creator_pct,
+            "bundle_pct": bundle_pct,
+            "bundle_flag": bundle_flag or any("bundle" in ((r.get("name") if isinstance(r, dict) else str(r)) or "").lower() or "sniper" in ((r.get("name") if isinstance(r, dict) else str(r)) or "").lower() or "insider" in ((r.get("name") if isinstance(r, dict) else str(r)) or "").lower() for r in risks),
+            "dev_sold": any(k in " ".join((r.get("name") if isinstance(r, dict) else str(r)) or "" for r in risks).lower() for k in ("dev sold", "creator sold", "sold tokens", "developer sold")),
+            "bonding_curve": any(k in " ".join(str(m).lower() for m in markets) for k in ("bonding", "pump.fun curve")),
         }
 
     def _sum_top10(self, holders: list, known_lp: set[str], mint: Optional[str]) -> Optional[float]:
@@ -387,9 +592,7 @@ class Filter:
             owner = _as_addr(h.get("owner") or h.get("address") or h.get("pubkey") or h.get("account"))
             if not owner:
                 continue
-            if owner in config.BURN_ADDRESSES or owner == mint:
-                continue
-            if owner in known_lp:
+            if _excluded_holder(owner, h, known_lp, mint):
                 continue
             pct = h.get("pct") or h.get("percentage") or h.get("percent")
             try:
@@ -426,7 +629,7 @@ class Filter:
                 except (TypeError, ValueError):
                     continue
             owner = acc.get("address") or ""
-            if owner in config.BURN_ADDRESSES or owner == mint:
+            if _excluded_holder(owner, acc, set(), mint):
                 continue
             shares.append(100.0 * amount / supply)
         if not shares:
