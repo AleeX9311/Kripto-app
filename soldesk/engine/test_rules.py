@@ -108,6 +108,30 @@ def test_launch_stop_and_half():
     assert part.qty < before * 0.6
 
 
+def test_bsc_goplus_fail_closed():
+    from agents.filter import bsc_security_checks
+    missing = bsc_security_checks(None, False, False)
+    assert missing[0].passed is False
+    clean = {
+        "is_honeypot": "0", "cannot_sell_all": "0", "buy_tax": "0.01", "sell_tax": "0.02",
+        "is_mintable": "0", "hidden_owner": "0", "is_proxy": "0", "is_blacklisted": "0",
+        "trading_cooldown": "0", "transfer_pausable": "0", "honeypot_with_same_creator": "0",
+        "lp_holders": [{"address": "0x000000000000000000000000000000000000dead", "percent": "0.95", "is_locked": "1"}],
+        "holders": [
+            {"address": "0x000000000000000000000000000000000000dead", "percent": "0.40", "is_locked": "1", "tag": "burn"},
+            {"address": "0xabc", "percent": "0.20", "is_locked": "0"},
+        ],
+    }
+    assert all(c.passed for c in bsc_security_checks(clean, False, False))
+    dirty = dict(clean)
+    dirty["is_honeypot"] = "1"
+    dirty["buy_tax"] = "0.2"
+    names = {c.name for c in bsc_security_checks(dirty, False, False) if not c.passed}
+    assert "honeypot" in names and "tax" in names
+    pre = bsc_security_checks(clean, True, True)
+    assert any(c.name == "lp_lock" and c.passed and "four.meme" in c.reason for c in pre)
+
+
 def test_time_stop_when_flat():
     risk = Risk(day_start_balance=1000, day_start_date="2026-11-11")
     opened = (datetime.now(timezone.utc) - timedelta(minutes=50)).isoformat()
@@ -119,6 +143,7 @@ def test_time_stop_when_flat():
 if __name__ == "__main__":
     test_top10_cap_is_75_and_excludes_curve()
     test_launch_stop_and_half()
+    test_bsc_goplus_fail_closed()
     test_hard_stop_uses_net_pnl()
     test_partial_then_remainder()
     test_learning_only_tightens()

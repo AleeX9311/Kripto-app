@@ -7,12 +7,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Sol Desk" />
+  <meta name="apple-mobile-web-app-title" content="Meme Desk" />
   <meta name="description" content="Papirna Solana miza. Virtualni denar. Ni napoved." />
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
   <link rel="icon" href="./icon-192.png" />
-  <title>SOL DESK</title>
+  <title>MEME DESK</title>
   <style>
     :root {
       --bg: #07080d;
@@ -73,8 +73,11 @@
     #age { font-size: 13px; margin: 0 0 8px; }
     #age.stale { color: var(--filter); }
     .badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 99px; font-size: 10px; letter-spacing: .06em; border: 1px solid var(--line); }
-    .badge.lans { color: #ffb020; border-color: rgba(255,176,32,.6); }
-    .badge.glavni { color: #3de0ff; border-color: rgba(61,224,255,.45); }
+    .badge.lans, .badge.bnb { color: #ffb020; border-color: rgba(255,176,32,.6); }
+    .badge.glavni, .badge.sol { color: #3de0ff; border-color: rgba(61,224,255,.45); }
+    .filters { display: flex; gap: 6px; margin-top: 8px; }
+    .filters button { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; color: var(--muted); }
+    .filters button.on { color: white; border-color: var(--scout); }
     .pipe { position: relative; height: 168px; }
     #flow { position: absolute; inset: 0; width: 100%; height: 100%; }
     .nodes { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding-top: 18px; }
@@ -131,7 +134,12 @@
   <header>
     <div>
       <div class="banner"><b>PAPER · VIRTUALNI DENAR</b><span id="src">—</span></div>
-      <h1>SOL DESK</h1>
+      <h1>MEME DESK</h1>
+      <div class="filters" id="chainFilters">
+        <button type="button" data-chain="all" class="on">VSE</button>
+        <button type="button" data-chain="solana">SOL</button>
+        <button type="button" data-chain="bsc">BNB</button>
+      </div>
     </div>
     <div class="stats" id="stats"></div>
     <div>
@@ -216,9 +224,15 @@
     if (!Number.isFinite(v)) return "—";
     return (v * 100).toFixed(1) + " %";
   }
+  let chainPick = "all";
+  function wanted(row) { return chainPick === "all" || (row.chain || "solana") === chainPick; }
   function laneBadge(lane) {
     const lans = lane === "novi_lans";
     return `<span class="badge ${lans ? "lans" : "glavni"}">${lans ? "NOVI LANS" : "GLAVNI"}</span>`;
+  }
+  function chainBadge(chain) {
+    const bnb = chain === "bsc";
+    return `<span class="badge ${bnb ? "bnb" : "sol"}">${bnb ? "BNB" : "SOL"}</span>`;
   }
   function ageText() {
     if (!data || !data.last_update) return "NONSTOP · ni posnetka";
@@ -245,7 +259,7 @@
       stat("Zaprto", String(d.closed_n || 0))
     ].join("");
     paintAge();
-    const open = d.open || [];
+    const open = (d.open || []).filter(wanted);
     $("open").innerHTML = open.length ? open.map((p) => {
       const net = Number(p.fill_price) ? (Number(p.last_price) / Number(p.fill_price) - 1) : 0;
       const flags = [
@@ -254,12 +268,12 @@
         p.breakeven ? "breakeven" : "",
         p.trail_armed ? "sled" : "trdi stop"
       ].filter(Boolean).join(" · ");
-      return `<div class="row"><b>${esc(p.symbol)}</b> ${laneBadge(p.lane)} <span class="${net >= 0 ? "up" : "dn"}">${esc((net * 100).toFixed(1))} %</span><div class="dim">vstop ${esc(p.fill_price)} · zdaj ${esc(p.last_price)} · ${esc(flags)}</div></div>`;
+      return `<div class="row"><b>${esc(p.symbol)}</b> ${chainBadge(p.chain)} ${laneBadge(p.lane)} <span class="${net >= 0 ? "up" : "dn"}">${esc((net * 100).toFixed(1))} %</span><div class="dim">vstop ${esc(p.fill_price)} · zdaj ${esc(p.last_price)} · ${esc(flags)}</div></div>`;
     }).join("") : `<p class="dim">Ni odprtih pozicij.</p>`;
-    const closed = (d.closed || []).slice().reverse();
-    $("closed").innerHTML = closed.length ? closed.map((t) => `<div class="row"><b class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))}</b> ${laneBadge(t.lane)}<div class="dim">${esc(t.reason || "")}</div></div>`).join("") : `<p class="dim">Ni zaprtih poslov.</p>`;
-    const rej = d.rejections || [];
-    $("rej").innerHTML = rej.length ? rej.slice().reverse().map((r) => `<div class="rej"><b>${esc(r.symbol || "—")}</b> ${laneBadge(r.lane)} ${esc(r.kind || "")}<div class="dim">${esc((r.reasons || []).slice(0, 3).join(" · "))}</div></div>`).join("") : `<p class="dim">Ni zabeleženih zavrnitev.</p>`;
+    const closed = (d.closed || []).filter(wanted).slice().reverse();
+    $("closed").innerHTML = closed.length ? closed.map((t) => `<div class="row"><b class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))}</b> ${chainBadge(t.chain)} ${laneBadge(t.lane)}<div class="dim">${esc(t.reason || "")}</div></div>`).join("") : `<p class="dim">Ni zaprtih poslov.</p>`;
+    const rej = (d.rejections || []).filter(wanted);
+    $("rej").innerHTML = rej.length ? rej.slice().reverse().map((r) => `<div class="rej"><b>${esc(r.symbol || "—")}</b> ${chainBadge(r.chain)} ${laneBadge(r.lane)} ${esc(r.kind || "")}<div class="dim">${esc((r.reasons || []).slice(0, 3).join(" · "))}</div></div>`).join("") : `<p class="dim">Ni zabeleženih zavrnitev.</p>`;
     const line = (k, v) => `<div class="row"><span>${k}</span><b>${v}</b></div>`;
     const block = (title, m) => `<h2>${title}</h2>` + [
       line("Zadetki", !m || m.win_rate == null ? "—" : pct(m.win_rate)),
@@ -269,11 +283,11 @@
       line("Povprečen R", !m || m.avg_r == null ? "—" : m.avg_r),
       line("Posli", String((m && m.n) || 0))
     ].join("");
-    $("metrics").innerHTML = block("Skupaj", d.stats) + block("GLAVNI", d.stats_glavni) + block("NOVI LANS", d.stats_lans)
+    $("metrics").innerHTML = block("Skupaj", d.stats) + block("SOL", d.stats_sol) + block("BNB", d.stats_bnb) + block("GLAVNI", d.stats_glavni) + block("NOVI LANS", d.stats_lans)
       + `<p class="dim">${d.market && d.market.pause_reason ? esc(d.market.pause_reason) : "Trg ne zaustavlja novih vstopov."} SOL 1h ${d.market && d.market.sol_1h != null ? esc(d.market.sol_1h) + " %" : "—"}.</p>`;
     const learn = d.learning || [];
     $("learn").innerHTML = learn.length ? learn.map((row) => `<div class="row"><b>${esc(row.bucket)}</b><div class="dim">n=${esc(row.n)} · zadetki ${row.win_rate == null ? "—" : esc(pct(row.win_rate))} · ${esc(money(row.pnl))}</div></div>`).join("") : `<p class="dim">Še ni vzorcev.</p>`;
-    const ev = (d.events || []).slice().reverse();
+    const ev = (d.events || []).filter((e) => wanted({ chain: (e.extra && e.extra.chain) || "solana" })).slice().reverse();
     $("log").innerHTML = ev.length ? ev.map((e) => `<div class="row"><b style="color:${(AGENTS.find((a) => a.id === e.agent) || {}).c || "#fff"}">${esc(e.agent)}</b> ${esc(e.symbol || "")}<div class="dim">${esc((e.ts || "").slice(11, 19))} · ${esc(e.message || "")}</div></div>`).join("") : `<p class="dim">Dnevnik je prazen.</p>`;
     drawEq();
     const fresh = (d.events || []).filter((e) => lastStamp && e.ts > lastStamp);
@@ -346,7 +360,8 @@
       g.shadowColor = col; g.shadowBlur = 12;
       g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
       g.shadowBlur = 0;
-      const tag = particle.ev.extra && particle.ev.extra.lane === "novi_lans" ? "NOVI LANS" : (particle.ev.extra && particle.ev.extra.lane ? "GLAVNI" : "");
+      const extra = particle.ev.extra || {};
+      const tag = ((extra.chain === "bsc" ? "BNB" : "SOL") + " " + (extra.lane === "novi_lans" ? "NOVI LANS" : "GLAVNI")).trim();
       g.font = "11px sans-serif"; g.fillText(((particle.ev.symbol || "") + " " + tag).trim(), x + 8, y - 8);
       if (k >= 1 && particle.drop) {
         dropText = (particle.ev.symbol || "") + " · " + (particle.ev.message || "");
@@ -368,6 +383,13 @@
       if (!data) $("age").textContent = "NONSTOP · posnetka še ni";
     }
   }
+  document.getElementById("chainFilters").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-chain]");
+    if (!btn || !data) return;
+    chainPick = btn.dataset.chain;
+    document.querySelectorAll("#chainFilters button").forEach((b) => b.classList.toggle("on", b === btn));
+    render(data);
+  });
   document.querySelector(".tabs").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-tab]");
     if (!btn) return;

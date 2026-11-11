@@ -151,13 +151,23 @@ BURN_ADDRESSES = {
 SOL_MINT = "So11111111111111111111111111111111111111112"
 USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
-QUOTE_MINTS = {SOL_MINT, USDC_MINT, USDT_MINT}
+WBNB_MINT = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+BSC_USDT_MINT = "0x55d398326f99059ff775485246999027b3197955"
+BSC_USDC_MINT = "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+QUOTE_MINTS = {SOL_MINT, USDC_MINT, USDT_MINT, WBNB_MINT, BSC_USDT_MINT, BSC_USDC_MINT}
+GOPLUS_BSC_URL = "https://api.gopluslabs.io/api/v1/token_security/56?contract_addresses={addr}"
+FOURMEME_LIST_URL = "https://four.meme/meme-api/v1/private/token/list"
+MAX_SCOUT_PER_CHAIN = 12
 
 # Symbols/names we never treat as a memecoin candidate
 SKIP_SYMBOLS = {
     "SOL", "WSOL", "wSOL", "USDC", "USDT", "USD1", "USDS", "DAI", "PYUSD",
+    "WBNB", "BNB", "BUSD", "BTCB", "ETH", "WETH",
 }
-SKIP_NAMES = {"solana", "usd coin", "tether", "wrapped solana", "wrapped sol"}
+SKIP_NAMES = {
+    "solana", "usd coin", "tether", "wrapped solana", "wrapped sol",
+    "wrapped bnb", "wbnb", "binance-peg",
+}
 
 
 ALLOWED_DEXES = {

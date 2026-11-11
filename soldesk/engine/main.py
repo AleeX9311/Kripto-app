@@ -209,6 +209,7 @@ class Desk:
                 "ts": d.ts, "kind": kind, "mint": mint, "symbol": symbol,
                 "reasons": reasons, "score": score,
                 "lane": (details or {}).get("lane") or "glavni",
+                "chain": (details or {}).get("chain") or "solana",
             }
         )
 
@@ -279,13 +280,13 @@ class Desk:
     def process_candidate(self, cand: Candidate) -> None:
         lane = getattr(cand, "lane", "glavni") or "glavni"
         result, ev = (self.filter.check_launch(cand) if lane == "novi_lans" else self.filter.check(cand))
-        ev.extra = {**(ev.extra or {}), "lane": lane}
+        ev.extra = {**(ev.extra or {}), "lane": lane, "chain": getattr(cand, "chain", "solana")}
         self._emit(ev)
         if result.creator and cand.mint in self.risk.banned_tokens:
             # if we already marked this mint as a liquidity rug, ban its creator
             self.filter.blacklisted_creators.add(result.creator)
         if not result.passed:
-            self.reject("reject_filter", cand.mint, cand.symbol, result.kill_reasons, details={"source": result.data_source, "lane": lane})
+            self.reject("reject_filter", cand.mint, cand.symbol, result.kill_reasons, details={"source": result.data_source, "lane": lane, "chain": getattr(cand, "chain", "solana")})
             return
 
         # Analyst
@@ -307,7 +308,7 @@ class Desk:
             ] + [f"{c.name}={c.score:.2f} ({c.note})" for c in analysis.components]
             if learn_why:
                 reasons.append(learn_why)
-            self.reject("reject_analyst", cand.mint, cand.symbol, reasons, score=analysis.total, details={"lane": lane})
+            self.reject("reject_analyst", cand.mint, cand.symbol, reasons, score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
             return
 
         if lane == "novi_lans":
@@ -328,7 +329,7 @@ class Desk:
                     extra={"reasons": time_reasons, "lane": lane},
                 )
                 self._emit(ev)
-                self.reject("reject_timing", cand.mint, cand.symbol, time_reasons, score=analysis.total, details={"lane": lane})
+                self.reject("reject_timing", cand.mint, cand.symbol, time_reasons, score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
                 return
             analysis.structure_label = setup
 
@@ -340,7 +341,7 @@ class Desk:
                 mint=cand.mint, symbol=cand.symbol,
             )
             self._emit(ev)
-            self.reject("reject_market", cand.mint, cand.symbol, [pause], score=analysis.total, details={"lane": lane})
+            self.reject("reject_market", cand.mint, cand.symbol, [pause], score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
             return
 
         # Risk gate
@@ -349,14 +350,14 @@ class Desk:
         if not ok:
             ev = Event(ts=iso(), agent="RISK", level="kill", message=f"{cand.symbol}  blocked  {why}", mint=cand.mint, symbol=cand.symbol)
             self._emit(ev)
-            self.reject("reject_risk", cand.mint, cand.symbol, [why], score=analysis.total, details={"lane": lane})
+            self.reject("reject_risk", cand.mint, cand.symbol, [why], score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
             return
 
         # Executor (paper)
         pos, ev = self.executor.try_entry(cand, analysis, self.equity, self.cash, self.positions, mid_price=cand.price_usd)
         self._emit(ev)
         if pos is None:
-            self.reject("reject_executor", cand.mint, cand.symbol, [ev.message], score=analysis.total, details={"lane": lane})
+            self.reject("reject_executor", cand.mint, cand.symbol, [ev.message], score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
             return
         self.cash -= pos.size_usd
         self.positions.append(pos)
@@ -565,14 +566,15 @@ class Desk:
 
 
 def _assign_lane(cand: Candidate) -> None:
-    """Young and bonding-curve coins use the launch lane. The main lane keeps the 45-minute floor."""
+    """Young coins, bonding curves, and four.meme pre-bond use the launch lane."""
     age = cand.age_seconds()
     dex = (cand.dex or "").lower()
     via = str((cand.raw or {}).get("via") or "")
     bonding = dex in {"pumpfun", "pump.fun"} or (dex.startswith("pump") and "swap" not in dex)
+    four = ("four" in dex or "four.meme" in via) and "pancake" not in dex
     young = age is not None and age < config.MIN_TOKEN_AGE_MIN * 60
-    fresh = age is None and "new_pools" in via
-    curve = bonding and (age is None or age < config.LAUNCH_MAX_AGE_MIN * 60)
+    fresh = age is None and ("new_pools" in via or four)
+    curve = (bonding or four) and (age is None or age < config.LAUNCH_MAX_AGE_MIN * 60)
     cand.lane = "novi_lans" if (young or fresh or curve) else "glavni"
 
 

@@ -69,6 +69,8 @@ def build_status(state: dict, events: list, rejections: list, positions: list, c
         "stats": _stats(plain, hist),
         "stats_glavni": _stats([t for t in plain if (t.get("lane") or "glavni") != "novi_lans"], hist),
         "stats_lans": _stats([t for t in plain if t.get("lane") == "novi_lans"], hist),
+        "stats_sol": _stats([t for t in plain if (t.get("chain") or "solana") != "bsc"], hist),
+        "stats_bnb": _stats([t for t in plain if t.get("chain") == "bsc"], hist),
         "open": [to_plain(p) for p in positions],
         "closed": [to_plain(t) for t in list(closed)[-40:]],
         "rejections": list(rejections)[-40:],

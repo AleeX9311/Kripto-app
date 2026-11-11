@@ -188,6 +188,7 @@ class Risk:
             source=pos.source,
             analyst_score=pos.analyst_score,
             lane=getattr(pos, "lane", "glavni"),
+            chain=getattr(pos, "chain", "solana"),
         )
         ev = Event(
             ts=iso(),
@@ -228,6 +229,7 @@ class Risk:
             source=pos.source,
             analyst_score=pos.analyst_score,
             lane=getattr(pos, "lane", "glavni"),
+            chain=getattr(pos, "chain", "solana"),
         )
         # Stops (hard or trail) ban the token. No revenge re-entry.
         if "STOP" in reason.upper():

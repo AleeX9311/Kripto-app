@@ -144,6 +144,7 @@ class Executor:
             original_size_usd=size,
             setup=analysis.structure_label,
             lane=getattr(cand, "lane", "glavni"),
+            chain=getattr(cand, "chain", "solana"),
             entry_reasons=[
                 f"paper BUY {cand.symbol}",
                 f"score {analysis.total:.2f}",

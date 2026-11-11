@@ -55,6 +55,7 @@ class Candidate:
     quote_mint: Optional[str] = None
     source: str = "LIVE"  # LIVE or SIM
     lane: str = "glavni"  # glavni | novi_lans
+    chain: str = "solana"  # solana | bsc
     raw: dict = field(default_factory=dict)
 
     def age_seconds(self, now: Optional[datetime] = None) -> Optional[float]:
@@ -143,6 +144,7 @@ class Position:
     breakeven: bool = False
     setup: str = ""
     lane: str = "glavni"
+    chain: str = "solana"
 
     def mark_pnl_pct(self, price: Optional[float] = None) -> float:
         px = self.fill_price
@@ -173,6 +175,7 @@ class ClosedTrade:
     source: str = "LIVE"
     analyst_score: float = 0.0
     lane: str = "glavni"
+    chain: str = "solana"
 
 
 @dataclass

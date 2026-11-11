@@ -112,8 +112,9 @@ def evaluate(cand: Candidate, market: Market, sim: Optional[SimFeed], source: st
     else:
         if not cand.pair_address:
             return False, ["ni podatka (par za sveče)"], "ni_svec"
-        rows5 = _sorted(market.gecko_ohlcv(cand.pair_address, aggregate=5, limit=48))
-        rows1 = _sorted(market.gecko_ohlcv(cand.pair_address, aggregate=1, limit=30))
+        network = "bsc" if getattr(cand, "chain", "") == "bsc" else "solana"
+        rows5 = _sorted(market.gecko_ohlcv(cand.pair_address, aggregate=5, limit=48, network=network))
+        rows1 = _sorted(market.gecko_ohlcv(cand.pair_address, aggregate=1, limit=30, network=network))
     ok5, why5 = structure_ok(rows5, "5m")
     ok1, why1 = structure_ok(rows1, "1m") if rows1 is not rows5 else (True, "1m: isti vzorec")
     if rows1 is rows5 and source != "SIM":

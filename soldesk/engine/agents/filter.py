@@ -10,6 +10,156 @@ from models import Candidate, Event, FilterCheck, FilterResult, iso
 from simfeed import SimFeed
 
 
+def _holder_pct(value: Any) -> Optional[float]:
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return None
+    if num <= 1:
+        return num * 100.0
+    return num
+
+
+def _fourmeme_prebond(cand: Candidate) -> bool:
+    dex = (cand.dex or "").lower()
+    via = str((cand.raw or {}).get("via") or "").lower()
+    listed = (cand.raw or {}).get("listedPancake")
+    if listed is False or str(listed).lower() == "false":
+        return True
+    return ("four" in dex or "four.meme" in via) and "pancake" not in dex
+
+
+def bsc_security_checks(info: Optional[dict], launch: bool, prebond: bool) -> list[FilterCheck]:
+    """GoPlus BSC rules. A missing report fails closed."""
+    if not isinstance(info, dict) or not info:
+        return [FilterCheck("goplus", False, "ni podatka (GoPlus)", None)]
+    checks: list[FilterCheck] = []
+
+    def flag(name: str) -> Optional[str]:
+        if name not in info or info.get(name) in (None, ""):
+            return None
+        return str(info.get(name)).lower()
+
+    honeypot = flag("is_honeypot")
+    if honeypot is None:
+        checks.append(FilterCheck("honeypot", False, "ni podatka (honeypot)", None))
+    elif honeypot in ("1", "true"):
+        checks.append(FilterCheck("honeypot", False, "honeypot", True))
+    else:
+        checks.append(FilterCheck("honeypot", True, "ni honeypot", False))
+    cannot = flag("cannot_sell_all")
+    if cannot is None:
+        checks.append(FilterCheck("cannot_sell", False, "ni podatka (prodaja)", None))
+    elif cannot in ("1", "true"):
+        checks.append(FilterCheck("cannot_sell", False, "ni mogoče prodati", True))
+    else:
+        checks.append(FilterCheck("cannot_sell", True, "prodaja je mogoča", False))
+    try:
+        buy_tax = float(info.get("buy_tax") or 0)
+        sell_tax = float(info.get("sell_tax") or 0)
+    except (TypeError, ValueError):
+        buy_tax = sell_tax = None
+    if info.get("buy_tax") in (None, "") or info.get("sell_tax") in (None, ""):
+        checks.append(FilterCheck("tax", False, "ni podatka (davek)", None))
+    elif buy_tax is None or sell_tax is None or buy_tax > 0.10 or sell_tax > 0.10:
+        checks.append(FilterCheck("tax", False, f"davek nakup {buy_tax} prodaja {sell_tax} > 10%", None))
+    else:
+        checks.append(FilterCheck("tax", True, f"davek nakup {buy_tax:.1%} prodaja {sell_tax:.1%}", None))
+    for name, label in (
+        ("is_mintable", "lastnik lahko kuje"),
+        ("hidden_owner", "skriti lastnik"),
+        ("is_proxy", "proxy"),
+        ("is_blacklisted", "črna lista"),
+        ("trading_cooldown", "cooldown trgovanja"),
+        ("transfer_pausable", "trgovanje se da ustaviti"),
+    ):
+        value = flag(name)
+        if value is None:
+            checks.append(FilterCheck(name, False, f"ni podatka ({label})", None))
+        elif value in ("1", "true"):
+            checks.append(FilterCheck(name, False, label, True))
+        else:
+            checks.append(FilterCheck(name, True, f"ni: {label}", False))
+    if launch and prebond:
+        checks.append(FilterCheck("lp_lock", True, "four.meme pred vezavo — LP lock ne velja", "curve"))
+    else:
+        locked = _bsc_lp_locked(info)
+        if locked is None:
+            checks.append(FilterCheck("lp_lock", False, "ni podatka (LP lock/burn)", None))
+        elif locked < 0.80:
+            checks.append(FilterCheck("lp_lock", False, f"LP ni zaklenjen/zažgan ({locked:.0%})", locked))
+        else:
+            checks.append(FilterCheck("lp_lock", True, f"LP zaklenjen/zažgan {locked:.0%}", locked))
+    top10 = _bsc_top10(info)
+    if top10 is None:
+        checks.append(FilterCheck("top10_holders", False, "ni podatka (top 10 holders)", None))
+    elif top10 > config.MAX_TOP10_HOLDER_PCT:
+        checks.append(FilterCheck("top10_holders", False, f"top 10 holders {top10:.1f}% > {config.MAX_TOP10_HOLDER_PCT:.0f}%", top10))
+    else:
+        checks.append(FilterCheck("top10_holders", True, f"top 10 holders {top10:.1f}%", top10))
+    rugs = info.get("honeypot_with_same_creator")
+    if rugs in (None, ""):
+        checks.append(FilterCheck("dev_rug_link", False, "ni podatka (povezava z rugi)", None))
+    else:
+        try:
+            n = int(float(rugs))
+        except (TypeError, ValueError):
+            n = None
+        if n is None:
+            checks.append(FilterCheck("dev_rug_link", False, "ni podatka (povezava z rugi)", rugs))
+        elif n > 0:
+            checks.append(FilterCheck("dev_rug_link", False, f"ustvarjalec povezan z {n} rugi", n))
+        else:
+            checks.append(FilterCheck("dev_rug_link", True, "ni povezave z rugi", 0))
+    return checks
+
+
+def _bsc_lp_locked(info: dict) -> Optional[float]:
+    holders = info.get("lp_holders") or []
+    if not isinstance(holders, list) or not holders:
+        return None
+    locked = 0.0
+    seen = False
+    dead = {"0x0000000000000000000000000000000000000000", "0x000000000000000000000000000000000000dead"}
+    for holder in holders:
+        if not isinstance(holder, dict):
+            continue
+        pct = _holder_pct(holder.get("percent"))
+        if pct is None:
+            continue
+        seen = True
+        addr = str(holder.get("address") or "").lower()
+        tag = str(holder.get("tag") or "").lower()
+        is_locked = str(holder.get("is_locked", "0")).lower() in ("1", "true")
+        if addr in dead or "burn" in tag or "lock" in tag or "dead" in tag or is_locked:
+            locked += pct / 100.0
+    return locked if seen else None
+
+
+def _bsc_top10(info: dict) -> Optional[float]:
+    holders = info.get("holders") or []
+    if not isinstance(holders, list) or not holders:
+        return None
+    lp_addrs = {str(h.get("address") or "").lower() for h in (info.get("lp_holders") or []) if isinstance(h, dict)}
+    dead = {"0x0000000000000000000000000000000000000000", "0x000000000000000000000000000000000000dead"}
+    shares = []
+    for holder in holders:
+        if not isinstance(holder, dict):
+            continue
+        addr = str(holder.get("address") or "").lower()
+        tag = str(holder.get("tag") or "").lower()
+        locked = str(holder.get("is_locked", "0")).lower() in ("1", "true")
+        if addr in dead or addr in lp_addrs or locked or any(word in tag for word in ("lp", "lock", "burn", "dead", "null", "pancake", "four")):
+            continue
+        pct = _holder_pct(holder.get("percent"))
+        if pct is None:
+            continue
+        shares.append(pct)
+    if not shares:
+        return None
+    return float(sum(sorted(shares, reverse=True)[:10]))
+
+
 def _excluded_holder(owner: str, row: dict, known_lp: set[str], mint: Optional[str]) -> bool:
     """LP, bonding-curve, and known program accounts are not holders."""
     if not owner or owner == mint:
@@ -67,6 +217,8 @@ class Filter:
         return rugged_mints
 
     def check(self, cand: Candidate) -> tuple[FilterResult, Event]:
+        if getattr(cand, "chain", "solana") == "bsc":
+            return self.check_bsc(cand, launch=False)
         checks: list[FilterCheck] = []
         creator: Optional[str] = None
         top10: Optional[float] = None
@@ -244,11 +396,89 @@ class Filter:
             )
         return result, ev
 
+    def check_bsc(self, cand: Candidate, launch: bool) -> tuple[FilterResult, Event]:
+        """BSC filter via GoPlus. Missing security data fails closed."""
+        checks: list[FilterCheck] = []
+        if not launch:
+            vol = cand.volume_1h_usd
+            if vol is None:
+                checks.append(FilterCheck("volume_1h", False, "ni podatka (1h volume)", None))
+            elif vol < config.MIN_VOLUME_1H_USD:
+                checks.append(FilterCheck("volume_1h", False, f"1h volume ${vol:,.0f} < ${config.MIN_VOLUME_1H_USD:,.0f}", vol))
+            else:
+                checks.append(FilterCheck("volume_1h", True, f"1h volume ${vol:,.0f}", vol))
+            age = cand.age_seconds()
+            if age is None:
+                checks.append(FilterCheck("age", False, "ni podatka (starost)", None))
+            elif age < config.MIN_TOKEN_AGE_MIN * 60:
+                checks.append(FilterCheck("age", False, f"starost {age / 60:.0f} min < {config.MIN_TOKEN_AGE_MIN:.0f} min", age))
+            else:
+                checks.append(FilterCheck("age", True, f"starost {age / 60:.0f} min", age))
+            if any(not c.passed for c in checks):
+                return self._finish_chain(cand, checks, "bsc-cheap", launch)
+        else:
+            if self.data_source != "SIM" and cand.buyers_1h is None and cand.buyers_5m is None:
+                stats = self.market.token_pool_stats(cand.mint, "bsc")
+                if stats.get("buyers_1h") is not None:
+                    cand.buyers_1h = stats["buyers_1h"]
+                if stats.get("buyers_5m") is not None:
+                    cand.buyers_5m = stats["buyers_5m"]
+                if not cand.volume_5m_usd and stats.get("volume_5m"):
+                    cand.volume_5m_usd = stats["volume_5m"]
+                if not cand.pair_address and stats.get("pool"):
+                    cand.pair_address = stats["pool"]
+            age = cand.age_seconds()
+            minutes = None if age is None else age / 60.0
+            volume = self._launch_volume(cand, minutes)
+            need = config.LAUNCH_MIN_VOLUME_USD if minutes is None else config.LAUNCH_MIN_VOLUME_USD * min(max(minutes, 1.0), config.LAUNCH_VOLUME_WINDOW_MIN) / config.LAUNCH_VOLUME_WINDOW_MIN
+            if volume is None:
+                checks.append(FilterCheck("launch_volume", False, "ni podatka (volumen lansiranja)", None))
+            elif volume < need:
+                checks.append(FilterCheck("launch_volume", False, f"volumen ${volume:,.0f} < ${need:,.0f} za starost", volume))
+            else:
+                checks.append(FilterCheck("launch_volume", True, f"volumen ${volume:,.0f}", volume))
+            buyers = cand.buyers_5m if cand.buyers_5m is not None else cand.buyers_1h
+            if buyers is None:
+                checks.append(FilterCheck("launch_buyers", False, "ni podatka (unikatni kupci)", None))
+            elif buyers < config.LAUNCH_MIN_BUYERS:
+                checks.append(FilterCheck("launch_buyers", False, f"unikatni kupci {buyers} < {config.LAUNCH_MIN_BUYERS}", buyers))
+            else:
+                checks.append(FilterCheck("launch_buyers", True, f"unikatni kupci {buyers}", buyers))
+            multiple = self._launch_multiple(cand)
+            if multiple is None:
+                checks.append(FilterCheck("launch_multiple", False, "ni podatka (cena od lansiranja)", None))
+            elif multiple > config.LAUNCH_MAX_MULTIPLE:
+                checks.append(FilterCheck("launch_multiple", False, f"že {multiple:.1f}x od lansiranja > {config.LAUNCH_MAX_MULTIPLE:.0f}x", multiple))
+            else:
+                checks.append(FilterCheck("launch_multiple", True, f"{multiple:.2f}x od lansiranja", multiple))
+            if any(not c.passed for c in checks):
+                return self._finish_chain(cand, checks, "bsc-launch-cheap", True)
+        info = self.market.goplus_bsc(cand.mint) if self.data_source != "SIM" else None
+        checks.extend(bsc_security_checks(info, launch=launch, prebond=_fourmeme_prebond(cand)))
+        return self._finish_chain(cand, checks, "goplus" if info else "goplus-missing", launch)
+
+    def _finish_chain(self, cand: Candidate, checks: list[FilterCheck], source: str, launch: bool) -> tuple[FilterResult, Event]:
+        passed = all(c.passed for c in checks)
+        result = FilterResult(
+            mint=cand.mint, symbol=cand.symbol, passed=passed, checks=checks,
+            volume_1h_usd=cand.volume_1h_usd, data_source=source,
+        )
+        label = "NOVI LANS" if launch else "GLAVNI"
+        lane = "novi_lans" if launch else "glavni"
+        chain = getattr(cand, "chain", "solana")
+        if passed:
+            ev = Event(ts=iso(), agent="FILTER", level="ok", message=f"{cand.symbol}  {label} PASS  ({source})", mint=cand.mint, symbol=cand.symbol, extra={"lane": lane, "chain": chain})
+        else:
+            reasons = "; ".join(result.kill_reasons)
+            ev = Event(ts=iso(), agent="FILTER", level="kill", message=f"{cand.symbol}  {label} KILL  {reasons}", mint=cand.mint, symbol=cand.symbol, extra={"lane": lane, "chain": chain, "reasons": result.kill_reasons})
+        return result, ev
+
     def check_launch(self, cand: Candidate) -> tuple[FilterResult, Event]:
-        """Fresh-coin lane. No 45-minute age floor. Every kill is logged."""
+        if getattr(cand, "chain", "solana") == "bsc":
+            return self.check_bsc(cand, launch=True)
         checks: list[FilterCheck] = []
         if self.data_source != "SIM" and cand.buyers_1h is None and cand.buyers_5m is None:
-            stats = self.market.token_pool_stats(cand.mint)
+            stats = self.market.token_pool_stats(cand.mint, "bsc" if getattr(cand, "chain", "") == "bsc" else "solana")
             if stats.get("buyers_1h") is not None:
                 cand.buyers_1h = stats["buyers_1h"]
             if stats.get("buyers_5m") is not None:
@@ -386,7 +616,7 @@ class Filter:
 
     def _launch_multiple(self, cand: Candidate) -> Optional[float]:
         if cand.pair_address and self.data_source != "SIM":
-            rows = self.market.gecko_ohlcv(cand.pair_address, aggregate=1, limit=40)
+            rows = self.market.gecko_ohlcv(cand.pair_address, aggregate=1, limit=40, network="bsc" if getattr(cand, "chain", "") == "bsc" else "solana")
             if rows:
                 rows = sorted(rows, key=lambda row: row[0])
                 first = float(rows[0][1] or 0)

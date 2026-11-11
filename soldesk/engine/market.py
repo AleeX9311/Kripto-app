@@ -158,13 +158,22 @@ def _pick_base_quote(pair: dict) -> tuple[dict, dict]:
     return base, quote
 
 
+def _is_quote(addr: str) -> bool:
+    if not addr:
+        return False
+    if addr in config.QUOTE_MINTS:
+        return True
+    return addr.lower() in {item.lower() for item in config.QUOTE_MINTS}
+
+
 def candidate_from_dex_pair(pair: dict, source: str = "LIVE") -> Optional[Candidate]:
-    if not pair or (pair.get("chainId") or "").lower() != "solana":
+    chain = (pair.get("chainId") or "").lower()
+    if not pair or chain not in {"solana", "bsc"}:
         return None
     dex = (pair.get("dexId") or "").lower()
     base, quote = _pick_base_quote(pair)
     mint = base.get("address") or ""
-    if not mint or mint in config.QUOTE_MINTS:
+    if not mint or _is_quote(mint):
         return None
     sym = (base.get("symbol") or "").strip()
     name = (base.get("name") or "").strip().lower()
@@ -202,6 +211,7 @@ def candidate_from_dex_pair(pair: dict, source: str = "LIVE") -> Optional[Candid
         fdv_usd=_f(pair.get("fdv")) if pair.get("fdv") is not None else None,
         quote_mint=quote.get("address"),
         source=source,
+        chain=chain,
         raw={"via": "dexscreener", "pair": pair.get("url") or ""},
     )
 
@@ -217,15 +227,15 @@ class Market:
         return self.http.last_error or self.last_source_error
 
     # ----- DexScreener -------------------------------------------------
-    def dex_token_profiles_latest(self) -> list[dict]:
+    def dex_token_profiles_latest(self, chain: str = "solana") -> list[dict]:
         data = self.http._get(
             self.http.dex_rl, f"{config.DEXSCREENER_BASE}/token-profiles/latest/v1"
         )
         if not isinstance(data, list):
             return []
-        return [x for x in data if (x.get("chainId") or "").lower() == "solana"]
+        return [x for x in data if (x.get("chainId") or "").lower() == chain]
 
-    def dex_tokens(self, mints: list[str]) -> list[dict]:
+    def dex_tokens(self, mints: list[str], chain: str = "solana") -> list[dict]:
         """Hydrate up to 30 mints in one call. Returns pair objects."""
         out: list[dict] = []
         uniq = []
@@ -236,7 +246,7 @@ class Market:
                 uniq.append(m)
         for i in range(0, len(uniq), 30):
             chunk = uniq[i : i + 30]
-            url = f"{config.DEXSCREENER_BASE}/tokens/v1/solana/{','.join(chunk)}"
+            url = f"{config.DEXSCREENER_BASE}/tokens/v1/{chain}/{','.join(chunk)}"
             data = self.http._get(self.http.dex_rl, url)
             if isinstance(data, list):
                 out.extend(data)
@@ -247,7 +257,7 @@ class Market:
                     out.extend(pairs)
         return out
 
-    def dex_search(self, query: str) -> list[dict]:
+    def dex_search(self, query: str, chain: str = "solana") -> list[dict]:
         data = self.http._get(
             self.http.dex_rl,
             f"{config.DEXSCREENER_BASE}/latest/dex/search",
@@ -255,7 +265,7 @@ class Market:
         )
         if not isinstance(data, dict):
             return []
-        return [p for p in (data.get("pairs") or []) if (p.get("chainId") or "").lower() == "solana"]
+        return [p for p in (data.get("pairs") or []) if (p.get("chainId") or "").lower() == chain]
 
     def dex_pair(self, pair_address: str) -> Optional[dict]:
         data = self.http._get(
@@ -277,11 +287,11 @@ class Market:
         return []
 
     # ----- GeckoTerminal -----------------------------------------------
-    def gecko_pools(self, kind: str) -> list[dict]:
+    def gecko_pools(self, kind: str, network: str = "solana") -> list[dict]:
         """kind: new_pools | trending_pools"""
         data = self.http._get(
             self.http.gecko_rl,
-            f"{config.GECKO_BASE}/networks/solana/{kind}",
+            f"{config.GECKO_BASE}/networks/{network}/{kind}",
             params={"page": 1, "include": "base_token,quote_token,dex"},
         )
         if not isinstance(data, dict):
@@ -292,11 +302,11 @@ class Market:
             rows.append({"pool": item, "included": included})
         return rows
 
-    def gecko_ohlcv(self, pool_address: str, aggregate: int = 5, limit: int = 80) -> Optional[list[list]]:
+    def gecko_ohlcv(self, pool_address: str, aggregate: int = 5, limit: int = 80, network: str = "solana") -> Optional[list[list]]:
         """Returns list of [ts, o, h, l, c, vol] or None if unavailable."""
         data = self.http._get(
             self.http.gecko_rl,
-            f"{config.GECKO_BASE}/networks/solana/pools/{pool_address}/ohlcv/minute",
+            f"{config.GECKO_BASE}/networks/{network}/pools/{pool_address}/ohlcv/minute",
             params={"aggregate": aggregate, "limit": limit, "currency": "usd"},
         )
         if not isinstance(data, dict):
@@ -307,8 +317,8 @@ class Market:
             return None
         return series
 
-    def candidates_from_gecko(self, kind: str) -> list[Candidate]:
-        rows = self.gecko_pools(kind)
+    def candidates_from_gecko(self, kind: str, network: str = "solana") -> list[Candidate]:
+        rows = self.gecko_pools(kind, network)
         out: list[Candidate] = []
         for row in rows:
             pool = row["pool"]
@@ -324,9 +334,9 @@ class Market:
             quote_attrs = quote.get("attributes") or {}
             base_mint = base_attrs.get("address") or (base_rel.get("id") or "").split("_", 1)[-1]
             quote_mint = quote_attrs.get("address") or ""
-            if not base_mint or base_mint in config.QUOTE_MINTS:
+            if not base_mint or _is_quote(base_mint):
                 # flip if needed
-                if quote_mint and quote_mint not in config.QUOTE_MINTS:
+                if quote_mint and not _is_quote(quote_mint):
                     base_mint, quote_mint = quote_mint, base_mint
                     base_attrs, quote_attrs = quote_attrs, base_attrs
                 else:
@@ -363,12 +373,65 @@ class Market:
                     fdv_usd=_f(attrs.get("fdv_usd")) if attrs.get("fdv_usd") else None,
                     quote_mint=quote_mint or None,
                     source="LIVE",
-                    raw={"via": f"geckoterminal:{kind}"},
+                    chain="bsc" if network == "bsc" else "solana",
+                    raw={"via": f"geckoterminal:{network}:{kind}"},
                 )
             )
         return out
 
     # ----- RugCheck ----------------------------------------------------
+    def goplus_bsc(self, contract: str) -> Optional[dict]:
+        addr = (contract or "").lower()
+        if not addr:
+            return None
+        data = self.http._get(self.http.rug_rl, config.GOPLUS_BSC_URL.format(addr=addr))
+        if not isinstance(data, dict):
+            return None
+        result = data.get("result") or {}
+        if not isinstance(result, dict):
+            return None
+        info = result.get(addr) or result.get(contract)
+        if info is None and len(result) == 1:
+            info = next(iter(result.values()))
+        return info if isinstance(info, dict) else None
+
+    def fourmeme_launches(self) -> list[Candidate]:
+        """four.meme newest tokens. An empty list means the endpoint was blocked or down."""
+        data = self.http._get(
+            self.http.dex_rl,
+            config.FOURMEME_LIST_URL,
+            params={"orderBy": "TimeDesc", "listedPancake": "false", "pageIndex": 1, "pageSize": 20},
+        )
+        rows = []
+        if isinstance(data, dict):
+            rows = data.get("data") or data.get("list") or data.get("rows") or []
+            if isinstance(rows, dict):
+                rows = rows.get("list") or rows.get("tokenList") or []
+        out: list[Candidate] = []
+        if not isinstance(rows, list):
+            return out
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            mint = row.get("address") or row.get("tokenAddress") or row.get("contractAddress") or ""
+            if not mint or _is_quote(mint):
+                continue
+            out.append(Candidate(
+                mint=mint,
+                symbol=str(row.get("symbol") or row.get("shortName") or "???")[:16],
+                name=str(row.get("name") or row.get("tokenName") or "four.meme")[:40],
+                pair_address=str(row.get("pairAddress") or ""),
+                dex="four.meme",
+                price_usd=_f(row.get("price") or row.get("priceUsd")),
+                liquidity_usd=_f(row.get("liquidity") or row.get("liquidityUsd")),
+                volume_1h_usd=_f(row.get("volume") or row.get("volume1h") or 0),
+                pair_created_at=row.get("createDate") or row.get("createdAt"),
+                source="LIVE",
+                chain="bsc",
+                raw={"via": "four.meme", "listedPancake": row.get("listedPancake")},
+            ))
+        return out
+
     def rugcheck_report(self, mint: str) -> Optional[dict]:
         return self.http._get(
             self.http.rug_rl, f"{config.RUGCHECK_BASE}/tokens/{mint}/report"
@@ -451,8 +514,8 @@ class Market:
             out[mint] = px
         return out
 
-    def hydrate_candidates(self, mints: list[str]) -> list[Candidate]:
-        pairs = self.dex_tokens(mints)
+    def hydrate_candidates(self, mints: list[str], chain: str = "solana") -> list[Candidate]:
+        pairs = self.dex_tokens(mints, chain)
         by_mint: dict[str, Candidate] = {}
         for pair in pairs:
             cand = candidate_from_dex_pair(pair)
@@ -463,11 +526,11 @@ class Market:
                 by_mint[cand.mint] = cand
         return list(by_mint.values())
 
-    def token_pool_stats(self, mint: str) -> dict:
+    def token_pool_stats(self, mint: str, network: str = "solana") -> dict:
         """Unique buyers and volume from the token's busiest Gecko pool. Empty if missing."""
         data = self.http._get(
             self.gecko_rl,
-            f"{config.GECKO_BASE}/networks/solana/tokens/{mint}/pools",
+            f"{config.GECKO_BASE}/networks/{network}/tokens/{mint}/pools",
             params={"page": 1},
         )
         pools = (data or {}).get("data") if isinstance(data, dict) else None

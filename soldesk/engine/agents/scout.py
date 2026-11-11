@@ -10,6 +10,10 @@ from models import Candidate, Event, iso
 from simfeed import SimFeed
 
 
+def chain_count(rows: list[Candidate], chain: str) -> int:
+    return sum(1 for row in rows if getattr(row, "chain", "solana") == chain)
+
+
 class Scout:
     def __init__(self, market: Market, sim: Optional[SimFeed] = None, force_sim: bool = False) -> None:
         self.market = market
@@ -62,64 +66,73 @@ class Scout:
             ts=iso(),
             agent="SCOUT",
             level="ok",
-            message=f"LIVE scan  {len(found)} unique Solana pairs (Pump.fun / Raydium / PumpSwap / others)",
+            message=f"LIVE scan  {len(found)} parov  SOL {chain_count(found, 'solana')} · BNB {chain_count(found, 'bsc')}",
         )
         return found, ev
 
     def _scan_live(self) -> list[Candidate]:
-        by_mint: dict[str, Candidate] = {}
+        found: list[Candidate] = []
         errors = []
+        for chain, hints in (
+            ("solana", ("pump", "raydium", "moonshot", "launch")),
+            ("bsc", ("four", "pancake", "cake")),
+        ):
+            try:
+                found.extend(self._scan_chain(chain, hints))
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"{chain}: {exc}")
+        if chain_count(found, "bsc") == 0:
+            try:
+                found.extend(self.market.fourmeme_launches())
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"four.meme: {exc}")
+        if errors:
+            self.last_error = "; ".join(errors)
+        elif not found:
+            self.last_error = self.market.last_error or "empty live scan"
+        return found
 
-        def _usable(c: Candidate) -> bool:
-            if not c.mint or c.mint in config.QUOTE_MINTS:
-                return False
-            sym = (c.symbol or "").strip()
-            name = (c.name or "").strip().lower()
-            if sym in config.SKIP_SYMBOLS or name in config.SKIP_NAMES:
-                return False
-            return True
+    def _scan_chain(self, chain: str, hints: tuple[str, ...]) -> list[Candidate]:
+        network = "bsc" if chain == "bsc" else "solana"
+        by_mint: dict[str, Candidate] = {}
 
         def add(cands: list[Candidate]) -> None:
             for c in cands:
-                if not _usable(c):
+                if not c or c.chain != chain or not c.mint or c.mint.lower() in {q.lower() for q in config.QUOTE_MINTS}:
                     continue
-                prev = by_mint.get(c.mint)
+                sym = (c.symbol or "").strip()
+                name = (c.name or "").strip().lower()
+                if sym in config.SKIP_SYMBOLS or name in config.SKIP_NAMES:
+                    continue
+                prev = by_mint.get(c.mint.lower())
                 if not prev or (c.volume_1h_usd, c.liquidity_usd) > (prev.volume_1h_usd, prev.liquidity_usd):
-                    by_mint[c.mint] = c
+                    by_mint[c.mint.lower()] = c
 
-        try:
-            add(self.market.candidates_from_gecko("new_pools"))
-        except Exception as exc:  # noqa: BLE001 — scout must never crash the desk
-            errors.append(f"gecko new_pools: {exc}")
-        try:
-            add(self.market.candidates_from_gecko("trending_pools"))
-        except Exception as exc:
-            errors.append(f"gecko trending: {exc}")
+        add(self.market.candidates_from_gecko("new_pools", network))
+        add(self.market.candidates_from_gecko("trending_pools", network))
+        profiles = self.market.dex_token_profiles_latest(chain)
+        mints = [p.get("tokenAddress") for p in profiles if p.get("tokenAddress")]
+        if mints:
+            add(self.market.hydrate_candidates(mints[:30], chain))
+        query = "four.meme" if chain == "bsc" else "pump"
+        add([c for p in self.market.dex_search(query, chain) if (c := candidate_from_dex_pair(p))])
+        if chain == "bsc":
+            add(self.market.fourmeme_launches())
+            add([c for p in self.market.dex_search("pancake", chain) if (c := candidate_from_dex_pair(p))])
 
-        try:
-            profiles = self.market.dex_token_profiles_latest()
-            mints = [p.get("tokenAddress") for p in profiles if p.get("tokenAddress")]
-            if mints:
-                add(self.market.hydrate_candidates(mints[:40]))
-        except Exception as exc:
-            errors.append(f"dex profiles: {exc}")
-
-        try:
-            # Avoid a broad "sol" search (it is dominated by SOL/USDC CLMM pools).
-            pairs = self.market.dex_search("pump")
-            add([c for p in pairs if (c := candidate_from_dex_pair(p))])
-        except Exception as exc:
-            errors.append(f"dex search: {exc}")
-
-        if errors:
-            self.last_error = "; ".join(errors)
-        elif not by_mint:
-            self.last_error = self.market.last_error or "empty live scan"
-
-        # Prefer dexes named in the brief, ranked by 1h volume then liquidity
         def _key(c: Candidate):
-            preferred = 0 if any(x in (c.dex or "") for x in ("pump", "raydium", "moonshot", "launch")) else 1
+            preferred = 0 if any(x in (c.dex or "") for x in hints) else 1
             return (preferred, -c.volume_1h_usd, -c.liquidity_usd)
 
         ordered = sorted(by_mint.values(), key=_key)
-        return ordered[: config.MAX_SCOUT_CANDIDATES]
+        fresh = sorted(by_mint.values(), key=lambda c: c.age_seconds() if c.age_seconds() is not None else 10**12)
+        picked = []
+        seen = set()
+        for c in fresh[:6] + ordered:
+            if c.mint.lower() in seen:
+                continue
+            seen.add(c.mint.lower())
+            picked.append(c)
+            if len(picked) >= config.MAX_SCOUT_PER_CHAIN:
+                break
+        return picked
