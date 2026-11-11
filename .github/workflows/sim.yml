@@ -2,9 +2,13 @@ name: Paper simulation
 
 on:
   schedule:
-    # GitHub's shortest schedule. Each run then scans several times inside the window.
+    # Backup only. GitHub often starts this late; the long job re-dispatches itself.
     - cron: "*/5 * * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/kick/sim"
 
 permissions:
   contents: write
@@ -90,6 +94,14 @@ jobs:
             git -C "$WT" commit -m "Update paper simulation snapshot"
             git -C "$WT" push origin HEAD:sim-data
           }
+
+          # A queued cron or a second kick must not start another 6h loop.
+          others=$(gh run list --workflow "Paper simulation" --limit 30 --json databaseId,status \
+            --jq "[.[] | select(.databaseId != ${GITHUB_RUN_ID} and (.status==\"in_progress\" or .status==\"queued\" or .status==\"pending\" or .status==\"waiting\" or .status==\"requested\"))] | length" || true)
+          if [ "${others:-0}" -gt 0 ]; then
+            echo "Another Paper simulation run is already active or queued (${others}). Leaving it."
+            exit 0
+          fi
 
           # About 5h50m of scans. */5 cron only restarts the chain if this job dies.
           deadline=$((SECONDS + 348 * 60))

@@ -2,8 +2,13 @@ name: Solana paper desk
 
 on:
   schedule:
+    # Backup only. GitHub often starts this late; the long job re-dispatches itself.
     - cron: "*/5 * * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/kick/soldesk"
 
 permissions:
   contents: write
@@ -92,9 +97,19 @@ jobs:
             git -C "$WT" push origin HEAD:sol-desk-data
           }
 
-          # One process scans about every 20s for 5h48m. Status is pushed every 90s.
+          # A queued cron or a second kick must not start another 6h loop.
+          others=$(gh run list --workflow "Solana paper desk" --limit 30 --json databaseId,status \
+            --jq "[.[] | select(.databaseId != ${GITHUB_RUN_ID} and (.status==\"in_progress\" or .status==\"queued\" or .status==\"pending\" or .status==\"waiting\" or .status==\"requested\"))] | length" || true)
+          if [ "${others:-0}" -gt 0 ]; then
+            echo "Another Solana paper desk run is already active or queued (${others}). Leaving it."
+            exit 0
+          fi
+
+          # One process scans about every 20s for 5h48m. First snapshot is pushed quickly, then every 90s.
           SOLDESK_CLOUD=1 python3 soldesk/engine/main.py --headless --minutes 348 --poll 20 &
           pid=$!
+          sleep 25
+          publish || echo "publish skipped"
           while kill -0 "$pid" 2>/dev/null; do
             sleep 90
             publish || echo "publish skipped"

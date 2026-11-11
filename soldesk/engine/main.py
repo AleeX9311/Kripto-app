@@ -491,6 +491,8 @@ class Desk:
                 ),
             )
         )
+        # Stamp status before the first scan so the publisher can show the job is alive.
+        self.persist(force=True)
         # First scout immediately so a short --minutes run still does work
         self.scout_cycle()
         self.last_scout = time.time()
