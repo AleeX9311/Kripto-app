@@ -2,14 +2,14 @@
   "note": "SIMULACIJA",
   "started": "2026-11-09T20:47:36+01:00",
   "ends": "2026-11-16T20:45:00+01:00",
-  "last_update": "2026-11-11T16:18:21+01:00",
+  "last_update": "2026-11-11T16:19:47+01:00",
   "equity_eur": 91.19,
   "equity_usd": 101.85,
   "pct_vs_eur50": -8.81,
   "trades": 15,
-  "scanned": 12,
+  "scanned": 1,
   "scanned_bsc": 1,
-  "scanned_sol": 11,
+  "scanned_sol": 0,
   "wins": 2,
   "losses": 13,
   "best": {
@@ -260,67 +260,138 @@
   ],
   "agents": {
     "kit": {
-      "evaluated": 1120,
+      "evaluated": 1121,
       "approved": 231,
-      "vetoed": 889,
+      "vetoed": 890,
       "latest": {
         "vote": "NO",
-        "reason": "premalo 5m poslov (3)",
-        "symbol": "GLITCH",
-        "time": "2026-11-11T16:18:21+01:00"
+        "reason": "premalo 5m poslov (13)",
+        "symbol": "TART",
+        "time": "2026-11-11T16:19:47+01:00"
       },
       "label": "KIT"
     },
     "trend": {
-      "evaluated": 1120,
+      "evaluated": 1121,
       "approved": 266,
-      "vetoed": 854,
+      "vetoed": 855,
       "latest": {
         "vote": "NO",
-        "reason": "5m -0.0% ne raste",
-        "symbol": "GLITCH",
-        "time": "2026-11-11T16:18:21+01:00"
+        "reason": "5m -0.4% ne raste",
+        "symbol": "TART",
+        "time": "2026-11-11T16:19:47+01:00"
       },
       "label": "TREND"
     },
     "varnost": {
-      "evaluated": 1120,
+      "evaluated": 1121,
       "approved": 614,
-      "vetoed": 506,
+      "vetoed": 507,
       "latest": {
-        "vote": "YES",
-        "reason": "likvidnost OK, GoPlus ni dosegljiv",
-        "symbol": "GLITCH",
-        "time": "2026-11-11T16:18:21+01:00"
+        "vote": "NO",
+        "reason": "GoPlus zavrača (lp_locked=63%)",
+        "symbol": "TART",
+        "time": "2026-11-11T16:19:47+01:00"
       },
       "label": "VARNOST"
     },
     "bik_medved": {
-      "evaluated": 1120,
+      "evaluated": 1121,
       "approved": 628,
-      "vetoed": 492,
+      "vetoed": 493,
       "latest": {
         "vote": "NO",
-        "reason": "5m obrat navzdol (-0.0%)",
-        "symbol": "GLITCH",
-        "time": "2026-11-11T16:18:21+01:00"
+        "reason": "5m obrat navzdol (-0.4%)",
+        "symbol": "TART",
+        "time": "2026-11-11T16:19:47+01:00"
       },
       "label": "BIK/MEDVED"
     },
     "izvajanje": {
-      "evaluated": 1120,
-      "approved": 1096,
+      "evaluated": 1121,
+      "approved": 1097,
       "vetoed": 24,
       "latest": {
         "vote": "YES",
-        "reason": "pumpswap, zdrs ~0.01%, liq $120210",
-        "symbol": "GLITCH",
-        "time": "2026-11-11T16:18:21+01:00"
+        "reason": "pancakeswap, zdrs ~0.00%, liq $719181",
+        "symbol": "TART",
+        "time": "2026-11-11T16:19:47+01:00"
       },
       "label": "IZVAJANJE"
     }
   },
   "candidates": [
+    {
+      "time": "2026-11-11T16:19:47+01:00",
+      "symbol": "TART",
+      "name": "TartSwap",
+      "url": "https://dexscreener.com/bsc/0x30000a407fabebe29439f8e437050512ff6661be",
+      "image": "https://cdn.dexscreener.com/cms/images/kDVz5vcKSnLS1iEe?width=800&height=800&quality=95&format=auto",
+      "token": "0x7AB8d02CBb51Ff7223fDe700eAaa2a91Bf750314",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "MEME",
+      "regime": "NEVTRALNO",
+      "price": 0.001188,
+      "liq_usd": 719181.24,
+      "vol24": 426176.0,
+      "change24": 3.35,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "premalo 5m poslov (13)",
+          "numbers": {
+            "buys_5m": 10,
+            "sells_5m": 3,
+            "txns_1h": 139,
+            "buy_share": 0.7692,
+            "ratio_5m": 3.3333,
+            "avg_buy_usd": 108.9854
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "5m -0.4% ne raste",
+          "numbers": {
+            "ch5": -0.36,
+            "ch1h": -7.79,
+            "vol_5m": 1416.81,
+            "boost": true,
+            "category": "MEME"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "GoPlus zavrača (lp_locked=63%)",
+          "numbers": {
+            "liq_usd": 719181.24,
+            "mcap_usd": 11880881.0,
+            "age_min": 114803.5477,
+            "scam_flag": "LP neznan",
+            "goplus": "lp_locked=63%"
+          }
+        },
+        "bik_medved": {
+          "vote": "NO",
+          "reason": "5m obrat navzdol (-0.4%)",
+          "numbers": {
+            "ch5": -0.36,
+            "ch1h": -7.79,
+            "vol_24h": 426176.0
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $719181",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 719181.24,
+            "slip": 0.0,
+            "price": 0.0012
+          }
+        }
+      }
+    },
     {
       "time": "2026-11-11T16:18:21+01:00",
       "symbol": "GLITCH",
@@ -2390,80 +2461,31 @@
           }
         }
       }
-    },
-    {
-      "time": "2026-11-11T15:29:48+01:00",
-      "symbol": "GTA6KODAK",
-      "name": "GTA6 KODAK BLACK",
-      "url": "https://dexscreener.com/solana/bkaagfumhqvgxa3bqzyabmibsmvietuiapu95prauhx7",
-      "image": "https://cdn.dexscreener.com/cms/images/nw2tt96JPM0GUTe2?width=800&height=800&quality=95&format=auto",
-      "token": "CXz596uKfWb5tkyz5Vh5a9QCKKh38io6hdgGrKKcpump",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "MEME",
-      "regime": "NEVTRALNO",
-      "price": 0.0002184,
-      "liq_usd": 35516.54,
-      "vol24": 294421.89,
-      "change24": 55.42,
-      "votes": {
-        "kit": {
-          "vote": "YES",
-          "reason": "veliki nakupi, delež 58%, ~$92/nakup",
-          "numbers": {
-            "buys_5m": 21,
-            "sells_5m": 15,
-            "txns_1h": 765,
-            "buy_share": 0.5833,
-            "ratio_5m": 1.4,
-            "avg_buy_usd": 91.7208
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "5m -0.5% ne raste",
-          "numbers": {
-            "ch5": -0.49,
-            "ch1h": -39.43,
-            "vol_5m": 3301.95,
-            "boost": true,
-            "category": "MEME"
-          }
-        },
-        "varnost": {
-          "vote": "YES",
-          "reason": "likvidnost OK, GoPlus ni dosegljiv",
-          "numbers": {
-            "liq_usd": 35516.54,
-            "mcap_usd": 208662.0,
-            "age_min": 3788.231,
-            "scam_flag": "LP neznan",
-            "goplus": "goplus_code=4029"
-          }
-        },
-        "bik_medved": {
-          "vote": "NO",
-          "reason": "5m obrat navzdol (-0.5%)",
-          "numbers": {
-            "ch5": -0.49,
-            "ch1h": -39.43,
-            "vol_24h": 294421.89
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "pumpswap, zdrs ~1.03%, liq $35517",
-          "numbers": {
-            "dex": "pumpswap",
-            "liq_usd": 35516.54,
-            "slip": 0.0103,
-            "price": 0.0002
-          }
-        }
-      }
     }
   ],
   "activity": [
+    {
+      "time": "2026-11-11T16:19:47+01:00",
+      "type": "scan",
+      "text": "PREGLEDANIH BSC: 1 · SOL: 0"
+    },
+    {
+      "time": "2026-11-11T16:19:47+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "TART",
+      "text": "VETO VARNOST · TART · 1/5 · GoPlus zavrača (lp_locked=63%)"
+    },
+    {
+      "time": "2026-11-11T16:19:39+01:00",
+      "type": "scan",
+      "text": "Kos 20 žetonov iz 58"
+    },
+    {
+      "time": "2026-11-11T16:19:39+01:00",
+      "type": "scan",
+      "text": "REŽIM BNB NEVTRALNO · SOL NEVTRALNO"
+    },
     {
       "time": "2026-11-11T16:18:21+01:00",
       "type": "scan",
@@ -2692,30 +2714,6 @@
       "agent": "varnost",
       "symbol": "NIHAO",
       "text": "VETO VARNOST · NIHAO · 3/5 · prevara: volumen/likvidnost > 30x (LP neznan)"
-    },
-    {
-      "time": "2026-11-11T15:31:17+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "X",
-      "text": "VETO VARNOST · X · 1/5 · prevara: volumen/likvidnost > 30x (LP neznan)"
-    },
-    {
-      "time": "2026-11-11T15:31:17+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "TART",
-      "text": "VETO VARNOST · TART · 3/5 · GoPlus zavrača (lp_locked=63%)"
-    },
-    {
-      "time": "2026-11-11T15:31:09+01:00",
-      "type": "scan",
-      "text": "Kos 20 žetonov iz 57"
-    },
-    {
-      "time": "2026-11-11T15:31:09+01:00",
-      "type": "scan",
-      "text": "REŽIM BNB MEDVED · SOL NEVTRALNO"
     }
   ],
   "equity_history": [
@@ -3491,6 +3489,11 @@
     },
     {
       "t": "2026-11-11T16:18:21+01:00",
+      "usd": 101.85,
+      "eur": 91.19
+    },
+    {
+      "t": "2026-11-11T16:19:47+01:00",
       "usd": 101.85,
       "eur": 91.19
     }
