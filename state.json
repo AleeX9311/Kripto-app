@@ -18,7 +18,7 @@
       "eff_entry": 0.00121705,
       "tokens": 8254.231132656834,
       "cost_usd": 10.045812,
-      "mark_usd": 10.045812,
+      "mark_usd": 9.946348514851485,
       "peak_price": 0.001205,
       "opened_ts": 1794429662.0162299,
       "opened_at": "2026-11-11T21:41:10+01:00",
@@ -153,7 +153,11 @@
         "symbol": "swordcat",
         "opened_at": "2026-11-11T21:41:10+01:00",
         "version": 2
-      }
+      },
+      "last_price": 0.001205,
+      "pnl_pct_gross": 0.0,
+      "mfe_pct": 0.0,
+      "mae_pct": 0.0
     }
   ],
   "closed": [
@@ -559,7 +563,7 @@
     "hastkxyvv65zm7j6cu5o5pczsikmqyo5oz4wpjgqwp6k": 1794428874.6013372
   },
   "stats": {
-    "loops": 196,
+    "loops": 197,
     "candidates_seen": 4699,
     "entries": 17,
     "exits": 16,
@@ -567,7 +571,7 @@
     "goplus_ok": true,
     "goplus_probe": "top_holder=49%"
   },
-  "last_loop_at": "2026-11-11T21:41:26+01:00",
+  "last_loop_at": "2026-11-11T21:45:27+01:00",
   "notes": "PAPER ONLY — no real orders",
   "agents": {
     "kit": {
@@ -2773,32 +2777,6 @@
   ],
   "activity": [
     {
-      "time": "2026-11-11T21:33:10+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "Monkey",
-      "text": "VETO VARNOST · Monkey · 2/5 · mcap/likv 1394.0 previsok"
-    },
-    {
-      "time": "2026-11-11T21:33:10+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "AIN",
-      "text": "VETO VARNOST · AIN · 4/5 · mcap/likv 380.0 previsok"
-    },
-    {
-      "time": "2026-11-11T21:33:10+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "NEVERDOOM",
-      "text": "VETO VARNOST · NEVERDOOM · 2/5 · prevara: bazen mlajši od 2 h (51 min)"
-    },
-    {
-      "time": "2026-11-11T21:33:10+01:00",
-      "type": "scan",
-      "text": "PREGLEDANIH BSC: 12 · SOL: 2"
-    },
-    {
       "time": "2026-11-11T21:34:12+01:00",
       "type": "scan",
       "text": "REŽIM BNB BIK · SOL NEVTRALNO"
@@ -3033,6 +3011,27 @@
       "time": "2026-11-11T21:41:26+01:00",
       "type": "scan",
       "text": "PREGLEDANIH BSC: 9 · SOL: 12"
+    },
+    {
+      "time": "2026-11-11T21:42:13+01:00",
+      "type": "scan",
+      "text": "ZAVORA AKTIVNA · dnevna izguba nad 3 %"
+    },
+    {
+      "time": "2026-11-11T21:42:43+01:00",
+      "type": "scan",
+      "text": "REŽIM BNB BIK · SOL NEVTRALNO"
+    },
+    {
+      "time": "2026-11-11T21:43:51+01:00",
+      "type": "skip",
+      "symbol": "Impeach",
+      "text": "PRESKOČI Impeach · predrago, ne lovim vrha · ni napoved"
+    },
+    {
+      "time": "2026-11-11T21:42:43+01:00",
+      "type": "scan",
+      "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
     }
   ],
   "equity_history": [
@@ -3960,6 +3959,11 @@
       "t": "2026-11-11T21:41:26+01:00",
       "usd": 100.46,
       "eur": 89.94
+    },
+    {
+      "t": "2026-11-11T21:45:27+01:00",
+      "usd": 100.36,
+      "eur": 89.85
     }
   ],
   "universe": {
@@ -5634,8 +5638,10 @@
   "day": {
     "date": "2026-11-11",
     "start_equity": 103.520498,
-    "brake": false,
-    "brake_events": [],
+    "brake": true,
+    "brake_events": [
+      "2026-11-11T21:42:13+01:00"
+    ],
     "scam_rejects": 95
   },
   "regime": {
@@ -5655,7 +5661,7 @@
     "max_drawdown": -0.11230891579040392,
     "sharpe_daily": null,
     "sortino_daily": null,
-    "exposure": 0.1,
+    "exposure": 0.10009910802775025,
     "breakdown": {
       "bsc|?": {
         "n": 3,
@@ -5688,33 +5694,6 @@
       "url": "https://dexscreener.com/solana/gwwuaoambznle9pjqesaxkfzmnufbwuns9iwlbqfgvj",
       "price": 3.921465742692817e-06,
       "action": "watch",
-      "kind": "nevtralno",
-      "label": "Čaka na potrditev",
-      "score": 45,
-      "reasons": [
-        "stran od podpore",
-        "višje dno",
-        "zeleni volumen večji",
-        "padec 100% od vrha"
-      ],
-      "swing_low": 2.3765699018898545e-06,
-      "ema20": 1.7074272497779203e-05,
-      "confirm_price": null,
-      "support_low": 3.1524592961328313e-06,
-      "support_high": 3.1524592961328313e-06,
-      "note": "ni napoved",
-      "since": "2026-11-11T06:13:28+01:00",
-      "since_ts": 1794374008.4426088,
-      "checked_at": "2026-11-11T21:38:44+01:00"
-    },
-    {
-      "symbol": "BULLHARIS",
-      "token": "6mwuYnY3fHdxed9GnrdY5BkXhJwMi1uz39MPsYUcpump",
-      "chain": "solana",
-      "pair": "CxJ4mLGpwre4WfkJwx8FeLFNLBRETNzHxy25y3JtXzyr",
-      "url": "https://dexscreener.com/solana/cxj4mlgpwre4wfkjwx8felfnlbretnzhxy25y3jtxzyr",
-      "price": 0.00045280809538808303,
-      "action": "watch",
       "kind": "ni_svec",
       "label": "Čaka na potrditev",
       "score": 0,
@@ -5724,38 +5703,40 @@
       "swing_low": null,
       "ema20": null,
       "confirm_price": null,
-      "support_low": 0.00038179979366730906,
-      "support_high": 0.00041315891680950316,
+      "support_low": 2.3765699018898545e-06,
+      "support_high": 2.3765699018898545e-06,
+      "note": "ni napoved",
+      "since": "2026-11-11T06:13:28+01:00",
+      "since_ts": 1794374008.4426088,
+      "checked_at": "2026-11-11T21:43:05+01:00"
+    },
+    {
+      "symbol": "BULLHARIS",
+      "token": "6mwuYnY3fHdxed9GnrdY5BkXhJwMi1uz39MPsYUcpump",
+      "chain": "solana",
+      "pair": "CxJ4mLGpwre4WfkJwx8FeLFNLBRETNzHxy25y3JtXzyr",
+      "url": "https://dexscreener.com/solana/cxj4mlgpwre4wfkjwx8felfnlbretnzhxy25y3jtxzyr",
+      "price": 0.00047831548098626616,
+      "action": "buy",
+      "kind": "potrjeno_dno",
+      "label": "potrjeno dno",
+      "score": 75,
+      "reasons": [
+        "blizu podpore",
+        "višje dno",
+        "povratek nad EMA20",
+        "zeleni volumen večji",
+        "padec 53% od vrha"
+      ],
+      "swing_low": 0.00032417864631685713,
+      "ema20": 0.0004703360857870171,
+      "confirm_price": 0.00047831548098626616,
+      "support_low": 0.0004648134296674981,
+      "support_high": 0.0004709061416180169,
       "note": "ni napoved",
       "since": "2026-11-11T00:13:46+01:00",
       "since_ts": 1794352426.0974555,
-      "checked_at": "2026-11-11T21:39:06+01:00"
-    },
-    {
-      "symbol": "Impeach",
-      "token": "F2xQeTCTqnczXxXQaBWAfDpUnpxn4wQHRPSqvUYJpump",
-      "chain": "solana",
-      "pair": "12Y1mRKWEWEwoYqhSwybEsJzM8gAGnig1XqGQLC5uW3V",
-      "url": "https://dexscreener.com/solana/12y1mrkwewewoyqhswybesjzm8gagnig1xqgqlc5uw3v",
-      "price": 0.00031931686010350815,
-      "action": "watch",
-      "kind": "dno_v_nastajanju",
-      "label": "Čaka na potrditev",
-      "score": 45,
-      "reasons": [
-        "blizu podpore",
-        "zeleni volumen večji",
-        "padec 86% od vrha"
-      ],
-      "swing_low": 0.00014028093664311675,
-      "ema20": 0.00026254239428061363,
-      "confirm_price": null,
-      "support_low": 0.00030035753154027405,
-      "support_high": 0.000301359647497017,
-      "note": "ni napoved",
-      "since": "2026-11-11T11:24:35+01:00",
-      "since_ts": 1794392675.5908103,
-      "checked_at": "2026-11-11T21:39:29+01:00"
+      "checked_at": "2026-11-11T21:43:28+01:00"
     },
     {
       "symbol": "ZERO",
@@ -5763,7 +5744,7 @@
       "chain": "bsc",
       "pair": "0xaEA783bA19a240d58E9cBe3DE59cC7852338d67b",
       "url": "https://dexscreener.com/bsc/0xaea783ba19a240d58e9cbe3de59cc7852338d67b",
-      "price": 0.00020853529509752298,
+      "price": 0.00020742307381779298,
       "action": "watch",
       "kind": "dno_v_nastajanju",
       "label": "Čaka na potrditev",
@@ -5775,14 +5756,14 @@
         "padec 85% od vrha"
       ],
       "swing_low": 7.411146284089629e-05,
-      "ema20": 0.0002119703031491082,
+      "ema20": 0.00021186437731294345,
       "confirm_price": null,
       "support_low": 0.000180318488366864,
       "support_high": 0.000185840077485406,
       "note": "ni napoved",
       "since": "2026-11-11T14:24:34+01:00",
       "since_ts": 1794403474.5112743,
-      "checked_at": "2026-11-11T21:39:51+01:00"
+      "checked_at": "2026-11-11T21:44:13+01:00"
     },
     {
       "symbol": "DACITY",
@@ -5791,107 +5772,6 @@
       "pair": "89RSdzZ3WNCeBoJfruvi6oMxBDYtNreLFVQcVq1oPhNQ",
       "url": "https://dexscreener.com/solana/89rsdzz3wncebojfruvi6omxbdytnrelfvqcvq1ophnq",
       "price": 2.243455680088504e-06,
-      "action": "watch",
-      "kind": "dno_v_nastajanju",
-      "label": "Čaka na potrditev",
-      "score": 35,
-      "reasons": [
-        "blizu podpore",
-        "padec 100% od vrha"
-      ],
-      "swing_low": 2.135673883510429e-06,
-      "ema20": 0.00044579109211013746,
-      "confirm_price": null,
-      "support_low": 2.135673883510429e-06,
-      "support_high": 2.135673883510429e-06,
-      "note": "ni napoved",
-      "since": "2026-11-11T15:31:19+01:00",
-      "since_ts": 1794407479.7742727,
-      "checked_at": "2026-11-11T21:40:14+01:00"
-    },
-    {
-      "symbol": "texcat",
-      "token": "BdXfLfcbDE8YvpbvvmmGTduqcDesaQVUm5xLxgUc2S5t",
-      "chain": "solana",
-      "pair": "CzcFVsc2hQvf1ZwU6ya2vRF7g29aNu4nNrHw7JVVD3Vw",
-      "url": "https://dexscreener.com/solana/czcfvsc2hqvf1zwu6ya2vrf7g29anu4nnrhw7jvvd3vw",
-      "price": 0.00027718025281825345,
-      "action": "watch",
-      "kind": "dno_v_nastajanju",
-      "label": "Čaka na potrditev",
-      "score": 45,
-      "reasons": [
-        "blizu podpore",
-        "zeleni volumen večji",
-        "padec 52% od vrha"
-      ],
-      "swing_low": 0.00014562873608041458,
-      "ema20": 0.00026853069278859364,
-      "confirm_price": null,
-      "support_low": 0.0002634592571047083,
-      "support_high": 0.000273879591630165,
-      "note": "ni napoved",
-      "since": "2026-11-11T20:43:58+01:00",
-      "since_ts": 1794426238.1574647,
-      "checked_at": "2026-11-11T21:40:37+01:00"
-    },
-    {
-      "symbol": "DacityCoin",
-      "token": "DKYcjobF7HPtL9RyQBRdeRQ2iWvizpfbgWwPWNXdpump",
-      "chain": "solana",
-      "pair": "7Te1wXcfeQjKLGHXFvxSCnGZTqunoZ9fxBn7KKjrkNEr",
-      "url": "https://dexscreener.com/solana/7te1wxcfeqjklghxfvxscngztqunoz9fxbn7kkjrkner",
-      "price": 0.007033947760353353,
-      "action": "watch",
-      "kind": "dno_v_nastajanju",
-      "label": "Čaka na potrditev",
-      "score": 35,
-      "reasons": [
-        "blizu podpore",
-        "padec 91% od vrha"
-      ],
-      "swing_low": 0.0009106764460997279,
-      "ema20": 0.00680892534852419,
-      "confirm_price": null,
-      "support_low": 0.0067292793598144615,
-      "support_high": 0.006833737924679954,
-      "note": "ni napoved",
-      "since": "2026-11-11T21:15:25+01:00",
-      "since_ts": 1794428125.6813035,
-      "checked_at": "2026-11-11T21:40:48+01:00"
-    },
-    {
-      "symbol": "SOL",
-      "token": "So11111111111111111111111111111111111111112",
-      "chain": "solana",
-      "pair": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
-      "url": "https://dexscreener.com/solana/czfq3xzzdmsdgduyrnltrhgc47cxcztlg4crryfu44ze",
-      "price": 84.79991919191919,
-      "action": "watch",
-      "kind": "dno_v_nastajanju",
-      "label": "Čaka na potrditev",
-      "score": 30,
-      "reasons": [
-        "blizu podpore",
-        "višje dno"
-      ],
-      "swing_low": 80.70175438596489,
-      "ema20": 84.78445213936703,
-      "confirm_price": null,
-      "support_low": 83.08014715733128,
-      "support_high": 84.65608465608459,
-      "note": "ni napoved",
-      "since": "2026-11-11T21:11:15+01:00",
-      "since_ts": 1794427875.7113307,
-      "checked_at": "2026-11-11T21:41:00+01:00"
-    },
-    {
-      "symbol": "GTA6",
-      "token": "4kjruqGHDsSqkMdFfCjV7Vb62HPFhtXyWc2t6JpQzDnz",
-      "chain": "solana",
-      "pair": "FDamUzyiEA7Cq1VNiQcbhuHpfCmmcJfgA6DwQQ1hhLd2",
-      "url": "https://dexscreener.com/solana/fdamuzyiea7cq1vniqcbhuhpfcmmcjfga6dwqq1hhld2",
-      "price": 0.004764,
       "action": "watch",
       "kind": "ni_svec",
       "label": "Čaka na potrditev",
@@ -5902,12 +5782,87 @@
       "swing_low": null,
       "ema20": null,
       "confirm_price": null,
-      "support_low": null,
-      "support_high": null,
+      "support_low": 2.135673883510429e-06,
+      "support_high": 2.135673883510429e-06,
       "note": "ni napoved",
-      "since": "2026-11-11T21:41:26+01:00",
-      "since_ts": 1794429686.075549,
-      "checked_at": "2026-11-11T21:41:26+01:00"
+      "since": "2026-11-11T15:31:19+01:00",
+      "since_ts": 1794407479.7742727,
+      "checked_at": "2026-11-11T21:44:27+01:00"
+    },
+    {
+      "symbol": "texcat",
+      "token": "BdXfLfcbDE8YvpbvvmmGTduqcDesaQVUm5xLxgUc2S5t",
+      "chain": "solana",
+      "pair": "CzcFVsc2hQvf1ZwU6ya2vRF7g29aNu4nNrHw7JVVD3Vw",
+      "url": "https://dexscreener.com/solana/czcfvsc2hqvf1zwu6ya2vrf7g29anu4nnrhw7jvvd3vw",
+      "price": 0.00028141085630942436,
+      "action": "watch",
+      "kind": "dno_v_nastajanju",
+      "label": "Čaka na potrditev",
+      "score": 45,
+      "reasons": [
+        "blizu podpore",
+        "zeleni volumen večji",
+        "padec 52% od vrha"
+      ],
+      "swing_low": 0.00014562873608041458,
+      "ema20": 0.00026893360740680043,
+      "confirm_price": null,
+      "support_low": 0.0002634592571047083,
+      "support_high": 0.000273879591630165,
+      "note": "ni napoved",
+      "since": "2026-11-11T20:43:58+01:00",
+      "since_ts": 1794426238.1574647,
+      "checked_at": "2026-11-11T21:44:49+01:00"
+    },
+    {
+      "symbol": "DacityCoin",
+      "token": "DKYcjobF7HPtL9RyQBRdeRQ2iWvizpfbgWwPWNXdpump",
+      "chain": "solana",
+      "pair": "7Te1wXcfeQjKLGHXFvxSCnGZTqunoZ9fxBn7KKjrkNEr",
+      "url": "https://dexscreener.com/solana/7te1wxcfeqjklghxfvxscngztqunoz9fxbn7kkjrkner",
+      "price": 0.007033947760353353,
+      "action": "watch",
+      "kind": "ni_svec",
+      "label": "Čaka na potrditev",
+      "score": 0,
+      "reasons": [
+        "ni dovolj 15m sveč"
+      ],
+      "swing_low": null,
+      "ema20": null,
+      "confirm_price": null,
+      "support_low": 0.005705968965465694,
+      "support_high": 0.006630280481855067,
+      "note": "ni napoved",
+      "since": "2026-11-11T21:15:25+01:00",
+      "since_ts": 1794428125.6813035,
+      "checked_at": "2026-11-11T21:45:03+01:00"
+    },
+    {
+      "symbol": "SOL",
+      "token": "So11111111111111111111111111111111111111112",
+      "chain": "solana",
+      "pair": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
+      "url": "https://dexscreener.com/solana/czfq3xzzdmsdgduyrnltrhgc47cxcztlg4crryfu44ze",
+      "price": 84.97633012926158,
+      "action": "watch",
+      "kind": "dno_v_nastajanju",
+      "label": "Čaka na potrditev",
+      "score": 30,
+      "reasons": [
+        "blizu podpore",
+        "višje dno"
+      ],
+      "swing_low": 80.70175438596489,
+      "ema20": 84.81836670394091,
+      "confirm_price": null,
+      "support_low": 84.65608465608459,
+      "support_high": 84.897436223901,
+      "note": "ni napoved",
+      "since": "2026-11-11T21:11:15+01:00",
+      "since_ts": 1794427875.7113307,
+      "checked_at": "2026-11-11T21:45:27+01:00"
     }
   ],
   "latest_report": "reports/2026-11-11.json",
