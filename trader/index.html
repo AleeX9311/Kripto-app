@@ -134,6 +134,16 @@
         linear-gradient(#9ec4ff, #9ec4ff) 100% 100% / 1px 7px no-repeat;
     }
     .syn { background: transparent; border-color: transparent; z-index: 6; pointer-events: none; }
+    .passlabel {
+      position: relative; z-index: 12; pointer-events: auto;
+      margin: 2px 0 0; width: 100%;
+      font-size: 7px; letter-spacing: .03em; line-height: 1.3;
+      color: #d9fff2; background: rgba(6, 14, 16, .88);
+      border: 1px solid rgba(57, 255, 136, .5); border-radius: 3px;
+      padding: 3px 4px; text-align: center;
+    }
+    .passlabel.stale { color: #ffb020; border-color: rgba(255, 176, 32, .75); background: rgba(32, 20, 4, .9); }
+    .wide .passlabel { font-size: 12px; padding: 4px 8px; }
     .panel h2 {
       margin: 0 0 3px; flex: none;
       display: flex; align-items: center; gap: 4px;
@@ -366,6 +376,7 @@
         <div class="mid">
           <section class="panel syn" id="syn">
             <h2><i></i><em>05</em> Sinapsa</h2>
+            <button type="button" id="passLabel" class="passlabel">ZADNJI KROG · čakam posnetek</button>
           </section>
         </div>
         <div class="pipe" id="pipe"></div>
@@ -455,6 +466,9 @@
   let candleNote = "";
   let hb = {};
   let grown = reduce ? 1 : 0;
+  let seenUpdate = "";
+  let play = null;
+  let chipKey = "";
   let paths = [];
   let bulbs = [];
   let shownEur = null;
@@ -524,6 +538,71 @@
     if (!Number.isFinite(sec)) return "—";
     return sec < 60 ? sec + " s" : Math.floor(sec / 60) + " min";
   }
+  function passLabelText() {
+    if (!data || !data.last_update) return "ZADNJI KROG · ni posnetka";
+    const then = new Date(data.last_update).getTime();
+    if (!Number.isFinite(then)) return "ZADNJI KROG · ni posnetka";
+    const sec = Math.max(0, (Date.now() - then) / 1000);
+    const mins = sec < 60 ? "<1" : String(Math.floor(sec / 60));
+    const next = new Date(then + 5 * 60 * 1000);
+    const hhmm = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Ljubljana", hour: "2-digit", minute: "2-digit", hour12: false }).format(next);
+    return "ZADNJI KROG pred " + mins + " min · naslednji ~" + hhmm;
+  }
+  function paintPassLabel() {
+    const el = $("passLabel");
+    if (!el) return;
+    el.textContent = passLabelText();
+    const then = data && data.last_update ? new Date(data.last_update).getTime() : NaN;
+    const sec = Number.isFinite(then) ? (Date.now() - then) / 1000 : 0;
+    el.classList.toggle("stale", sec > 2 * 3600);
+  }
+  function lastDecision() {
+    const cands = (data && data.candidates) || [];
+    const stamp = data && data.last_update ? new Date(data.last_update).getTime() : NaN;
+    const recent = cands.filter((c) => {
+      const t = new Date(c.time || 0).getTime();
+      return Number.isFinite(stamp) && Number.isFinite(t) && stamp - t < 4 * 60 * 1000 && stamp - t > -60000;
+    });
+    const pool = recent.length ? recent : cands.slice(0, 1);
+    return pool.find((c) => c.decision === "BUY") || pool.find((c) => c.decision === "ČAKA") || pool[0] || null;
+  }
+  function decisionWord(c) {
+    const d = c && c.decision;
+    if (d === "BUY") return "NAKUP";
+    if (d === "VETO") return "VETO";
+    if (d === "ČAKA") return "ČAKA";
+    if (d === "PRESKOČI") return "PRESKOČI";
+    return "ODLOČITEV";
+  }
+  function passPhase(ts) {
+    if (!play) return null;
+    const dt = ((ts || performance.now()) - play.t0) / 1000;
+    const flare = 0.65, step = 0.7, hold = 1.8;
+    const votesEnd = flare + AGENTS.length * step;
+    if (dt >= votesEnd + hold) return null;
+    if (dt < flare) return { kind: "flare", k: dt / flare, index: -1, cand: play.cand };
+    if (dt < votesEnd) {
+      const index = Math.min(AGENTS.length - 1, Math.floor((dt - flare) / step));
+      return { kind: "vote", k: 0, index: index, cand: play.cand };
+    }
+    return { kind: "decision", k: 0, index: AGENTS.length, cand: play.cand };
+  }
+  function replayPass() {
+    play = { t0: performance.now(), cand: lastDecision() };
+    chipKey = "";
+    if (reduce) {
+      play.t0 = performance.now() - 4300;
+      drawSynapse(performance.now());
+      placeActors();
+      setTimeout(() => { play = null; chipKey = ""; placeActors(); drawSynapse(0); }, 1600);
+    } else if (!running) start();
+  }
+  function notePass(d) {
+    const stamp = (d && d.last_update) || "";
+    if (!stamp) return;
+    if (seenUpdate && stamp !== seenUpdate) replayPass();
+    seenUpdate = stamp;
+  }
   function hotAgent() {
     let best = AGENTS[0].id, bestT = "";
     AGENTS.forEach((a) => {
@@ -552,6 +631,8 @@
   }
   function render(d) {
     data = d;
+    notePass(d);
+    paintPassLabel();
     const up = Number(d.pct_vs_eur50) >= 0;
     const realized = (d.closed || []).reduce((s, t) => s + (Number(t.pnl_usd) || 0), 0);
     const fx = num(d.equity_usd) > 0 && num(d.equity_eur) != null ? Number(d.equity_eur) / Number(d.equity_usd) : null;
@@ -1217,7 +1298,7 @@
     }
     requestAnimationFrame(step);
   }
-  function sphere(g, x, y, r, bob, look, blink) {
+  function sphere(g, x, y, r, bob, look, blink, flash) {
     g.save();
     g.translate(x, y + bob);
     g.fillStyle = "rgba(0,0,0,.5)";
@@ -1264,6 +1345,12 @@
       g.ellipse(r * e[0] + lx, r * e[1] + ly, r * 0.09, r * 0.22 * shut, 0, 0, 7);
       g.fill();
     });
+    if (flash > 0) {
+      g.fillStyle = "rgba(255,255,255," + flash + ")";
+      g.beginPath();
+      g.arc(0, 0, r, 0, 7);
+      g.fill();
+    }
     g.restore();
   }
   function ghost(g, x, y, r, color) {
@@ -1305,6 +1392,9 @@
     const w = fx.clientWidth, h = fx.clientHeight;
     g.clearRect(0, 0, w, h);
     if (grown < 1) grown = Math.min(1, grown + 0.012);
+    const phase = passPhase(ts);
+    const idle = !phase;
+    const energy = idle ? 0.38 : (phase.kind === "flare" ? 1 : 0.72);
     const t = reduce ? 0 : ts / 1000;
     const vig = g.createRadialGradient(center.x, center.y, wide ? 30 : 16, center.x, center.y, Math.max(w, h) * 0.62);
     vig.addColorStop(0, "rgba(40,16,70,.15)");
@@ -1322,34 +1412,36 @@
     g.translate(-center.x, -center.y);
     g.save();
     g.filter = reduce ? "none" : "blur(7px)";
-    g.globalAlpha = 0.55;
+    g.globalAlpha = 0.55 * energy;
     g.globalCompositeOperation = "lighter";
     g.drawImage(off, 0, 0, w, h);
     g.restore();
-    g.globalAlpha = 1;
+    g.globalAlpha = energy;
     g.globalCompositeOperation = "source-over";
     g.drawImage(off, 0, 0, w, h);
     g.restore();
     g.globalCompositeOperation = "lighter";
+    const pace = idle ? 0.35 : 1;
     bulbs.forEach((b, i) => {
-      const tw = 0.55 + 0.45 * Math.sin(t * 2.2 + i);
+      const tw = 0.55 + 0.45 * Math.sin(t * 2.2 * pace + i);
       g.fillStyle = b.color;
-      g.globalAlpha = 0.35 * tw;
+      g.globalAlpha = 0.35 * tw * (idle ? 0.45 : 1);
       g.beginPath();
       g.arc(b.x, b.y, b.r * (wide ? 2.4 : 1.8), 0, 7);
       g.fill();
     });
     paths.forEach((p, i) => {
       if (!p.pts.length) return;
-      const u = (t * 0.22 + i * 0.13) % 1;
+      const u = (t * 0.22 * pace + i * 0.13) % 1;
       const idx = Math.floor(u * (p.pts.length - 1));
+      const spark = phase && phase.kind === "flare" ? 1.7 : 1;
       for (let k = 0; k < 6; k++) {
         const q = p.pts[Math.max(0, idx - k)];
         if (!q) continue;
         g.fillStyle = p.color;
-        g.globalAlpha = 0.85 * (1 - k / 6);
+        g.globalAlpha = (phase && phase.kind === "flare" ? 1 : 0.85 * energy) * (1 - k / 6);
         g.beginPath();
-        g.arc(q[0], q[1], (wide ? 3.2 : 2.1) * (1 - k * 0.12), 0, 7);
+        g.arc(q[0], q[1], (wide ? 3.2 : 2.1) * spark * (1 - k * 0.12), 0, 7);
         g.fill();
       }
     });
@@ -1366,16 +1458,18 @@
     const orbit = wide ? 148 : 78;
     const gr = wide ? 28 : 16;
     const angs = [-2.35, -1.05, 0.35, 2.15, 3.45];
-    const hotId = data ? hotAgent() : "";
-    const hotI = Math.max(0, AGENTS.findIndex((a) => a.id === hotId));
-    const look = angs[hotI] || 0;
-    const phase = t % 4.8;
-    const blink = !reduce && phase > 4.45 ? Math.sin(((phase - 4.45) / 0.35) * Math.PI) : 0;
+    const hotId = phase && phase.kind === "vote" ? AGENTS[phase.index].id : "";
+    const lookAt = phase && phase.kind === "vote" ? phase.index : (data ? AGENTS.findIndex((a) => a.id === hotAgent()) : 0);
+    const look = angs[Math.max(0, lookAt)] || 0;
+    const blinkPhase = t % 4.8;
+    const blink = !reduce && blinkPhase > 4.45 ? Math.sin(((blinkPhase - 4.45) / 0.35) * Math.PI) : 0;
     AGENTS.forEach((a, i) => {
       const wob = reduce ? 0 : Math.sin(t * 0.9 + i * 1.3) * (wide ? 7 : 4);
       const gx = center.x + Math.cos(angs[i]) * (orbit + wob);
       const gy = center.y + Math.sin(angs[i]) * (orbit + wob * 0.65);
-      const pulse = !reduce && a.id === hotId ? 1 + 0.14 * Math.sin(t * 6) : 1;
+      const showing = phase && phase.cand && phase.kind !== "flare" && (phase.kind === "decision" || i <= phase.index);
+      const vote = showing ? (((phase.cand.votes || {})[a.id] || {}).vote || "") : "";
+      const pulse = !reduce && a.id === hotId ? 1 + 0.18 * Math.sin(t * 8) : (idle ? 0.92 : 1);
       if (a.id === hotId) {
         g.strokeStyle = a.color;
         g.shadowColor = a.color;
@@ -1387,9 +1481,25 @@
         g.stroke();
         g.shadowBlur = 0;
       }
-      ghost(g, gx, gy, gr * pulse, a.color);
+      ghost(g, gx, gy, gr * pulse * (idle ? 0.92 : 1), a.color);
+      if (showing && vote) {
+        g.font = (wide ? 11 : 8) + "px JetBrains Mono, monospace";
+        g.fillStyle = vote === "YES" ? "#39ff88" : "#ff6b81";
+        g.fillText(vote === "YES" ? "DA" : "NE", gx + gr * 0.8, gy - gr);
+      }
     });
-    sphere(g, center.x, center.y, wide ? 58 : 32, bob, look, blink);
+    const flash = phase && phase.kind === "flare" ? 0.82 * (1 - phase.k) : 0;
+    sphere(g, center.x, center.y, wide ? 58 : 32, bob, look, blink, flash);
+    if (phase && phase.kind === "decision") {
+      const line = phase.cand
+        ? decisionWord(phase.cand) + " " + (phase.cand.symbol || "") + " · " + yesCount(phase.cand.votes) + "/5"
+        : "NI GLASU V TEM KROGU";
+      g.font = "600 " + (wide ? 13 : 9) + "px JetBrains Mono, monospace";
+      g.textAlign = "center";
+      g.fillStyle = "#f4fbff";
+      g.fillText(line, center.x, center.y + (wide ? 92 : 52));
+      g.textAlign = "left";
+    }
   }
   function drawSensor(ts) {
     const c = $("sense");
@@ -1465,12 +1575,25 @@
     const orbit = wide ? 148 : 78;
     const labels = AGENTS.map((a, i) => {
       const ang = [-2.35, -1.05, 0.35, 2.15, 3.45][i];
+      const phase = passPhase(performance.now());
       const latest = (data && data.agents && data.agents[a.id] && data.agents[a.id].latest) || {};
-      const vote = latest.vote === "YES" ? "DA" : latest.vote === "NO" ? "NE" : "—";
+      let vote = latest.vote === "YES" ? "DA" : latest.vote === "NO" ? "NE" : "—";
+      let symbol = latest.symbol || "—";
+      if (phase && phase.cand && phase.cand.votes) {
+        const raw = (phase.cand.votes[a.id] || {}).vote;
+        const word = raw === "YES" ? "DA" : raw === "NO" ? "NE" : "—";
+        if (phase.kind === "flare" || (phase.kind === "vote" && i > phase.index)) {
+          vote = "…";
+          symbol = phase.cand.symbol || "—";
+        } else {
+          vote = word;
+          symbol = phase.cand.symbol || "—";
+        }
+      }
       const fx = $("fx");
       const x = fx.offsetLeft + center.x + Math.cos(ang) * (orbit + (wide ? 56 : 32));
       const y = fx.offsetTop + center.y + Math.sin(ang) * (orbit + (wide ? 28 : 16));
-      return `<button type="button" class="chipcard" data-agent="${a.id}" style="left:${x}px;top:${y}px;--accent:${a.color}"><b style="color:${a.color}">${a.label}</b><span>${esc(vote)} · ${esc(latest.symbol || "—")}</span></button>`;
+      return `<button type="button" class="chipcard" data-agent="${a.id}" style="left:${x}px;top:${y}px;--accent:${a.color}"><b style="color:${a.color}">${a.label}</b><span>${esc(vote)} · ${esc(symbol)}</span></button>`;
     }).join("");
     box.innerHTML = labels;
   }
@@ -1606,7 +1729,11 @@
   }
   function frame(ts) {
     if (!running) return;
+    const phase = passPhase(ts);
+    const key = phase ? phase.kind + ":" + phase.index : "";
+    if (key !== chipKey) { chipKey = key; placeActors(); }
     drawSynapse(ts);
+    if (play && !passPhase(ts)) { play = null; chipKey = ""; placeActors(); }
     drawSensor(ts);
     raf = requestAnimationFrame(frame);
   }
@@ -1665,6 +1792,7 @@
     if (name === "senzorji" && data) { drawSensor(performance.now()); drawMatrix(); }
   }
   document.addEventListener("click", (e) => {
+    if (e.target.closest("#passLabel")) { replayPass(); return; }
     if (e.target.closest("[data-close]") || e.target.id === "back") { closeSheet(); return; }
     const tabBtn = e.target.closest("[data-tab]");
     if (tabBtn) { showTab(tabBtn.dataset.tab); return; }
@@ -1688,7 +1816,8 @@
   });
   clock();
   setInterval(clock, 1000);
-  setInterval(() => { if (document.visibilityState === "visible") { const tick = $("tick"); if (data && tick) { /* age refreshes with full render */ } load(); } }, 20000);
+  setInterval(paintPassLabel, 30000);
+  setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
   layout();
   start();
   load();
