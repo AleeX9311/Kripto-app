@@ -8,6 +8,7 @@ from typing import Any
 
 import config
 from learning import public_rows
+from strateg import public as strategy_public
 from models import to_plain
 
 
@@ -78,6 +79,7 @@ def build_status(state: dict, events: list, rejections: list, positions: list, c
         "equity_history": list(state.get("equity_history") or [])[-240:],
         "market": market,
         "learning": public_rows(state.get("learning") or {}),
+        "strategy": strategy_public(state.get("strategy")),
         "rules": {
             "top10_max": config.MAX_TOP10_HOLDER_PCT,
             "launch_top10_max": config.MAX_TOP10_HOLDER_PCT,

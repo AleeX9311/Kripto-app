@@ -53,7 +53,7 @@ def _sorted(rows: Optional[list[list]]) -> list[list]:
     return sorted(rows, key=lambda row: row[0])
 
 
-def structure_ok(rows: list[list], label: str) -> tuple[bool, str]:
+def structure_ok(rows: list[list], label: str, pullback_min: float = 0.03) -> tuple[bool, str]:
     if len(rows) < 12:
         return False, f"ni podatka ({label} sveče)"
     closes = [float(row[4]) for row in rows]
@@ -68,8 +68,9 @@ def structure_ok(rows: list[list], label: str) -> tuple[bool, str]:
     higher = len(swing) >= 2 and swing[-1] > swing[-2] * 1.002
     if not higher:
         return False, f"{label}: ni višjega minimuma"
-    if not (0.03 <= pullback <= 0.22):
-        return False, f"{label}: umik {pullback:.0%} ni 3–22 %"
+    floor = max(0.03, min(0.20, float(pullback_min)))
+    if not (floor <= pullback <= 0.22):
+        return False, f"{label}: umik {pullback:.0%} ni {floor:.0%}–22 %"
     # The latest bar must not be the spike itself.
     if last >= max(highs[-4:-1] or highs):
         return False, f"{label}: zadnja sveča je še na vrhu"
@@ -104,7 +105,14 @@ def makers_ok(cand: Candidate, memory: dict) -> tuple[bool, str]:
     return True, f"ustvarjalci {before} → {buyers}"
 
 
-def evaluate(cand: Candidate, market: Market, sim: Optional[SimFeed], source: str, memory: dict) -> tuple[bool, list[str], str]:
+def evaluate(
+    cand: Candidate,
+    market: Market,
+    sim: Optional[SimFeed],
+    source: str,
+    memory: dict,
+    pullback_min: float = 0.03,
+) -> tuple[bool, list[str], str]:
     reasons: list[str] = []
     if source == "SIM" and sim is not None:
         rows5 = _sorted(sim.ohlcv(cand.mint))
@@ -115,10 +123,10 @@ def evaluate(cand: Candidate, market: Market, sim: Optional[SimFeed], source: st
         network = "bsc" if getattr(cand, "chain", "") == "bsc" else "solana"
         rows5 = _sorted(market.gecko_ohlcv(cand.pair_address, aggregate=5, limit=48, network=network))
         rows1 = _sorted(market.gecko_ohlcv(cand.pair_address, aggregate=1, limit=30, network=network))
-    ok5, why5 = structure_ok(rows5, "5m")
-    ok1, why1 = structure_ok(rows1, "1m") if rows1 is not rows5 else (True, "1m: isti vzorec")
+    ok5, why5 = structure_ok(rows5, "5m", pullback_min)
+    ok1, why1 = structure_ok(rows1, "1m", pullback_min) if rows1 is not rows5 else (True, "1m: isti vzorec")
     if rows1 is rows5 and source != "SIM":
-        ok1, why1 = structure_ok(rows1, "1m")
+        ok1, why1 = structure_ok(rows1, "1m", pullback_min)
     reasons.append(why5)
     reasons.append(why1)
     if not ok5 or not ok1:

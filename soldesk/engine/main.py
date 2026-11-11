@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import re
 import signal
 import sys
 import time
@@ -29,7 +30,9 @@ from market import Market
 from models import Candidate, Event, Position, iso, to_plain, utcnow
 from simfeed import SimFeed
 import learning
+import strateg
 import state_store
+from market import candidate_from_dex_pair
 from status import build_status, write_status
 from agents.timing import evaluate as timing_evaluate
 from terminal_ui import DeskView, local_ts, render_snapshot_svg
@@ -278,7 +281,15 @@ class Desk:
             )
 
     def process_candidate(self, cand: Candidate) -> None:
+        self._shadow = {"score": None, "hard": False, "pullback": None, "higher": False, "vwap": False, "ema": False}
+        try:
+            self._process_candidate(cand)
+        finally:
+            self._watch(cand)
+
+    def _process_candidate(self, cand: Candidate) -> None:
         lane = getattr(cand, "lane", "glavni") or "glavni"
+        view = self._apply_overlay()
         result, ev = (self.filter.check_launch(cand) if lane == "novi_lans" else self.filter.check(cand))
         ev.extra = {**(ev.extra or {}), "lane": lane, "chain": getattr(cand, "chain", "solana")}
         self._emit(ev)
@@ -286,15 +297,19 @@ class Desk:
             # if we already marked this mint as a liquidity rug, ban its creator
             self.filter.blacklisted_creators.add(result.creator)
         if not result.passed:
+            self._shadow["hard"] = _hard_kill(result.kill_reasons)
             self.reject("reject_filter", cand.mint, cand.symbol, result.kill_reasons, details={"source": result.data_source, "lane": lane, "chain": getattr(cand, "chain", "solana")})
             return
 
         # Analyst
         analysis, ev = self.analyst.score(cand, result)
         self._emit(ev)
+        self._shadow["score"] = analysis.total
         need, learn_why = learning.threshold(self.state.setdefault("learning", {"buckets": {}}), analysis.total, analysis.structure_label, lane)
+        need = max(need, view["min_score"])
         if analysis.passed and analysis.total < need:
             analysis.passed = False
+            learn_why = learn_why or f"prag različice {need:.2f}"
             ev = Event(
                 ts=iso(), agent="ANALYST", level="kill",
                 message=f"{cand.symbol}  {learn_why}",
@@ -303,12 +318,19 @@ class Desk:
             self._emit(ev)
         if not analysis.passed:
             reasons = [
-                f"score {analysis.total:.2f} < {config.MIN_ANALYST_SCORE:.2f}",
+                f"score {analysis.total:.2f} < {need:.2f}",
                 analysis.structure_label,
             ] + [f"{c.name}={c.score:.2f} ({c.note})" for c in analysis.components]
             if learn_why:
                 reasons.append(learn_why)
             self.reject("reject_analyst", cand.mint, cand.symbol, reasons, score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
+            return
+
+        tight = _overlay_block(cand, lane, view)
+        if tight:
+            ev = Event(ts=iso(), agent="ANALYST", level="kill", message=f"{cand.symbol}  {tight}", mint=cand.mint, symbol=cand.symbol, extra={"lane": lane})
+            self._emit(ev)
+            self.reject("reject_strategy", cand.mint, cand.symbol, [tight], score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
             return
 
         if lane == "novi_lans":
@@ -320,7 +342,9 @@ class Desk:
         else:
             ok_time, time_reasons, setup = timing_evaluate(
                 cand, self.market, self.sim, self.state["data_source"], self.maker_memory,
+                pullback_min=view["pullback_min"],
             )
+            _note_timing(self._shadow, time_reasons)
             if not ok_time:
                 ev = Event(
                     ts=iso(), agent="ANALYST", level="kill",
@@ -370,7 +394,82 @@ class Desk:
             details={"size_usd": pos.size_usd, "fill": pos.fill_price, "paper": True, "pct": pos.size_usd / (pos.size_usd + self.cash + sum(p.mark_value() for p in self.positions))},
         )
 
+    def _apply_overlay(self) -> dict:
+        view = strateg.live_view(self.state)
+        self.risk.trail_pct = view["trail"]
+        self.risk.time_stop_sec = view["time_min"] * 60.0
+        self.risk.tp1 = view["tp"]
+        return view
+
+    def _watch(self, cand: Candidate) -> None:
+        shadow = getattr(self, "_shadow", None) or {}
+        buys = cand.buys_5m if cand.buys_5m is not None else cand.buys_1h
+        sells = cand.sells_5m if cand.sells_5m is not None else cand.sells_1h
+        ratio = buys / (buys + sells) if buys is not None and sells is not None and (buys + sells) > 0 else None
+        age = cand.age_seconds()
+        buyers = cand.buyers_5m if cand.buyers_5m is not None else cand.buyers_1h
+        strateg.observe(
+            self.state,
+            {
+                "mint": cand.mint,
+                "symbol": cand.symbol,
+                "chain": getattr(cand, "chain", "solana"),
+                "lane": getattr(cand, "lane", "glavni"),
+                "price": cand.price_usd,
+                "score": shadow.get("score"),
+                "liquidity": cand.liquidity_usd,
+                "volume_1h": cand.volume_1h_usd,
+                "buyers": buyers,
+                "age_min": None if age is None else age / 60.0,
+                "buy_ratio": ratio,
+                "pullback": shadow.get("pullback"),
+                "higher_low": bool(shadow.get("higher")),
+                "vwap_ok": bool(shadow.get("vwap")),
+                "ema_ok": bool(shadow.get("ema")),
+                "hard_kill": bool(shadow.get("hard")),
+            },
+            time.time(),
+        )
+
+    def _resolve_shadows(self) -> None:
+        book = strateg.ensure(self.state)
+        now = time.time()
+        due = [row for row in book.get("pending") or [] if now >= float(row.get("due") or 0)][:8]
+        if not due:
+            return
+        prices: dict[tuple[str, str], float] = {}
+        if self.state.get("data_source") == "SIM":
+            got = self.sim.prices_for([row["mint"] for row in due])
+            for row in due:
+                px = got.get(row["mint"])
+                if px:
+                    prices[(row.get("chain") or "solana", row["mint"])] = float(px)
+        else:
+            by_chain: dict[str, list[str]] = {}
+            for row in due:
+                by_chain.setdefault(row.get("chain") or "solana", []).append(row["mint"])
+            for chain, mints in by_chain.items():
+                pairs = self.market.dex_tokens(mints, "bsc" if chain == "bsc" else "solana")
+                best: dict[str, tuple[float, float]] = {}
+                for pair in pairs:
+                    got = candidate_from_dex_pair(pair)
+                    if not got or got.price_usd <= 0:
+                        continue
+                    prev = best.get(got.mint)
+                    if not prev or got.liquidity_usd > prev[0]:
+                        best[got.mint] = (got.liquidity_usd, got.price_usd)
+                for mint, (_liq, px) in best.items():
+                    prices[(chain, mint)] = px
+        pnls = [float(t.pnl_pct) for t in self.closed]
+        if pnls:
+            book["baseline_expectancy"] = sum(pnls) / len(pnls)
+        closed = strateg.resolve(self.state, now, lambda chain, mint: prices.get((chain, mint)))
+        if closed:
+            self._emit(Event(ts=iso(), agent="LOGGER", level="info", message=f"senca zaprla {closed} izidov, brez kapitala"))
+
     def poll_positions(self) -> None:
+        self._apply_overlay()
+        self._resolve_shadows()
         if self.state["data_source"] == "SIM":
             self.sim.tick({p.mint for p in self.positions})
             prices = self.sim.prices_for([p.mint for p in self.positions])
@@ -418,6 +517,10 @@ class Desk:
                 trade.pnl_usd,
                 getattr(pos, "lane", "glavni"),
             )
+            book = strateg.ensure(self.state)
+            rolled = strateg.note_live_result(book, float(trade.pnl_pct))
+            if rolled:
+                self._emit(Event(ts=iso(), agent="LOGGER", level="warn", message=rolled))
         self.positions = still
         self.risk.rollover_day(self.equity)
         if self.positions:
@@ -565,6 +668,45 @@ class Desk:
         self.persist(force=True)
         console.print(f"[bold]stopped[/]  equity {_fmt(self.equity)}  closed {len(self.closed)}  source={self.state['data_source']}")
         return 0
+
+
+def _hard_kill(reasons: list[str]) -> bool:
+    blob = " ".join(reasons).lower()
+    keys = ("honeypot", "freeze", "kuje", "mint", "cannot", "prodati", "proxy", "blacklist", "hidden", "pausable", "cooldown")
+    return any(key in blob for key in keys)
+
+
+def _note_timing(shadow: dict, reasons: list[str]) -> None:
+    for part in reasons:
+        match = re.search(r"umik\s+(-?\d+(?:[.,]\d+)?)\s*%", part)
+        if match:
+            shadow["pullback"] = float(match.group(1).replace(",", ".")) / 100.0
+        if "višji minimum" in part and "ni višjega" not in part:
+            shadow["higher"] = True
+        if part.startswith("nad VWAP") or " nad VWAP" in part:
+            shadow["vwap"] = True
+        if "nad EMA9" in part and "ni nad" not in part:
+            shadow["ema"] = True
+
+
+def _overlay_block(cand: Candidate, lane: str, view: dict) -> Optional[str]:
+    """Extra live checks from a promoted overlay. They only reject more."""
+    if view["min_liquidity"] and (cand.liquidity_usd or 0) < view["min_liquidity"]:
+        return f"likvidnost ${cand.liquidity_usd:,.0f} < ${view['min_liquidity']:,.0f} (strožja različica)"
+    if lane == "novi_lans":
+        buyers = cand.buyers_5m if cand.buyers_5m is not None else cand.buyers_1h
+        if buyers is None or buyers < view["min_buyers"]:
+            return f"kupci {buyers if buyers is not None else '—'} < {view['min_buyers']:.0f} (strožja različica)"
+        return None
+    age = cand.age_seconds()
+    if age is None or age < view["min_age_min"] * 60:
+        return f"starost pod {view['min_age_min']:.0f} min (strožja različica)"
+    if view["min_buy_ratio"] > 0.5:
+        buys = cand.buys_5m if cand.buys_5m is not None else cand.buys_1h
+        sells = cand.sells_5m if cand.sells_5m is not None else cand.sells_1h
+        if buys is None or sells is None or (buys + sells) <= 0 or buys / (buys + sells) < view["min_buy_ratio"]:
+            return f"nakup/prodaja pod {view['min_buy_ratio']:.0%} (strožja različica)"
+    return None
 
 
 def _assign_lane(cand: Candidate) -> None:

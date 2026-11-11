@@ -78,22 +78,38 @@
     .filters { display: flex; gap: 6px; margin-top: 8px; }
     .filters button { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; color: var(--muted); }
     .filters button.on { color: white; border-color: var(--scout); }
-    .pipe { position: relative; height: 168px; }
+    .pipe {
+      position: relative; height: 236px; border-radius: 18px; overflow: hidden;
+      background:
+        radial-gradient(120% 80% at 50% 120%, rgba(80, 40, 140, .18), transparent 55%),
+        linear-gradient(180deg, rgba(8, 10, 18, .2), rgba(8, 10, 18, .55));
+    }
     #flow { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .nodes { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding-top: 18px; }
-    .node {
-      text-align: center; background: transparent; border: 0; padding: 0; cursor: default;
+    .nodes {
+      position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 2px; padding: 28px 2px 0; pointer-events: none;
     }
-    .node i {
-      display: grid; place-items: center; margin: 0 auto 4px;
-      width: 42px; height: 42px; border-radius: 50%;
-      border: 2px solid var(--c); color: var(--c);
-      box-shadow: 0 0 16px color-mix(in srgb, var(--c) 45%, transparent);
-      background: rgba(0,0,0,.35); font-style: normal; font-size: 11px; font-weight: 700;
+    .node { text-align: center; background: transparent; border: 0; padding: 0; }
+    .orb {
+      width: 46px; height: 46px; margin: 0 auto 4px; border-radius: 50%;
+      display: grid; place-items: center; color: white; font-size: 16px;
+      background:
+        radial-gradient(circle at 32% 26%, rgba(255,255,255,.72), transparent 30%),
+        radial-gradient(circle at 50% 62%, color-mix(in srgb, var(--c) 70%, white), rgba(0,0,0,.72) 72%);
+      border: 1px solid color-mix(in srgb, var(--c) 75%, white);
+      box-shadow: 0 0 16px color-mix(in srgb, var(--c) 55%, transparent), inset 0 -8px 12px rgba(0,0,0,.35);
     }
-    .node.on i { animation: pulse 1s ease-in-out infinite; background: color-mix(in srgb, var(--c) 22%, black); }
-    .node small { display: block; font-size: 9px; letter-spacing: .04em; color: var(--muted); }
-    @keyframes pulse { 50% { transform: scale(1.08); box-shadow: 0 0 22px var(--c); } }
+    .node.on .orb { box-shadow: 0 0 22px var(--c), inset 0 -8px 12px rgba(0,0,0,.28); }
+    .node b { display: block; font-size: 10px; font-weight: 650; letter-spacing: .02em; }
+    .node em {
+      display: block; min-height: 24px; margin-top: 1px; font-style: normal;
+      font-size: 9px; line-height: 1.25; color: var(--c);
+    }
+    .node small { display: block; font-size: 8px; color: var(--muted); }
+    @keyframes pulse { 50% { transform: scale(1.06); } }
+    @media (prefers-reduced-motion: no-preference) {
+      .node.on .orb { animation: pulse 1.6s ease-in-out infinite; }
+    }
     #drop { min-height: 32px; margin: 8px 0 0; font-size: 12px; color: var(--risk); text-align: center; }
     .logger {
       display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -112,10 +128,10 @@
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
       height: calc(var(--tabh) + env(safe-area-inset-bottom));
       padding-bottom: env(safe-area-inset-bottom);
-      display: grid; grid-template-columns: repeat(5, 1fr);
+      display: grid; grid-template-columns: repeat(6, 1fr);
       background: rgba(8, 10, 16, .96); border-top: 1px solid var(--line);
     }
-    .tabs button { background: transparent; border: 0; color: var(--muted); font-size: 10px; letter-spacing: .04em; }
+    .tabs button { background: transparent; border: 0; color: var(--muted); font-size: 8px; letter-spacing: .02em; padding: 0 1px; }
     .tabs button.on { color: white; }
     #hint { display: none; margin-top: 8px; color: var(--muted); font-size: 12px; }
     @media (display-mode: standalone) { .tabs { position: fixed; bottom: 0; } }
@@ -123,8 +139,10 @@
       header { grid-template-columns: auto 1fr auto; align-items: center; }
       .stats { grid-template-columns: repeat(6, 1fr); }
       main { max-width: 1200px; margin: 0 auto; width: 100%; }
-      .pipe { height: 220px; }
-      .node i { width: 64px; height: 64px; font-size: 13px; }
+      .pipe { height: 280px; }
+      .orb { width: 64px; height: 64px; font-size: 22px; }
+      .node b { font-size: 12px; }
+      .node em, .node small { font-size: 11px; }
       .tabs { height: 64px; }
       :root { --tabh: 64px; }
     }
@@ -179,36 +197,53 @@
     <section class="view" id="view-dnevnik">
       <article class="card"><h2>Dnevnik</h2><div id="log"></div></article>
     </section>
+    <section class="view" id="view-strateg">
+      <article class="card">
+        <h2>Strategije</h2>
+        <p id="stratHead" class="dim">Senca teče vzporedno, brez kapitala. Ni napoved.</p>
+        <div id="stratLive"></div>
+      </article>
+      <article class="card"><h2>Lestvica sence</h2><div id="stratBoard"></div></article>
+      <article class="card"><h2>Lekcije</h2><div id="stratLessons"></div><p class="dim">Povezava ni napoved cene. Majhen vzorec je označen.</p></article>
+    </section>
   </main>
   <nav class="tabs" aria-label="Razdelki">
     <button type="button" data-tab="desk" class="on">DESK</button>
     <button type="button" data-tab="pozicije">POZICIJE</button>
     <button type="button" data-tab="zavrnjeni">ZAVRNJENI</button>
-    <button type="button" data-tab="stat">STATISTIKA</button>
+    <button type="button" data-tab="stat">STAT.</button>
     <button type="button" data-tab="dnevnik">DNEVNIK</button>
+    <button type="button" data-tab="strateg">STRATEG</button>
   </nav>
 <script>
 (function () {
   "use strict";
   const STATUS_URL = "https://raw.githubusercontent.com/AleeX9311/Kripto-app/sol-desk-data/status.json";
   const AGENTS = [
-    { id: "SCOUT", sl: "Iskalec", c: "#3de0ff" },
-    { id: "FILTER", sl: "Filter", c: "#ffb020" },
-    { id: "ANALYST", sl: "Analitik", c: "#c084fc" },
-    { id: "EXECUTOR", sl: "Izvajalec", c: "#39ff88" },
-    { id: "RISK", sl: "Tveganje", c: "#ff4d6d" },
-    { id: "LOGGER", sl: "Dnevnik", c: "#6aa7ff" }
+    { id: "SCOUT", sl: "Iskalec", c: "#3de0ff", icon: "✦" },
+    { id: "FILTER", sl: "Filter", c: "#ffb020", icon: "◆" },
+    { id: "ANALYST", sl: "Analitik", c: "#c084fc", icon: "◇" },
+    { id: "EXECUTOR", sl: "Izvajalec", c: "#39ff88", icon: "▲" },
+    { id: "RISK", sl: "Tveganje", c: "#ff4d6d", icon: "●" },
+    { id: "LOGGER", sl: "Dnevnik", c: "#6aa7ff", icon: "≡" }
   ];
+  const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const CHAIN_COLOR = { solana: "#b388ff", bsc: "#ffd15c" };
   const $ = (id) => document.getElementById(id);
   let data = null;
   let lastStamp = "";
   let queue = [];
-  let particle = null;
+  let movers = [];
+  let sparks = [];
+  let wave = null;
+  let chip = null;
   let hot = "";
-  let dropText = "";
+  const stars = Array.from({ length: 42 }, () => ({
+    x: Math.random(), y: Math.random(), r: Math.random() * 1.1 + 0.3, p: Math.random() * Math.PI * 2
+  }));
   const nodes = $("nodes");
   nodes.innerHTML = AGENTS.filter((a) => a.id !== "LOGGER").map((a) =>
-    `<div class="node" data-agent="${a.id}" style="--c:${a.c}"><i>${a.id.slice(0, 2)}</i><small>${a.sl}</small></div>`
+    `<div class="node" data-agent="${a.id}" style="--c:${a.c}"><div class="orb">${a.icon}</div><b>${a.sl}</b><em class="live">čaka</em><small class="cnt">0 skozi · 0 ven</small></div>`
   ).join("");
 
   function esc(s) {
@@ -287,12 +322,19 @@
       + `<p class="dim">${d.market && d.market.pause_reason ? esc(d.market.pause_reason) : "Trg ne zaustavlja novih vstopov."} SOL 1h ${d.market && d.market.sol_1h != null ? esc(d.market.sol_1h) + " %" : "—"}.</p>`;
     const learn = d.learning || [];
     $("learn").innerHTML = learn.length ? learn.map((row) => `<div class="row"><b>${esc(row.bucket)}</b><div class="dim">n=${esc(row.n)} · zadetki ${row.win_rate == null ? "—" : esc(pct(row.win_rate))} · ${esc(money(row.pnl))}</div></div>`).join("") : `<p class="dim">Še ni vzorcev.</p>`;
+    renderStrategy(d);
+    paintAgents(d);
     const ev = (d.events || []).filter((e) => wanted({ chain: (e.extra && e.extra.chain) || "solana" })).slice().reverse();
     $("log").innerHTML = ev.length ? ev.map((e) => `<div class="row"><b style="color:${(AGENTS.find((a) => a.id === e.agent) || {}).c || "#fff"}">${esc(e.agent)}</b> ${esc(e.symbol || "")}<div class="dim">${esc((e.ts || "").slice(11, 19))} · ${esc(e.message || "")}</div></div>`).join("") : `<p class="dim">Dnevnik je prazen.</p>`;
     drawEq();
     const fresh = (d.events || []).filter((e) => lastStamp && e.ts > lastStamp);
     const seed = !lastStamp ? (d.events || []).slice(-6) : fresh;
     seed.forEach((e) => queue.push(e));
+    if (REDUCED) {
+      queue.splice(0).forEach((ev) => {
+        if (ev.level === "kill") $("drop").textContent = ((ev.symbol || "") + " · " + (ev.message || "")).slice(0, 48);
+      });
+    }
     const newest = (d.events || []).map((e) => e.ts || "").sort().pop();
     if (newest) lastStamp = newest;
   }
@@ -319,57 +361,227 @@
     g.strokeStyle = "#3de0ff"; g.lineWidth = 2; g.stroke();
   }
 
+  function dayKey(ts) {
+    const d = ts ? new Date(ts) : new Date();
+    if (Number.isNaN(d.getTime())) return "";
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Ljubljana" }).format(d);
+  }
+  function paintAgents(d) {
+    const today = dayKey();
+    const events = d.events || [];
+    AGENTS.filter((a) => a.id !== "LOGGER").forEach((a) => {
+      const el = document.querySelector(`.node[data-agent="${a.id}"]`);
+      if (!el) return;
+      const mine = events.filter((e) => e.agent === a.id && dayKey(e.ts) === today);
+      const killed = mine.filter((e) => e.level === "kill").length;
+      const passed = mine.filter((e) => e.level === "ok" || e.level === "trade" || e.level === "info").length;
+      const last = events.filter((e) => e.agent === a.id).slice(-1)[0];
+      let line = a.sl + " · čaka";
+      if (a.id === "FILTER") line = "Filter · preverja " + mine.length;
+      if (a.id === "ANALYST") {
+        const scored = events.filter((e) => e.agent === "ANALYST" && /score\s+[0-9]/i.test(e.message || "")).slice(-1)[0];
+        const m = String((scored && scored.message) || "").match(/score\s+([0-9]+(?:[.,][0-9]+)?)/i);
+        line = m ? "Analitik · " + m[1] : "Analitik · čaka";
+      }
+      if (a.id === "SCOUT") line = "Iskalec · " + (mine.length ? mine.length + " danes" : "išče");
+      if (a.id === "EXECUTOR") line = last && /PAPER BUY|nakup/i.test(last.message || "") ? "Izvajalec · nakup" : "Izvajalec · čaka";
+      if (a.id === "RISK") line = "Tveganje · " + ((d.open || []).length) + " odprtih";
+      el.querySelector(".live").textContent = line;
+      el.querySelector(".cnt").textContent = passed + " skozi · " + killed + " ven";
+    });
+  }
+  function renderStrategy(d) {
+    const s = d.strategy || {};
+    const live = s.live || {};
+    const floors = s.floors || {};
+    const bits = [];
+    if (live.min_score) bits.push("prag " + Number(live.min_score).toFixed(2));
+    if (live.min_age_min) bits.push("starost " + live.min_age_min + " min");
+    if (live.min_buyers) bits.push("kupci " + live.min_buyers);
+    if (live.min_liquidity) bits.push("likvidnost $" + Number(live.min_liquidity).toLocaleString("en-US"));
+    if (live.pullback_min) bits.push("umik " + Math.round(live.pullback_min * 100) + " %");
+    if (live.trail) bits.push("sled " + Math.round(live.trail * 100) + " %");
+    if (live.time_min) bits.push("čas " + live.time_min + " min");
+    if (live.tp) bits.push("delni izstop " + Math.round(live.tp * 100) + " %");
+    $("stratLive").innerHTML = [
+      `<div class="row"><b>Različica ${esc(s.version || 1)}</b><div class="dim">${bits.length ? esc(bits.join(" · ")) : "Privzete meje. Varnost se ne rahlja."}</div></div>`,
+      `<div class="row"><span>Zadnja sprememba</span><div class="dim">${esc(s.last_change || "še ni promocije")}</div></div>`,
+      `<div class="row"><span>Trde meje</span><div class="dim">velikost ${floors.size != null ? Math.round(floors.size * 100) : 8} % · lans ${floors.launch_size != null ? Math.round(floors.launch_size * 100) : 3} % · stop ${floors.stop != null ? Math.round(floors.stop * 100) : -6} % · lans stop ${floors.launch_stop != null ? Math.round(floors.launch_stop * 100) : -10} %</div></div>`,
+      `<p class="dim">Čakajočih sence: ${esc(s.pending || 0)}. Senca ne premika kapitala.</p>`
+    ].join("");
+    const rows = s.variants || [];
+    $("stratBoard").innerHTML = rows.length ? rows.map((row) => {
+      const wr = row.win_rate == null ? "—" : pct(row.win_rate);
+      const exp = row.expectancy == null ? "—" : (row.expectancy * 100).toFixed(1) + " %";
+      const pf = row.profit_factor == null ? "—" : row.profit_factor;
+      return `<div class="row"><b>${esc(row.label)}</b> <span class="badge">${esc(row.note || "")}</span><div class="dim">n=${esc(row.n)} · zadetki ${esc(wr)} · PF ${esc(pf)} · pričakovanje ${esc(exp)} · padec ${esc(pct(row.max_dd || 0))}</div></div>`;
+    }).join("") : `<p class="dim">Ni različic.</p>`;
+    const lessons = s.lessons || [];
+    $("stratLessons").innerHTML = lessons.length ? lessons.map((line) => `<div class="row">${esc(line)}</div>`).join("") : `<p class="dim">Premalo podatkov.</p>`;
+  }
   function nodeBox(id) {
-    const el = document.querySelector(`[data-agent="${id}"] i`) || document.querySelector('[data-agent="LOGGER"] i');
+    const el = document.querySelector(`[data-agent="${id}"] .orb`) || document.querySelector(".logger i");
     const pipe = document.querySelector(".pipe").getBoundingClientRect();
     const r = el.getBoundingClientRect();
     return { x: r.left + r.width / 2 - pipe.left, y: r.top + r.height / 2 - pipe.top };
+  }
+  function curve(a, b) {
+    const mx = (a.x + b.x) / 2;
+    const lift = 36;
+    return { a, b, c1x: mx, c1y: a.y - lift, c2x: mx, c2y: b.y - lift };
+  }
+  function bezier(c, t) {
+    const u = 1 - t;
+    return {
+      x: u * u * u * c.a.x + 3 * u * u * t * c.c1x + 3 * u * t * t * c.c2x + t * t * t * c.b.x,
+      y: u * u * u * c.a.y + 3 * u * u * t * c.c1y + 3 * u * t * t * c.c2y + t * t * t * c.b.y
+    };
+  }
+  function strokeCurve(g, c) {
+    g.beginPath();
+    g.moveTo(c.a.x, c.a.y);
+    g.bezierCurveTo(c.c1x, c.c1y, c.c2x, c.c2y, c.b.x, c.b.y);
+    g.stroke();
+  }
+  function takeEvent() {
+    if (movers.length > 10 || !queue.length) return;
+    const ev = queue.shift();
+    const ids = ["SCOUT", "FILTER", "ANALYST", "EXECUTOR", "RISK"];
+    const idx = Math.max(0, ids.indexOf(ev.agent));
+    const from = nodeBox(ids[Math.max(0, idx - 1)] || "SCOUT");
+    const dest = nodeBox(ids[idx] || "RISK");
+    const chain = (ev.extra && ev.extra.chain) === "bsc" ? "bsc" : "solana";
+    const buy = ev.agent === "EXECUTOR" && /PAPER BUY|nakup/i.test(ev.message || "");
+    movers.push({ ev, from, dest, t: 0, kill: ev.level === "kill", buy, chain, sent: false });
+    hot = ev.agent || "";
+    document.querySelectorAll(".node").forEach((n) => n.classList.toggle("on", n.dataset.agent === hot));
+  }
+  function finish(mover, at) {
+    if (mover.kill) {
+      const reason = ((mover.ev.symbol || "") + " · " + (mover.ev.message || "")).slice(0, 48);
+      for (let i = 0; i < 8; i++) {
+        sparks.push({
+          x: at.x, y: at.y,
+          vx: (Math.random() - 0.5) * 1.8,
+          vy: 0.35 + Math.random() * 1.3,
+          life: 1, color: "#ff4d6d"
+        });
+      }
+      sparks = sparks.slice(-28);
+      chip = { text: reason, x: at.x, y: at.y + 10, life: 1 };
+      $("drop").textContent = reason;
+    }
+    if (mover.buy) wave = { x: at.x, y: at.y, r: 6, life: 1 };
   }
   function frame(ts) {
     const c = $("flow");
     const pipe = document.querySelector(".pipe");
     const w = pipe.clientWidth, h = pipe.clientHeight;
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    if (c.width !== Math.floor(w * dpr)) { c.width = Math.floor(w * dpr); c.height = Math.floor(h * dpr); }
+    if (w < 2 || h < 2) {
+      if (!REDUCED) requestAnimationFrame(frame);
+      return;
+    }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (c.width !== Math.floor(w * dpr) || c.height !== Math.floor(h * dpr)) {
+      c.width = Math.floor(w * dpr);
+      c.height = Math.floor(h * dpr);
+    }
     const g = c.getContext("2d");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
+    g.strokeStyle = "rgba(140,170,255,.08)";
+    g.lineWidth = 1;
+    for (let x = 0; x < w; x += 28) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+    for (let y = 0; y < h; y += 28) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    const clock = REDUCED ? 0 : (ts || 0) / 1000;
+    stars.forEach((s) => {
+      const tw = REDUCED ? 0.45 : 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(clock * 1.4 + s.p));
+      g.fillStyle = `rgba(210,220,255,${tw})`;
+      g.fillRect(s.x * w, s.y * h, s.r, s.r);
+    });
     const ids = ["SCOUT", "FILTER", "ANALYST", "EXECUTOR", "RISK"];
-    g.strokeStyle = "rgba(120,160,255,.35)";
-    g.lineWidth = 1.4;
-    for (let i = 0; i < ids.length - 1; i++) {
-      const a = nodeBox(ids[i]), b = nodeBox(ids[i + 1]);
-      g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
-    }
-    if (!particle && queue.length) {
-      const ev = queue.shift();
-      const dest = nodeBox(ev.agent || "LOGGER");
-      const fromId = ids[Math.max(0, ids.indexOf(ev.agent) - 1)] || "SCOUT";
-      const from = nodeBox(ev.agent === "SCOUT" ? "SCOUT" : fromId);
-      particle = { ev, from, dest, t: 0, drop: ev.level === "kill" };
-      hot = ev.agent || "";
-      document.querySelectorAll(".node").forEach((n) => n.classList.toggle("on", n.dataset.agent === hot || n.dataset.agent === "LOGGER"));
-    }
-    if (particle) {
-      particle.t += 0.02;
-      const k = Math.min(1, particle.t);
-      const x = particle.from.x + (particle.dest.x - particle.from.x) * k;
-      const y = particle.from.y + (particle.dest.y - particle.from.y) * k;
-      const col = (AGENTS.find((a) => a.id === particle.ev.agent) || AGENTS[0]).c;
-      g.fillStyle = col;
-      g.shadowColor = col; g.shadowBlur = 12;
-      g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
+    const curves = [];
+    for (let i = 0; i < ids.length - 1; i++) curves.push(curve(nodeBox(ids[i]), nodeBox(ids[i + 1])));
+    g.lineCap = "round";
+    curves.forEach((cv) => {
+      g.strokeStyle = "rgba(150,190,255,.16)";
+      g.lineWidth = 5;
+      strokeCurve(g, cv);
+      g.strokeStyle = "rgba(190,220,255,.55)";
+      g.lineWidth = 1.3;
+      strokeCurve(g, cv);
+      if (REDUCED) return;
+      const glow = bezier(cv, (clock * 0.22 + curves.indexOf(cv) * 0.18) % 1);
+      g.fillStyle = "#d7e6ff";
+      g.shadowColor = "#9ec5ff";
+      g.shadowBlur = 10;
+      g.beginPath();
+      g.arc(glow.x, glow.y, 2.4, 0, 7);
+      g.fill();
       g.shadowBlur = 0;
-      const extra = particle.ev.extra || {};
-      const tag = ((extra.chain === "bsc" ? "BNB" : "SOL") + " " + (extra.lane === "novi_lans" ? "NOVI LANS" : "GLAVNI")).trim();
-      g.font = "11px sans-serif"; g.fillText(((particle.ev.symbol || "") + " " + tag).trim(), x + 8, y - 8);
-      if (k >= 1 && particle.drop) {
-        dropText = (particle.ev.symbol || "") + " · " + (particle.ev.message || "");
-        $("drop").textContent = dropText;
-        particle = null;
-      } else if (k >= 1) particle = null;
+    });
+    if (!REDUCED) takeEvent();
+    movers = movers.filter((mover) => {
+      mover.t += REDUCED ? 1 : 0.012;
+      const k = Math.min(1, mover.t);
+      const at = bezier(curve(mover.from, mover.dest), k);
+      const col = CHAIN_COLOR[mover.chain] || "#b388ff";
+      g.fillStyle = col;
+      g.shadowColor = col;
+      g.shadowBlur = REDUCED ? 0 : 12;
+      g.beginPath();
+      g.arc(at.x, at.y, 4.2, 0, 7);
+      g.fill();
+      g.shadowBlur = 0;
+      const label = (mover.ev.symbol || (mover.chain === "bsc" ? "BNB" : "SOL")).slice(0, 10);
+      g.font = "10px sans-serif";
+      g.fillStyle = col;
+      g.fillText(label, at.x + 7, at.y - 7);
+      if (k >= 1) {
+        finish(mover, at);
+        if (mover.buy && !mover.sent) {
+          mover.sent = true;
+          movers.push({
+            ev: mover.ev,
+            from: nodeBox("EXECUTOR"),
+            dest: nodeBox("RISK"),
+            t: 0, kill: false, buy: false, chain: mover.chain, sent: true
+          });
+        }
+        return false;
+      }
+      return true;
+    });
+    sparks = sparks.filter((s) => {
+      s.x += s.vx; s.y += s.vy; s.vy += 0.04; s.life -= 0.02;
+      if (s.life <= 0) return false;
+      g.globalAlpha = Math.max(0, s.life);
+      g.fillStyle = s.color;
+      g.beginPath();
+      g.arc(s.x, s.y, 2.2, 0, 7);
+      g.fill();
+      g.globalAlpha = 1;
+      return true;
+    });
+    if (wave) {
+      wave.r += 1.6; wave.life -= 0.03;
+      g.strokeStyle = `rgba(57,255,136,${Math.max(0, wave.life)})`;
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(wave.x, wave.y, wave.r, 0, 7);
+      g.stroke();
+      if (wave.life <= 0) wave = null;
     }
-    requestAnimationFrame(frame);
+    if (chip) {
+      chip.life -= 0.008; chip.y += 0.15;
+      g.globalAlpha = Math.max(0, chip.life);
+      g.fillStyle = "#ff4d6d";
+      g.font = "11px sans-serif";
+      g.fillText(chip.text, Math.max(6, chip.x - 40), chip.y);
+      g.globalAlpha = 1;
+      if (chip.life <= 0) chip = null;
+    }
+    if (!REDUCED) requestAnimationFrame(frame);
   }
 
   async function load() {
@@ -395,7 +607,7 @@
     if (!btn) return;
     document.querySelectorAll(".view").forEach((v) => v.classList.toggle("on", v.id === "view-" + btn.dataset.tab));
     document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b === btn));
-    if (btn.dataset.tab === "desk") drawEq();
+    if (btn.dataset.tab === "desk") { drawEq(); if (REDUCED) frame(0); }
   });
   let deferred = null;
   window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; });

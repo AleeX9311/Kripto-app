@@ -88,10 +88,30 @@ class Risk:
         proceeds = pos.qty * mid * self.exit_factor()
         return (proceeds - pos.size_usd) / pos.size_usd
 
+    def trail_width(self, pos: Position) -> float:
+        """Never wider than the user floor. Launch lane keeps its own width."""
+        if getattr(pos, "lane", "glavni") == "novi_lans":
+            return config.TRAIL_PCT
+        tighter = getattr(self, "trail_pct", None)
+        if tighter is None:
+            return config.TRAIL_PCT
+        return min(config.TRAIL_PCT, max(0.02, float(tighter)))
+
+    def main_tp1(self) -> float:
+        """First partial can only move earlier, never later than +15%."""
+        tighter = getattr(self, "tp1", None)
+        if tighter is None:
+            return config.PARTIAL_TP[0]
+        return min(config.PARTIAL_TP[0], max(0.08, float(tighter)))
+
     def _limits(self, pos: Position) -> tuple[float, float, float, bool]:
         if getattr(pos, "lane", "glavni") == "novi_lans":
             return config.LAUNCH_HARD_STOP_PCT, config.LAUNCH_TRAIL_ACTIVATE_PCT, config.LAUNCH_TIME_STOP_SEC, False
-        return config.HARD_STOP_PCT, config.TRAIL_ACTIVATE_PCT, config.TIME_STOP_SEC, True
+        time_stop = config.TIME_STOP_SEC
+        tighter = getattr(self, "time_stop_sec", None)
+        if tighter is not None:
+            time_stop = min(time_stop, max(10 * 60, float(tighter)))
+        return config.HARD_STOP_PCT, config.TRAIL_ACTIVATE_PCT, time_stop, True
 
     def mark(self, pos: Position, mid: float) -> None:
         if mid <= 0:
@@ -106,7 +126,7 @@ class Risk:
         if net >= trail_at:
             pos.trail_armed = True
         if pos.trail_armed:
-            pos.trail_stop_price = pos.peak_price * (1.0 - config.TRAIL_PCT)
+            pos.trail_stop_price = pos.peak_price * (1.0 - self.trail_width(pos))
         pos.hard_stop_price = pos.fill_price  # informational; the trigger is net PnL
         _ = stop
 
@@ -127,7 +147,7 @@ class Risk:
             if not pos.tp1_done and net >= config.LAUNCH_PARTIAL_PCT:
                 return "PARTIAL_30"
         else:
-            if not pos.tp1_done and net >= config.PARTIAL_TP[0]:
+            if not pos.tp1_done and net >= self.main_tp1():
                 return "PARTIAL_15"
             if pos.tp1_done and not pos.tp2_done and net >= config.PARTIAL_TP[1]:
                 return "PARTIAL_30"
