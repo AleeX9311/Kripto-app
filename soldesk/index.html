@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07080d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Sol Desk" />
+  <meta name="description" content="Papirna Solana miza. Virtualni denar. Ni napoved." />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="icon" href="./icon-192.png" />
+  <title>SOL DESK</title>
+  <style>
+    :root {
+      --bg: #07080d;
+      --panel: rgba(16, 20, 32, .72);
+      --line: rgba(160, 180, 255, .16);
+      --text: #e8eefc;
+      --muted: rgba(190, 204, 230, .62);
+      --scout: #3de0ff;
+      --filter: #ffb020;
+      --analyst: #c084fc;
+      --exec: #39ff88;
+      --risk: #ff4d6d;
+      --log: #6aa7ff;
+      --tabh: 52px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
+    body {
+      font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(var(--tabh) + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    }
+    button, input { font: inherit; color: inherit; }
+    header {
+      position: sticky; top: 0; z-index: 20;
+      display: grid; gap: 8px;
+      padding: 12px 14px 10px;
+      background: rgba(7, 8, 13, .88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+    .banner {
+      display: flex; justify-content: space-between; gap: 8px; align-items: center;
+      font-size: 11px; letter-spacing: .14em; color: var(--exec);
+    }
+    .banner b { font-weight: 650; }
+    #install {
+      border: 1px solid var(--scout); color: var(--scout); background: transparent;
+      border-radius: 999px; padding: 6px 10px; letter-spacing: .04em; cursor: pointer;
+    }
+    h1 { margin: 0; font-size: 18px; letter-spacing: .16em; font-weight: 650; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .stat {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      padding: 8px 10px; min-width: 0;
+    }
+    .stat span { display: block; color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .stat b { font-size: 15px; font-variant-numeric: tabular-nums; }
+    .up { color: var(--exec); } .dn { color: var(--risk); }
+    main { padding: 12px 14px 18px; display: grid; gap: 12px; }
+    .view { display: none; gap: 12px; }
+    .view.on { display: grid; }
+    .card {
+      background: linear-gradient(180deg, rgba(22, 28, 44, .85), rgba(10, 12, 20, .8));
+      border: 1px solid var(--line); border-radius: 16px; padding: 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .card h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    #age { font-size: 13px; margin: 0 0 8px; }
+    #age.stale { color: var(--filter); }
+    .pipe { position: relative; height: 168px; }
+    #flow { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .nodes { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding-top: 18px; }
+    .node {
+      text-align: center; background: transparent; border: 0; padding: 0; cursor: default;
+    }
+    .node i {
+      display: grid; place-items: center; margin: 0 auto 4px;
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 2px solid var(--c); color: var(--c);
+      box-shadow: 0 0 16px color-mix(in srgb, var(--c) 45%, transparent);
+      background: rgba(0,0,0,.35); font-style: normal; font-size: 11px; font-weight: 700;
+    }
+    .node.on i { animation: pulse 1s ease-in-out infinite; background: color-mix(in srgb, var(--c) 22%, black); }
+    .node small { display: block; font-size: 9px; letter-spacing: .04em; color: var(--muted); }
+    @keyframes pulse { 50% { transform: scale(1.08); box-shadow: 0 0 22px var(--c); } }
+    #drop { min-height: 32px; margin: 8px 0 0; font-size: 12px; color: var(--risk); text-align: center; }
+    .logger {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 6px; color: var(--log); font-size: 12px; letter-spacing: .08em;
+    }
+    .logger i {
+      width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+      border: 2px solid var(--log); font-style: normal; font-size: 10px;
+    }
+    .row, .rej {
+      display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 13px;
+    }
+    .dim { color: var(--muted); font-size: 12px; }
+    canvas#eq { width: 100%; height: 140px; display: block; }
+    .tabs {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+      height: calc(var(--tabh) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      background: rgba(8, 10, 16, .96); border-top: 1px solid var(--line);
+    }
+    .tabs button { background: transparent; border: 0; color: var(--muted); font-size: 10px; letter-spacing: .04em; }
+    .tabs button.on { color: white; }
+    #hint { display: none; margin-top: 8px; color: var(--muted); font-size: 12px; }
+    @media (display-mode: standalone) { .tabs { position: fixed; bottom: 0; } }
+    @media (min-width: 980px) {
+      header { grid-template-columns: auto 1fr auto; align-items: center; }
+      .stats { grid-template-columns: repeat(6, 1fr); }
+      main { max-width: 1200px; margin: 0 auto; width: 100%; }
+      .pipe { height: 220px; }
+      .node i { width: 64px; height: 64px; font-size: 13px; }
+      .tabs { height: 64px; }
+      :root { --tabh: 64px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="banner"><b>PAPER · VIRTUALNI DENAR</b><span id="src">—</span></div>
+      <h1>SOL DESK</h1>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div>
+      <button type="button" id="install">Namesti app</button>
+      <p id="hint"></p>
+    </div>
+  </header>
+  <main>
+    <section class="view on" id="view-desk">
+      <article class="card">
+        <h2>Cev agentov</h2>
+        <p id="age">Zadnji krog · čakam posnetek</p>
+        <div class="pipe">
+          <canvas id="flow"></canvas>
+          <div class="nodes" id="nodes"></div>
+        </div>
+        <div class="logger" data-agent="LOGGER"><i>LG</i> Dnevnik beleži vsak prenos</div>
+        <p id="drop"></p>
+        <p class="dim">Gibanje sledi pravim dogodkom iz posnetka. Ni napoved.</p>
+      </article>
+      <article class="card">
+        <h2>Krivulja stanja</h2>
+        <canvas id="eq"></canvas>
+      </article>
+    </section>
+    <section class="view" id="view-pozicije">
+      <article class="card"><h2>Odprte</h2><div id="open"></div></article>
+      <article class="card"><h2>Zaprte</h2><div id="closed"></div></article>
+    </section>
+    <section class="view" id="view-zavrnjeni">
+      <article class="card"><h2>Zavrnjeni</h2><div id="rej"></div></article>
+    </section>
+    <section class="view" id="view-stat">
+      <article class="card"><h2>Statistika</h2><div id="metrics"></div></article>
+      <article class="card"><h2>Vzorci</h2><div id="learn"></div><p class="dim">Šibek vzorec samo zviša prag. Ni napoved.</p></article>
+    </section>
+    <section class="view" id="view-dnevnik">
+      <article class="card"><h2>Dnevnik</h2><div id="log"></div></article>
+    </section>
+  </main>
+  <nav class="tabs" aria-label="Razdelki">
+    <button type="button" data-tab="desk" class="on">DESK</button>
+    <button type="button" data-tab="pozicije">POZICIJE</button>
+    <button type="button" data-tab="zavrnjeni">ZAVRNJENI</button>
+    <button type="button" data-tab="stat">STATISTIKA</button>
+    <button type="button" data-tab="dnevnik">DNEVNIK</button>
+  </nav>
+<script>
+(function () {
+  "use strict";
+  const STATUS_URL = "https://raw.githubusercontent.com/AleeX9311/Kripto-app/sol-desk-data/status.json";
+  const AGENTS = [
+    { id: "SCOUT", sl: "Iskalec", c: "#3de0ff" },
+    { id: "FILTER", sl: "Filter", c: "#ffb020" },
+    { id: "ANALYST", sl: "Analitik", c: "#c084fc" },
+    { id: "EXECUTOR", sl: "Izvajalec", c: "#39ff88" },
+    { id: "RISK", sl: "Tveganje", c: "#ff4d6d" },
+    { id: "LOGGER", sl: "Dnevnik", c: "#6aa7ff" }
+  ];
+  const $ = (id) => document.getElementById(id);
+  let data = null;
+  let lastStamp = "";
+  let queue = [];
+  let particle = null;
+  let hot = "";
+  let dropText = "";
+  const nodes = $("nodes");
+  nodes.innerHTML = AGENTS.filter((a) => a.id !== "LOGGER").map((a) =>
+    `<div class="node" data-agent="${a.id}" style="--c:${a.c}"><i>${a.id.slice(0, 2)}</i><small>${a.sl}</small></div>`
+  ).join("");
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+  function money(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return "—";
+    return v.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  }
+  function pct(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return "—";
+    return (v * 100).toFixed(1) + " %";
+  }
+  function ageText() {
+    if (!data || !data.last_update) return "Zadnji krog · ni posnetka";
+    const sec = Math.max(0, (Date.now() - new Date(data.last_update).getTime()) / 1000);
+    const mins = sec < 60 ? "<1" : String(Math.floor(sec / 60));
+    $("age").classList.toggle("stale", sec > 2 * 3600);
+    return "Zadnji krog pred " + mins + " min";
+  }
+  function paintAge() { $("age").textContent = ageText(); }
+
+  function stat(label, value, cls) {
+    return `<div class="stat"><span>${label}</span><b class="${cls || ""}">${value}</b></div>`;
+  }
+  function render(d) {
+    data = d;
+    const pnl = Number(d.pnl_pct) || 0;
+    const st = d.stats || {};
+    $("src").textContent = (d.data_source || "—") + (d.market && d.market.paused ? " · PAVZA" : "");
+    $("stats").innerHTML = [
+      stat("Kapital", money(d.balance)),
+      stat("Stanje", money(d.equity), pnl >= 0 ? "up" : "dn"),
+      stat("Izid", pct(pnl), pnl >= 0 ? "up" : "dn"),
+      stat("Zadetki", st.win_rate == null ? "—" : pct(st.win_rate)),
+      stat("Odprto", String(d.open_n || 0)),
+      stat("Zaprto", String(d.closed_n || 0))
+    ].join("");
+    paintAge();
+    const open = d.open || [];
+    $("open").innerHTML = open.length ? open.map((p) => {
+      const net = Number(p.fill_price) ? (Number(p.last_price) / Number(p.fill_price) - 1) : 0;
+      const flags = [
+        p.tp1_done ? "delno +15" : "TP1 čaka",
+        p.tp2_done ? "delno +30" : "TP2 čaka",
+        p.breakeven ? "breakeven" : "",
+        p.trail_armed ? "sled" : "trdi stop"
+      ].filter(Boolean).join(" · ");
+      return `<div class="row"><b>${esc(p.symbol)}</b> <span class="${net >= 0 ? "up" : "dn"}">${esc((net * 100).toFixed(1))} %</span><div class="dim">vstop ${esc(p.fill_price)} · zdaj ${esc(p.last_price)} · ${esc(flags)}</div></div>`;
+    }).join("") : `<p class="dim">Ni odprtih pozicij.</p>`;
+    const closed = (d.closed || []).slice().reverse();
+    $("closed").innerHTML = closed.length ? closed.map((t) => `<div class="row"><b class="${Number(t.pnl_usd) >= 0 ? "up" : "dn"}">${esc(t.symbol)} ${esc(money(t.pnl_usd))}</b><div class="dim">${esc(t.reason || "")}</div></div>`).join("") : `<p class="dim">Ni zaprtih poslov.</p>`;
+    const rej = d.rejections || [];
+    $("rej").innerHTML = rej.length ? rej.slice().reverse().map((r) => `<div class="rej"><b>${esc(r.symbol || "—")}</b> ${esc(r.kind || "")}<div class="dim">${esc((r.reasons || []).slice(0, 3).join(" · "))}</div></div>`).join("") : `<p class="dim">Ni zabeleženih zavrnitev.</p>`;
+    const m = d.stats || {};
+    const line = (k, v) => `<div class="row"><span>${k}</span><b>${v}</b></div>`;
+    $("metrics").innerHTML = [
+      line("Zadetki", m.win_rate == null ? "—" : pct(m.win_rate)),
+      line("Faktor dobička", m.profit_factor == null ? "—" : m.profit_factor),
+      line("Pričakovani posel", m.expectancy == null ? "—" : money(m.expectancy)),
+      line("Največji padec", m.max_drawdown == null ? "—" : pct(m.max_drawdown)),
+      line("Povprečen R", m.avg_r == null ? "—" : m.avg_r),
+      line("Posli", String(m.n || 0))
+    ].join("") + `<p class="dim">${d.market && d.market.pause_reason ? esc(d.market.pause_reason) : "Trg ne zaustavlja novih vstopov."} SOL 1h ${d.market && d.market.sol_1h != null ? esc(d.market.sol_1h) + " %" : "—"}.</p>`;
+    const learn = d.learning || [];
+    $("learn").innerHTML = learn.length ? learn.map((row) => `<div class="row"><b>${esc(row.bucket)}</b><div class="dim">n=${esc(row.n)} · zadetki ${row.win_rate == null ? "—" : esc(pct(row.win_rate))} · ${esc(money(row.pnl))}</div></div>`).join("") : `<p class="dim">Še ni vzorcev.</p>`;
+    const ev = (d.events || []).slice().reverse();
+    $("log").innerHTML = ev.length ? ev.map((e) => `<div class="row"><b style="color:${(AGENTS.find((a) => a.id === e.agent) || {}).c || "#fff"}">${esc(e.agent)}</b> ${esc(e.symbol || "")}<div class="dim">${esc((e.ts || "").slice(11, 19))} · ${esc(e.message || "")}</div></div>`).join("") : `<p class="dim">Dnevnik je prazen.</p>`;
+    drawEq();
+    const fresh = (d.events || []).filter((e) => lastStamp && e.ts > lastStamp);
+    const seed = !lastStamp ? (d.events || []).slice(-6) : fresh;
+    seed.forEach((e) => queue.push(e));
+    const newest = (d.events || []).map((e) => e.ts || "").sort().pop();
+    if (newest) lastStamp = newest;
+  }
+
+  function drawEq() {
+    const c = $("eq");
+    const w = c.clientWidth || 320, h = 140;
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    c.width = Math.floor(w * dpr); c.height = Math.floor(h * dpr);
+    const g = c.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const pts = ((data && data.equity_history) || []).map((row) => Number(row[1])).filter((n) => Number.isFinite(n));
+    if (pts.length < 2) { g.fillStyle = "#8aa"; g.fillText("Še ni krivulje", 8, 24); return; }
+    const min = Math.min.apply(null, pts), max = Math.max.apply(null, pts);
+    const flat = max === min;
+    const span = flat ? 1 : (max - min);
+    g.beginPath();
+    pts.forEach((v, i) => {
+      const x = (i / (pts.length - 1)) * (w - 8) + 4;
+      const y = flat ? h / 2 : 8 + (h - 16) * (1 - (v - min) / span);
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    });
+    g.strokeStyle = "#3de0ff"; g.lineWidth = 2; g.stroke();
+  }
+
+  function nodeBox(id) {
+    const el = document.querySelector(`[data-agent="${id}"] i`) || document.querySelector('[data-agent="LOGGER"] i');
+    const pipe = document.querySelector(".pipe").getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - pipe.left, y: r.top + r.height / 2 - pipe.top };
+  }
+  function frame(ts) {
+    const c = $("flow");
+    const pipe = document.querySelector(".pipe");
+    const w = pipe.clientWidth, h = pipe.clientHeight;
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    if (c.width !== Math.floor(w * dpr)) { c.width = Math.floor(w * dpr); c.height = Math.floor(h * dpr); }
+    const g = c.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const ids = ["SCOUT", "FILTER", "ANALYST", "EXECUTOR", "RISK"];
+    g.strokeStyle = "rgba(120,160,255,.35)";
+    g.lineWidth = 1.4;
+    for (let i = 0; i < ids.length - 1; i++) {
+      const a = nodeBox(ids[i]), b = nodeBox(ids[i + 1]);
+      g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+    }
+    if (!particle && queue.length) {
+      const ev = queue.shift();
+      const dest = nodeBox(ev.agent || "LOGGER");
+      const fromId = ids[Math.max(0, ids.indexOf(ev.agent) - 1)] || "SCOUT";
+      const from = nodeBox(ev.agent === "SCOUT" ? "SCOUT" : fromId);
+      particle = { ev, from, dest, t: 0, drop: ev.level === "kill" };
+      hot = ev.agent || "";
+      document.querySelectorAll(".node").forEach((n) => n.classList.toggle("on", n.dataset.agent === hot || n.dataset.agent === "LOGGER"));
+    }
+    if (particle) {
+      particle.t += 0.02;
+      const k = Math.min(1, particle.t);
+      const x = particle.from.x + (particle.dest.x - particle.from.x) * k;
+      const y = particle.from.y + (particle.dest.y - particle.from.y) * k;
+      const col = (AGENTS.find((a) => a.id === particle.ev.agent) || AGENTS[0]).c;
+      g.fillStyle = col;
+      g.shadowColor = col; g.shadowBlur = 12;
+      g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
+      g.shadowBlur = 0;
+      g.font = "11px sans-serif"; g.fillText(particle.ev.symbol || "", x + 8, y - 8);
+      if (k >= 1 && particle.drop) {
+        dropText = (particle.ev.symbol || "") + " · " + (particle.ev.message || "");
+        $("drop").textContent = dropText;
+        particle = null;
+      } else if (k >= 1) particle = null;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(STATUS_URL + "?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      const json = await res.json();
+      if (!json || json.note !== "PAPER") throw new Error("posnetek");
+      render(json);
+    } catch (_) {
+      if (!data) $("age").textContent = "Posnetka še ni · samo papir";
+    }
+  }
+  document.querySelector(".tabs").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-tab]");
+    if (!btn) return;
+    document.querySelectorAll(".view").forEach((v) => v.classList.toggle("on", v.id === "view-" + btn.dataset.tab));
+    document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b === btn));
+    if (btn.dataset.tab === "desk") drawEq();
+  });
+  let deferred = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; });
+  $("install").addEventListener("click", async () => {
+    if (deferred) { deferred.prompt(); deferred = null; return; }
+    $("hint").style.display = "block";
+    $("hint").textContent = "V Chromu ali Edgeu uporabi namestitev v naslovni vrstici. Na iPhonu: Deli, nato Na začetni zaslon.";
+  });
+  setInterval(paintAge, 30000);
+  setInterval(load, 30000);
+  load();
+  requestAnimationFrame(frame);
+  if ("serviceWorker" in navigator) {
+    let once = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (once) return; once = true; location.reload(); });
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+name: Solana paper desk
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sol-desk-data
+  cancel-in-progress: false
+
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Install dependencies
+        run: python3 -m pip install --quiet -r soldesk/engine/requirements.txt
+
+      - name: Load book from sol-desk-data
+        run: |
+          set -euo pipefail
+          mkdir -p soldesk/engine/logs
+          if git fetch --depth=1 origin sol-desk-data; then
+            git show FETCH_HEAD:state.json > soldesk/engine/state.json
+            for f in decisions.jsonl trades.csv equity.csv; do
+              git cat-file -e "FETCH_HEAD:$f" 2>/dev/null && git show "FETCH_HEAD:$f" > "soldesk/engine/logs/$f" || true
+            done
+            echo "Loaded sol-desk-data"
+          else
+            echo "sol-desk-data is missing — the desk will open a new $1000 paper book"
+          fi
+
+      - name: Paper passes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          publish() {
+            test -f soldesk/engine/state.json
+            test -f soldesk/engine/status.json
+            WT="${RUNNER_TEMP}/sol-desk-wt"
+            if [ ! -e "$WT/.git" ]; then
+              rm -rf "$WT"
+              if git fetch --depth=1 origin sol-desk-data; then
+                git worktree add -B sol-desk-data "$WT" FETCH_HEAD
+              else
+                git worktree add --detach "$WT" HEAD
+                git -C "$WT" switch --orphan sol-desk-data
+                git -C "$WT" rm -rf --cached . >/dev/null 2>&1 || true
+              fi
+            fi
+            cp soldesk/engine/state.json "$WT/state.json"
+            cp soldesk/engine/status.json "$WT/status.json"
+            mkdir -p "$WT"
+            if [ -f soldesk/engine/logs/decisions.jsonl ]; then
+              tail -n 400 soldesk/engine/logs/decisions.jsonl > "$WT/decisions.jsonl"
+            fi
+            if [ -f soldesk/engine/logs/trades.csv ]; then
+              cp soldesk/engine/logs/trades.csv "$WT/trades.csv"
+            fi
+            if [ -f soldesk/engine/logs/equity.csv ]; then
+              cp soldesk/engine/logs/equity.csv "$WT/equity.csv"
+            fi
+            git -C "$WT" add -- state.json status.json decisions.jsonl trades.csv equity.csv
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                state.json|status.json|decisions.jsonl|trades.csv|equity.csv) ;;
+                *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
+              esac
+            done < <(git -C "$WT" ls-files)
+            if git -C "$WT" diff --cached --quiet; then
+              echo "No snapshot changes"
+              return 0
+            fi
+            git -C "$WT" commit -m "Update Solana paper desk snapshot"
+            git -C "$WT" push origin HEAD:sol-desk-data
+          }
+
+          # Several minutes of passes, about every 25s, inside one scheduled run.
+          SOLDESK_CLOUD=1 python3 soldesk/engine/main.py --headless --minutes 3.5 --poll 20
+          publish
