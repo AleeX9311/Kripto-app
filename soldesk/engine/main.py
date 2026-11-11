@@ -261,7 +261,19 @@ class Desk:
                     continue
             elif self.state["data_source"] == "LIVE" and vol_ok and processed >= 12:
                 continue
-            self.process_candidate(cand)
+            try:
+                self.process_candidate(cand)
+            except Exception as exc:
+                self._emit(
+                    Event(
+                        ts=iso(),
+                        agent="FILTER",
+                        level="warn",
+                        message=f"{cand.symbol}  preskok  {type(exc).__name__}: {exc}",
+                        mint=cand.mint,
+                        symbol=cand.symbol,
+                    )
+                )
             self.seen[cand.mint] = time.time()
             if cand.lane == "novi_lans":
                 launch_n += 1

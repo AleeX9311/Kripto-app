@@ -529,7 +529,7 @@ class Market:
     def token_pool_stats(self, mint: str, network: str = "solana") -> dict:
         """Unique buyers and volume from the token's busiest Gecko pool. Empty if missing."""
         data = self.http._get(
-            self.gecko_rl,
+            self.http.gecko_rl,
             f"{config.GECKO_BASE}/networks/{network}/tokens/{mint}/pools",
             params={"page": 1},
         )

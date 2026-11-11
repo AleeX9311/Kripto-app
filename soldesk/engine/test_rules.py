@@ -140,6 +140,23 @@ def test_time_stop_when_flat():
     assert reason and reason.startswith("ČASOVNI")
 
 
+def test_pool_stats_uses_the_http_limiter():
+    from market import Market
+
+    market = Market()
+    seen = {}
+
+    def _get(limiter, url, params=None):
+        seen["limiter"] = limiter
+        seen["url"] = url
+        return {"data": []}
+
+    market.http._get = _get
+    assert market.token_pool_stats("mint", "solana") == {}
+    assert seen["limiter"] is market.http.gecko_rl
+    assert "/networks/solana/tokens/mint/pools" in seen["url"]
+
+
 if __name__ == "__main__":
     test_top10_cap_is_75_and_excludes_curve()
     test_launch_stop_and_half()
@@ -148,4 +165,5 @@ if __name__ == "__main__":
     test_partial_then_remainder()
     test_learning_only_tightens()
     test_time_stop_when_flat()
+    test_pool_stats_uses_the_http_limiter()
     print("soldesk rules ok")
