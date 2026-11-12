@@ -435,6 +435,8 @@ def _tighten(current: dict, params: dict) -> dict:
     out.pop("dno_tp", None)
     out.pop("dno_size", None)
     out.pop("dno_positions", None)
+    out.pop("dno_time", None)
+    out.pop("dno_time_sec", None)
     return out
 
 

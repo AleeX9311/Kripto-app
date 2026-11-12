@@ -1,5 +1,5 @@
 /* Sol Desk shell. Never caches status.json. */
-const CACHE = "soldesk-shell-v7";
+const CACHE = "soldesk-shell-v8";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./icon-maskable.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {

@@ -203,7 +203,8 @@ def test_dno_exits_are_full_and_fixed():
     assert risk.check_exit(target, _mid_for_net(risk, target, 0.50)).startswith("DNO CILJ")
     held = _pos(1.0, 30.0)
     held.lane = "dno"
-    assert risk.check_exit(held, _mid_for_net(risk, held, 0.20)) is None
+    held.opened_at = "2020-01-01T00:00:00+00:00"
+    assert risk.check_exit(held, _mid_for_net(risk, held, 0.0)) is None
     assert held.trail_armed is False
     from agents.executor import Executor
     size = Executor().size_usd(1000, 1000, config.DNO_MAX_POSITION_PCT, ceiling=config.DNO_MAX_POSITION_PCT)
@@ -220,12 +221,14 @@ def test_learner_cannot_move_dno_stop_or_target():
         "min_score": 0.55, "min_age_min": 45, "min_buyers": 25, "min_liquidity": 0,
         "pullback_min": 0.03, "trail": 0.06, "time_min": 40, "tp": 0.15,
         "dno_stop": -0.50, "dno_tp": 0.20, "dno_size": 0.20, "dno_positions": 9,
+        "dno_time": 48, "dno_time_sec": 3600,
         "stop": -0.40, "size": 0.20,
         "dno_min_drawdown": 0.55,
     }
     tightened = strateg._tighten({}, poisoned)
     assert "dno_stop" not in tightened and "dno_tp" not in tightened and "stop" not in tightened
     assert "dno_size" not in tightened and "dno_positions" not in tightened and "size" not in tightened
+    assert "dno_time" not in tightened and "dno_time_sec" not in tightened
     assert tightened["dno_min_drawdown"] == 0.55
     view = strateg.live_view({"strategy": {"version": 3, "rules_version": 3, "live": {"dno_stop": -0.50, "dno_tp": 0.10, "dno_size": 0.25, "dno_positions": 9, "dno_min_score": 0.20}, "variants": {}, "history": [], "pending": [], "lessons": []}})
     assert "dno_stop" not in view and "dno_tp" not in view and "dno_size" not in view and "dno_positions" not in view

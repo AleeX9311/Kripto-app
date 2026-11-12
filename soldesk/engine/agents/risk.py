@@ -107,8 +107,8 @@ class Risk:
     def _limits(self, pos: Position) -> tuple[float, float, float, bool]:
         lane = getattr(pos, "lane", "glavni")
         if lane == "dno":
-            # Trail arm is unreachable. DNO has no trail and no breakeven.
-            return config.DNO_HARD_STOP_PCT, 9.0, config.DNO_TIME_STOP_SEC, False
+            # No time stop. A DNO position waits for the stop or the target.
+            return config.DNO_HARD_STOP_PCT, 9.0, 0.0, False
         if lane == "novi_lans":
             return config.LAUNCH_HARD_STOP_PCT, config.LAUNCH_TRAIL_ACTIVATE_PCT, config.LAUNCH_TIME_STOP_SEC, False
         time_stop = config.TIME_STOP_SEC
@@ -151,15 +151,6 @@ class Risk:
                 )
             if net >= config.DNO_TAKE_PROFIT_PCT:
                 return f"DNO CILJ  neto {net:.2%} ≥ {config.DNO_TAKE_PROFIT_PCT:.0%}"
-            try:
-                opened = datetime.fromisoformat(pos.opened_at)
-                if opened.tzinfo is None:
-                    opened = opened.replace(tzinfo=timezone.utc)
-                held = (utcnow() - opened).total_seconds()
-            except (TypeError, ValueError):
-                held = 0
-            if held >= config.DNO_TIME_STOP_SEC:
-                return f"DNO ČAS  {held / 3600:.0f} h, neto {net:.2%}"
             return None
         if net <= stop:
             return (
