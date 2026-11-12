@@ -2,7 +2,7 @@
   "note": "SIMULACIJA",
   "started": "2026-11-09T20:47:36+01:00",
   "ends": "2026-11-16T20:45:00+01:00",
-  "last_update": "2026-11-12T09:02:02+01:00",
+  "last_update": "2026-11-12T09:04:25+01:00",
   "equity_eur": 87.26,
   "equity_usd": 97.46,
   "pct_vs_eur50": -12.74,
@@ -2654,6 +2654,22 @@
   ],
   "activity": [
     {
+      "time": "2026-11-12T09:03:12+01:00",
+      "type": "scan",
+      "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
+    },
+    {
+      "time": "2026-11-12T09:04:00+01:00",
+      "type": "skip",
+      "symbol": "GATO",
+      "text": "PRESKOČI GATO · pada, ni dna · ni napoved"
+    },
+    {
+      "time": "2026-11-12T09:03:12+01:00",
+      "type": "scan",
+      "text": "REŽIM BNB NEVTRALNO · SOL MEDVED"
+    },
+    {
       "time": "2026-11-12T09:00:35+01:00",
       "type": "scan",
       "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
@@ -2837,21 +2853,6 @@
       "time": "2026-11-12T08:15:02+01:00",
       "type": "scan",
       "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
-    },
-    {
-      "time": "2026-11-12T08:15:02+01:00",
-      "type": "scan",
-      "text": "REŽIM BNB MEDVED · SOL MEDVED"
-    },
-    {
-      "time": "2026-11-12T08:12:25+01:00",
-      "type": "scan",
-      "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
-    },
-    {
-      "time": "2026-11-12T08:12:25+01:00",
-      "type": "scan",
-      "text": "REŽIM BNB NEVTRALNO · SOL NEVTRALNO"
     }
   ],
   "equity_history": [
@@ -4914,6 +4915,11 @@
       "t": "2026-11-12T09:02:02+01:00",
       "usd": 97.46,
       "eur": 87.26
+    },
+    {
+      "t": "2026-11-12T09:04:25+01:00",
+      "usd": 97.46,
+      "eur": 87.26
     }
   ],
   "learning": {
@@ -5047,8 +5053,8 @@
     ]
   },
   "regime": {
-    "bsc": "MEDVED",
-    "solana": "NEVTRALNO"
+    "bsc": "NEVTRALNO",
+    "solana": "MEDVED"
   },
   "brake": true,
   "metrics": {
@@ -5095,17 +5101,19 @@
       "chain": "solana",
       "url": "https://dexscreener.com/solana/7yxjoirdtvkhvjtnfocizkh6ro1bturtezsh2hewu1je",
       "label": "Čaka na potrditev",
-      "score": 0,
+      "score": 35,
       "reasons": [
-        "ni dovolj 15m sveč"
+        "stran od podpore",
+        "višje dno",
+        "padec 72% od vrha"
       ],
       "since": "2026-11-12T02:12:37+01:00",
-      "price": 0.000493542234868352,
-      "swing_low": null,
-      "ema20": null,
+      "price": 0.0004535806682705404,
+      "swing_low": 0.00037160927217314444,
+      "ema20": 0.0005620985050756187,
       "confirm_price": null,
-      "support_low": null,
-      "support_high": null,
+      "support_low": 0.00035530772294030323,
+      "support_high": 0.00037160927217314444,
       "note": "ni napoved"
     },
     {
@@ -5127,24 +5135,6 @@
       "note": "ni napoved"
     },
     {
-      "symbol": "GATO",
-      "chain": "solana",
-      "url": "https://dexscreener.com/solana/5e3dxlxgwmtdcoka51wyyakttjfzbwqcoyuhbui5gt2m",
-      "label": "Čaka na potrditev",
-      "score": 0,
-      "reasons": [
-        "ni dovolj 15m sveč"
-      ],
-      "since": "2026-11-12T04:17:07+01:00",
-      "price": 0.005974579830693384,
-      "swing_low": null,
-      "ema20": null,
-      "confirm_price": null,
-      "support_low": 0.005438076918254224,
-      "support_high": 0.005646347637767736,
-      "note": "ni napoved"
-    },
-    {
       "symbol": "UODF",
       "chain": "solana",
       "url": "https://dexscreener.com/solana/4eu125a9ruqavmsnwaufc5ghedb3jt3bs3keb6emiuu5",
@@ -5155,12 +5145,12 @@
         "padec 96% od vrha"
       ],
       "since": "2026-11-12T04:32:27+01:00",
-      "price": 0.00688907864649101,
+      "price": 0.006898609137927528,
       "swing_low": 0.005707604594438188,
-      "ema20": 0.01814086071435719,
+      "ema20": 0.018141768380208284,
       "confirm_price": null,
-      "support_low": 0.005857051593625065,
-      "support_high": 0.005857051593625065,
+      "support_low": 0.005707604594438188,
+      "support_high": 0.005707604594438188,
       "note": "ni napoved"
     },
     {
@@ -5168,19 +5158,17 @@
       "chain": "solana",
       "url": "https://dexscreener.com/solana/fjk9sajdc2q4herppu3ylzkmf2zbyzkpihqlv9e2bn5a",
       "label": "Čaka na potrditev",
-      "score": 45,
+      "score": 0,
       "reasons": [
-        "blizu podpore",
-        "zeleni volumen večji",
-        "padec 81% od vrha"
+        "ni dovolj 15m sveč"
       ],
       "since": "2026-11-12T02:09:39+01:00",
       "price": 0.0036829837783196283,
-      "swing_low": 0.0030486473296637857,
-      "ema20": 0.0038165929968085885,
+      "swing_low": null,
+      "ema20": null,
       "confirm_price": null,
-      "support_low": 0.003481409826945026,
-      "support_high": 0.003550103571487384,
+      "support_low": 0.0026624895829215327,
+      "support_high": 0.0033973022914153507,
       "note": "ni napoved"
     }
   ]
