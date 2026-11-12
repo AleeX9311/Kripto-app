@@ -56,18 +56,24 @@ VARIANTS = [
 ]
 
 
+def _baseline() -> dict:
+    return {"label": config.RULES_NOTE, "changes": list(config.RULES_CHANGES)}
+
+
 def fresh() -> dict:
     return {
-        "version": 1,
+        "version": config.RULES_VERSION,
+        "rules_version": config.RULES_VERSION,
+        "baseline": _baseline(),
         "live": {},
-        "history": [{"version": 1, "why": "začetek, privzete meje", "at": iso()}],
+        "history": [{"version": config.RULES_VERSION, "why": config.RULES_NOTE, "at": iso(), "changes": list(config.RULES_CHANGES)}],
         "variants": {
-            row["id"]: {"label": row["label"], "params": row["params"], "wins": 0, "losses": 0, "pnl": 0.0, "peak": 0.0, "equity": 0.0, "max_dd": 0.0}
+            row["id"]: {"label": row["label"], "params": dict(row["params"]), "wins": 0, "losses": 0, "pnl": 0.0, "peak": 0.0, "equity": 0.0, "max_dd": 0.0}
             for row in VARIANTS
         },
         "pending": [],
         "lessons": [],
-        "last_change": "začetek, privzete meje",
+        "last_change": config.RULES_NOTE,
         "live_after": [],
     }
 
@@ -78,14 +84,39 @@ def ensure(state: dict) -> dict:
         book = fresh()
         state["strategy"] = book
     for row in VARIANTS:
-        book["variants"].setdefault(row["id"], {"label": row["label"], "params": row["params"], "wins": 0, "losses": 0, "pnl": 0.0, "peak": 0.0, "equity": 0.0, "max_dd": 0.0})
+        book["variants"].setdefault(row["id"], {"label": row["label"], "params": dict(row["params"]), "wins": 0, "losses": 0, "pnl": 0.0, "peak": 0.0, "equity": 0.0, "max_dd": 0.0})
     book.setdefault("pending", [])
     book.setdefault("history", [])
     book.setdefault("lessons", [])
     book.setdefault("live", {})
     book.setdefault("live_after", [])
     book.setdefault("version", 1)
+    _apply_manual_baseline(book)
     return book
+
+
+def _apply_manual_baseline(book: dict) -> None:
+    """Stamp a user-approved baseline once. Later promotions may only tighten."""
+    if int(book.get("rules_version") or 0) >= int(config.RULES_VERSION):
+        book.setdefault("baseline", _baseline())
+        return
+    for row in VARIANTS:
+        slot = book["variants"].get(row["id"])
+        if not slot:
+            continue
+        slot["label"] = row["label"]
+        slot["params"] = dict(row["params"])
+    book["rules_version"] = int(config.RULES_VERSION)
+    book["version"] = max(int(book.get("version") or 1), int(config.RULES_VERSION))
+    book["baseline"] = _baseline()
+    book["last_change"] = config.RULES_NOTE
+    book.setdefault("history", []).append({
+        "version": book["version"],
+        "why": config.RULES_NOTE,
+        "at": iso(),
+        "changes": list(config.RULES_CHANGES),
+        "live": dict(book.get("live") or {}),
+    })
 
 
 def would_enter(features: dict, params: dict) -> bool:
@@ -113,7 +144,10 @@ def would_enter(features: dict, params: dict) -> bool:
             pullback = features.get("pullback")
             if pullback is None or float(pullback) < float(params["pullback_min"]):
                 return False
-            if not features.get("higher_low") or not features.get("vwap_ok") or not features.get("ema_ok"):
+            if not features.get("higher_low"):
+                return False
+            confirmed = bool(features.get("vwap_ok") or features.get("ema_ok") or float(ratio) > 0.5)
+            if not confirmed:
                 return False
     return True
 
@@ -444,8 +478,10 @@ def public(book: dict | None) -> dict:
     rows.sort(key=lambda item: (-(item["expectancy"] or -999), -item["n"]))
     return {
         "version": book.get("version") or 1,
+        "rules_version": book.get("rules_version") or config.RULES_VERSION,
+        "baseline": book.get("baseline") or _baseline(),
         "live": book.get("live") or {},
-        "last_change": book.get("last_change") or "",
+        "last_change": book.get("last_change") or config.RULES_NOTE,
         "variants": rows,
         "lessons": list(book.get("lessons") or ["Premalo podatkov za lekcije. Senca še nima osmih izidov."]),
         "pending": len(book.get("pending") or []),

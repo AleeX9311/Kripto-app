@@ -105,6 +105,17 @@ def makers_ok(cand: Candidate, memory: dict) -> tuple[bool, str]:
     return True, f"ustvarjalci {before} → {buyers}"
 
 
+def entry_gate(structure_5m: bool, above_ema: bool, above_vwap: bool, buy_pressure: bool) -> bool:
+    """5-minute pullback and higher low, plus one other confirmation.
+
+    The 1-minute structure and a rising maker count are recorded, and they
+    do not block. Missing the 5-minute structure still fails closed.
+    """
+    if not structure_5m:
+        return False
+    return bool(above_ema or above_vwap or buy_pressure)
+
+
 def evaluate(
     cand: Candidate,
     market: Market,
@@ -129,26 +140,30 @@ def evaluate(
         ok1, why1 = structure_ok(rows1, "1m", pullback_min)
     reasons.append(why5)
     reasons.append(why1)
-    if not ok5 or not ok1:
-        return False, reasons, "ni_potrditve"
+    above_ema = False
+    above_vwap = False
     closes = [float(row[4]) for row in rows5]
-    ema9 = _ema(closes, 9)
-    vwap = _vwap(rows5)
-    last = closes[-1]
-    if ema9 is None or last <= ema9:
-        reasons.append("cena ni nad EMA9 na 5m" if ema9 else "ni podatka (EMA9)")
-        return False, reasons, "pod_ema"
-    reasons.append(f"nad EMA9 {ema9:.6g}")
-    if vwap is None or last < vwap:
-        reasons.append("cena ni nad VWAP" if vwap else "ni podatka (VWAP)")
-        return False, reasons, "pod_vwap"
-    reasons.append("nad VWAP")
+    if closes:
+        ema9 = _ema(closes, 9)
+        vwap = _vwap(rows5)
+        last = closes[-1]
+        if ema9 is not None and last > ema9:
+            above_ema = True
+            reasons.append(f"nad EMA9 {ema9:.6g}")
+        else:
+            reasons.append("cena ni nad EMA9 na 5m" if ema9 else "ni podatka (EMA9)")
+        if vwap is not None and last >= vwap:
+            above_vwap = True
+            reasons.append("nad VWAP")
+        else:
+            reasons.append("cena ni nad VWAP" if vwap else "ni podatka (VWAP)")
+    else:
+        reasons.append("ni podatka (EMA9)")
+        reasons.append("ni podatka (VWAP)")
     ok_p, why_p = pressure_ok(cand)
     reasons.append(why_p)
-    if not ok_p:
-        return False, reasons, "ni_pritiska"
-    ok_m, why_m = makers_ok(cand, memory)
+    _ok_m, why_m = makers_ok(cand, memory)
     reasons.append(why_m)
-    if not ok_m:
-        return False, reasons, "ustvarjalci"
-    return True, reasons, "umik_visji_min"
+    if entry_gate(ok5, above_ema, above_vwap, ok_p):
+        return True, reasons, "umik_in_potrditev"
+    return False, reasons, "ni_potrditve"

@@ -27,7 +27,7 @@ def test_hard_kill_never_enters():
 
 def test_score_floor_holds():
     from strateg import VARIANTS
-    low = _feat(score=0.55)
+    low = _feat(score=0.50)
     assert all(not would_enter(low, row["params"]) for row in VARIANTS)
 
 

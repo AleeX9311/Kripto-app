@@ -403,9 +403,13 @@
     if (live.trail) bits.push("sled " + Math.round(live.trail * 100) + " %");
     if (live.time_min) bits.push("čas " + live.time_min + " min");
     if (live.tp) bits.push("delni izstop " + Math.round(live.tp * 100) + " %");
+    const changes = ((s.baseline || {}).changes || []).map((row) =>
+      `<div class="row"><b>${esc(row.kaj)}</b><div class="dim">${esc(row.prej)} → ${esc(row.zdaj)}</div></div>`
+    ).join("");
     $("stratLive").innerHTML = [
-      `<div class="row"><b>Različica ${esc(s.version || 1)}</b><div class="dim">${bits.length ? esc(bits.join(" · ")) : "Privzete meje. Varnost se ne rahlja."}</div></div>`,
-      `<div class="row"><span>Zadnja sprememba</span><div class="dim">${esc(s.last_change || "še ni promocije")}</div></div>`,
+      `<div class="row"><b>Različica ${esc(s.version || 1)}</b><div class="dim">${esc(s.last_change || "v2 · ročno sproščeno po želji uporabnika")}</div></div>`,
+      changes,
+      `<div class="row"><span>Samodejno zaostrovanje</span><div class="dim">${bits.length ? esc(bits.join(" · ")) : "Ni dodatnega zaostrovanja čez to osnovo."}</div></div>`,
       `<div class="row"><span>Trde meje</span><div class="dim">velikost ${floors.size != null ? Math.round(floors.size * 100) : 8} % · lans ${floors.launch_size != null ? Math.round(floors.launch_size * 100) : 3} % · stop ${floors.stop != null ? Math.round(floors.stop * 100) : -6} % · lans stop ${floors.launch_stop != null ? Math.round(floors.launch_stop * 100) : -10} %</div></div>`,
       `<p class="dim">Čakajočih sence: ${esc(s.pending || 0)}. Senca ne premika kapitala.</p>`
     ].join("");

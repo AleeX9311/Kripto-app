@@ -140,6 +140,35 @@ def test_time_stop_when_flat():
     assert reason and reason.startswith("ČASOVNI")
 
 
+def test_entry_gate_needs_structure_and_one_confirmation():
+    from agents.timing import entry_gate
+
+    assert entry_gate(False, True, True, True) is False
+    assert entry_gate(True, False, False, False) is False
+    assert entry_gate(True, True, False, False) is True
+    assert entry_gate(True, False, True, False) is True
+    assert entry_gate(True, False, False, True) is True
+
+
+def test_manual_baseline_is_v2_and_keeps_stats():
+    import strateg
+
+    state = {"strategy": strateg.fresh()}
+    state["strategy"]["rules_version"] = 1
+    state["strategy"]["version"] = 1
+    state["strategy"]["history"] = [{"version": 1, "why": "začetek"}]
+    state["strategy"]["variants"]["zdaj"]["wins"] = 3
+    state["strategy"]["variants"]["zdaj"]["params"]["min_score"] = 0.60
+    book = strateg.ensure(state)
+    assert book["rules_version"] == 2
+    assert book["last_change"].startswith("v2 · ročno sproščeno")
+    assert book["variants"]["zdaj"]["wins"] == 3
+    assert book["variants"]["zdaj"]["params"]["min_score"] == config.MIN_ANALYST_SCORE
+    assert book["variants"]["zdaj"]["params"]["min_buyers"] == config.LAUNCH_MIN_BUYERS
+    again = strateg.ensure(state)
+    assert sum(1 for row in again["history"] if "ročno sproščeno" in row.get("why", "")) == 1
+
+
 def test_pool_stats_uses_the_http_limiter():
     from market import Market
 
@@ -165,5 +194,7 @@ if __name__ == "__main__":
     test_partial_then_remainder()
     test_learning_only_tightens()
     test_time_stop_when_flat()
+    test_entry_gate_needs_structure_and_one_confirmation()
+    test_manual_baseline_is_v2_and_keeps_stats()
     test_pool_stats_uses_the_http_limiter()
     print("soldesk rules ok")

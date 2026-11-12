@@ -62,8 +62,8 @@ RUG_LIQUIDITY_COLLAPSE_PCT = 0.80
 LAUNCH_MAX_AGE_MIN = 180
 LAUNCH_MAX_DEV_PCT = 10.0
 LAUNCH_MAX_BUNDLE_PCT = 25.0
-LAUNCH_MIN_BUYERS = 40
-LAUNCH_MIN_VOLUME_USD = 8_000.0   # scaled to the first 15 minutes of life
+LAUNCH_MIN_BUYERS = 25
+LAUNCH_MIN_VOLUME_USD = 4_000.0   # scaled to the first 15 minutes of life
 LAUNCH_VOLUME_WINDOW_MIN = 15.0
 LAUNCH_MAX_MULTIPLE = 5.0         # skip once price is already >5x from launch
 LAUNCH_MAX_POSITION_PCT = 0.03    # 3% of equity; still never above MAX_POSITION_PCT
@@ -76,10 +76,26 @@ LAUNCH_TIME_STOP_SEC = 20 * 60
 LAUNCH_BATCH = 8
 LAUNCH_RECHECK_SEC = 90
 
+# Manual baseline v2 (user asked to loosen non-safety gates after a night of
+# zero paper entries). The learner may only tighten from these numbers.
+# Size, stops, and safety kills are not in this list.
+RULES_VERSION = 2
+RULES_NOTE = "v2 · ročno sproščeno po želji uporabnika"
+RULES_CHANGES = [
+    {"kaj": "Prag analitika", "prej": "0,60", "zdaj": "0,55"},
+    {"kaj": "Novi lans, unikatni kupci", "prej": "40", "zdaj": "25"},
+    {"kaj": "Novi lans, osnovni volumen", "prej": "8.000 USD", "zdaj": "4.000 USD"},
+    {
+        "kaj": "Čas vstopa",
+        "prej": "5m in 1m umik, EMA9, VWAP, nakupi in rast kupcev",
+        "zdaj": "umik na 5m in še eno od: nad EMA9, nad VWAP, nakupi>prodaje",
+    },
+]
+
 # ---------------------------------------------------------------------------
 # Analyst
 # ---------------------------------------------------------------------------
-MIN_ANALYST_SCORE = 0.60         # floor; learning may only raise a bucket
+MIN_ANALYST_SCORE = 0.55         # floor; learning may only raise a bucket
 LEARN_MIN_TRADES = 6
 LEARN_LOSE_WIN_RATE = 0.35
 LEARN_SCORE_STEP = 0.05
