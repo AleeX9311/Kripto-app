@@ -37,6 +37,12 @@ def _variant(vid: str, label: str, *, promotable: bool = True, require_timing: b
     base["trail"] = min(float(base["trail"]), config.TRAIL_PCT)
     base["time_min"] = min(float(base["time_min"]), 40)
     base["tp"] = min(float(base["tp"]), 0.15)
+    if "dno_min_drawdown" in base:
+        base["dno_min_drawdown"] = max(float(base["dno_min_drawdown"]), config.DNO_MIN_DRAWDOWN)
+    if "dno_min_score" in base:
+        base["dno_min_score"] = max(float(base["dno_min_score"]), config.DNO_MIN_SCORE)
+    base.pop("dno_stop", None)
+    base.pop("dno_tp", None)
     return {"id": vid, "label": label, "params": base}
 
 
@@ -53,6 +59,7 @@ VARIANTS = [
     _variant("krajsi_cas", "Krajši čas 20 min", time_min=20),
     _variant("hitrejsi_tp", "Prej delni izstop", tp=0.10),
     _variant("brez_umika", "Brez umika (samo senca)", promotable=False, require_timing=False),
+    _variant("dno_globje", "DNO globlji padec 55 %", dno_min_drawdown=0.55),
 ]
 
 
@@ -132,6 +139,15 @@ def would_enter(features: dict, params: dict) -> bool:
     liq = features.get("liquidity")
     if liq is None or float(liq) < float(params["min_liquidity"]):
         return False
+    if features.get("lane") == "dno":
+        drawdown = features.get("drawdown")
+        need_dd = float(params.get("dno_min_drawdown") or 0)
+        if need_dd and (drawdown is None or float(drawdown) < need_dd):
+            return False
+        need_score = float(params.get("dno_min_score") or 0)
+        if need_score and float(score) < need_score:
+            return False
+        return True
     if features.get("lane") == "novi_lans":
         buyers = features.get("buyers")
         if buyers is None or float(buyers) < float(params["min_buyers"]):
@@ -172,7 +188,7 @@ def observe(state: dict, features: dict, now_ts: float) -> None:
             k: features.get(k)
             for k in (
                 "score", "liquidity", "volume_1h", "buyers", "age_min", "buy_ratio",
-                "pullback", "higher_low", "vwap_ok", "ema_ok", "hard_kill", "lane", "chain",
+                "pullback", "higher_low", "vwap_ok", "ema_ok", "hard_kill", "lane", "chain", "drawdown",
             )
         },
         "taken": [row["id"] for row in VARIANTS if would_enter(features, row["params"])],
@@ -399,9 +415,24 @@ def _tighten(current: dict, params: dict) -> dict:
     if tp < float(current.get("tp") or 0.15):
         out["tp"] = tp
     # Size and stops are intentionally absent. A looser value never lands here.
+    if params.get("dno_min_score") is not None:
+        dno_score = max(float(params["dno_min_score"]), config.DNO_MIN_SCORE, float(current.get("dno_min_score") or 0))
+        if dno_score > float(current.get("dno_min_score") or config.DNO_MIN_SCORE):
+            out["dno_min_score"] = round(dno_score, 2)
+    if params.get("dno_min_drawdown") is not None:
+        dno_dd = max(float(params["dno_min_drawdown"]), config.DNO_MIN_DRAWDOWN, float(current.get("dno_min_drawdown") or 0))
+        if dno_dd > float(current.get("dno_min_drawdown") or config.DNO_MIN_DRAWDOWN):
+            out["dno_min_drawdown"] = round(dno_dd, 2)
+    if params.get("dno_min_liquidity") is not None:
+        dno_liq = max(float(params["dno_min_liquidity"]), config.DNO_MIN_LIQUIDITY, float(current.get("dno_min_liquidity") or 0))
+        if dno_liq > float(current.get("dno_min_liquidity") or config.DNO_MIN_LIQUIDITY):
+            out["dno_min_liquidity"] = dno_liq
+    # The user's DNO stop and target are not promotion knobs.
     out.pop("stop", None)
     out.pop("size", None)
     out.pop("launch_stop", None)
+    out.pop("dno_stop", None)
+    out.pop("dno_tp", None)
     return out
 
 
@@ -418,6 +449,9 @@ def live_view(state: dict) -> dict:
         "trail": min(config.TRAIL_PCT, float(live.get("trail") or config.TRAIL_PCT)),
         "time_min": min(40.0, float(live.get("time_min") or 40)),
         "tp": min(0.15, float(live.get("tp") or 0.15)),
+        "dno_min_score": max(config.DNO_MIN_SCORE, float(live.get("dno_min_score") or config.DNO_MIN_SCORE)),
+        "dno_min_drawdown": max(config.DNO_MIN_DRAWDOWN, float(live.get("dno_min_drawdown") or config.DNO_MIN_DRAWDOWN)),
+        "dno_min_liquidity": max(config.DNO_MIN_LIQUIDITY, float(live.get("dno_min_liquidity") or config.DNO_MIN_LIQUIDITY)),
     }
 
 
@@ -491,5 +525,8 @@ def public(book: dict | None) -> dict:
             "stop": config.HARD_STOP_PCT,
             "launch_stop": config.LAUNCH_HARD_STOP_PCT,
             "score": config.MIN_ANALYST_SCORE,
+            "dno_size": config.DNO_MAX_POSITION_PCT,
+            "dno_stop": config.DNO_HARD_STOP_PCT,
+            "dno_tp": config.DNO_TAKE_PROFIT_PCT,
         },
     }

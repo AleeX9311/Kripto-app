@@ -74,6 +74,7 @@
     #age.stale { color: var(--filter); }
     .badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 99px; font-size: 10px; letter-spacing: .06em; border: 1px solid var(--line); }
     .badge.lans, .badge.bnb { color: #ffb020; border-color: rgba(255,176,32,.6); }
+    .badge.dno { color: #5eead4; border-color: rgba(94,234,212,.7); }
     .badge.glavni, .badge.sol { color: #3de0ff; border-color: rgba(61,224,255,.45); }
     .filters { display: flex; gap: 6px; margin-top: 8px; }
     .filters button { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; color: var(--muted); }
@@ -262,6 +263,7 @@
   let chainPick = "all";
   function wanted(row) { return chainPick === "all" || (row.chain || "solana") === chainPick; }
   function laneBadge(lane) {
+    if (lane === "dno") return `<span class="badge dno">DNO</span>`;
     const lans = lane === "novi_lans";
     return `<span class="badge ${lans ? "lans" : "glavni"}">${lans ? "NOVI LANS" : "GLAVNI"}</span>`;
   }
@@ -318,7 +320,7 @@
       line("Povprečen R", !m || m.avg_r == null ? "—" : m.avg_r),
       line("Posli", String((m && m.n) || 0))
     ].join("");
-    $("metrics").innerHTML = block("Skupaj", d.stats) + block("SOL", d.stats_sol) + block("BNB", d.stats_bnb) + block("GLAVNI", d.stats_glavni) + block("NOVI LANS", d.stats_lans)
+    $("metrics").innerHTML = block("Skupaj", d.stats) + block("SOL", d.stats_sol) + block("BNB", d.stats_bnb) + block("GLAVNI", d.stats_glavni) + block("NOVI LANS", d.stats_lans) + block("DNO", d.stats_dno)
       + `<p class="dim">${d.market && d.market.pause_reason ? esc(d.market.pause_reason) : "Trg ne zaustavlja novih vstopov."} SOL 1h ${d.market && d.market.sol_1h != null ? esc(d.market.sol_1h) + " %" : "—"}.</p>`;
     const learn = d.learning || [];
     $("learn").innerHTML = learn.length ? learn.map((row) => `<div class="row"><b>${esc(row.bucket)}</b><div class="dim">n=${esc(row.n)} · zadetki ${row.win_rate == null ? "—" : esc(pct(row.win_rate))} · ${esc(money(row.pnl))}</div></div>`).join("") : `<p class="dim">Še ni vzorcev.</p>`;
@@ -411,6 +413,7 @@
       changes,
       `<div class="row"><span>Samodejno zaostrovanje</span><div class="dim">${bits.length ? esc(bits.join(" · ")) : "Ni dodatnega zaostrovanja čez to osnovo."}</div></div>`,
       `<div class="row"><span>Trde meje</span><div class="dim">velikost ${floors.size != null ? Math.round(floors.size * 100) : 8} % · lans ${floors.launch_size != null ? Math.round(floors.launch_size * 100) : 3} % · stop ${floors.stop != null ? Math.round(floors.stop * 100) : -6} % · lans stop ${floors.launch_stop != null ? Math.round(floors.launch_stop * 100) : -10} %</div></div>`,
+      `<div class="row"><span>DNO</span><div class="dim">velikost ${floors.dno_size != null ? Math.round(floors.dno_size * 100) : 3} % · stop ${floors.dno_stop != null ? Math.round(floors.dno_stop * 100) : -30} % · cilj ${floors.dno_tp != null ? Math.round(floors.dno_tp * 100) : 50} % · največ 3. Stop in cilj se ne premikata.</div></div>`,
       `<p class="dim">Čakajočih sence: ${esc(s.pending || 0)}. Senca ne premika kapitala.</p>`
     ].join("");
     const rows = s.variants || [];
@@ -455,8 +458,9 @@
     const from = nodeBox(ids[Math.max(0, idx - 1)] || "SCOUT");
     const dest = nodeBox(ids[idx] || "RISK");
     const chain = (ev.extra && ev.extra.chain) === "bsc" ? "bsc" : "solana";
+    const dno = (ev.extra && ev.extra.lane) === "dno";
     const buy = ev.agent === "EXECUTOR" && /PAPER BUY|nakup/i.test(ev.message || "");
-    movers.push({ ev, from, dest, t: 0, kill: ev.level === "kill", buy, chain, sent: false });
+    movers.push({ ev, from, dest, t: 0, kill: ev.level === "kill", buy, chain, dno, sent: false });
     hot = ev.agent || "";
     document.querySelectorAll(".node").forEach((n) => n.classList.toggle("on", n.dataset.agent === hot));
   }
@@ -529,7 +533,7 @@
       mover.t += REDUCED ? 1 : 0.012;
       const k = Math.min(1, mover.t);
       const at = bezier(curve(mover.from, mover.dest), k);
-      const col = CHAIN_COLOR[mover.chain] || "#b388ff";
+      const col = mover.dno ? "#5eead4" : (CHAIN_COLOR[mover.chain] || "#b388ff");
       g.fillStyle = col;
       g.shadowColor = col;
       g.shadowBlur = REDUCED ? 0 : 12;
@@ -537,7 +541,7 @@
       g.arc(at.x, at.y, 4.2, 0, 7);
       g.fill();
       g.shadowBlur = 0;
-      const label = (mover.ev.symbol || (mover.chain === "bsc" ? "BNB" : "SOL")).slice(0, 10);
+      const label = ((mover.ev.symbol || (mover.chain === "bsc" ? "BNB" : "SOL")) + (mover.dno ? " DNO" : "")).slice(0, 14);
       g.font = "10px sans-serif";
       g.fillStyle = col;
       g.fillText(label, at.x + 7, at.y - 7);

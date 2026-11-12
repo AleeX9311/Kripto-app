@@ -68,8 +68,9 @@ def build_status(state: dict, events: list, rejections: list, positions: list, c
         "closed_n": len(closed),
         "nonstop": True,
         "stats": _stats(plain, hist),
-        "stats_glavni": _stats([t for t in plain if (t.get("lane") or "glavni") != "novi_lans"], hist),
+        "stats_glavni": _stats([t for t in plain if (t.get("lane") or "glavni") == "glavni"], hist),
         "stats_lans": _stats([t for t in plain if t.get("lane") == "novi_lans"], hist),
+        "stats_dno": _stats([t for t in plain if t.get("lane") == "dno"], hist),
         "stats_sol": _stats([t for t in plain if (t.get("chain") or "solana") != "bsc"], hist),
         "stats_bnb": _stats([t for t in plain if t.get("chain") == "bsc"], hist),
         "open": [to_plain(p) for p in positions],
@@ -90,6 +91,10 @@ def build_status(state: dict, events: list, rejections: list, positions: list, c
             "trail_arm": config.TRAIL_ACTIVATE_PCT,
             "min_age_min": config.MIN_TOKEN_AGE_MIN,
             "analyst_floor": config.MIN_ANALYST_SCORE,
+            "dno_size": config.DNO_MAX_POSITION_PCT,
+            "dno_stop": config.DNO_HARD_STOP_PCT,
+            "dno_tp": config.DNO_TAKE_PROFIT_PCT,
+            "dno_positions": config.DNO_MAX_POSITIONS,
         },
     }
 

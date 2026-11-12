@@ -302,11 +302,19 @@ class Market:
             rows.append({"pool": item, "included": included})
         return rows
 
-    def gecko_ohlcv(self, pool_address: str, aggregate: int = 5, limit: int = 80, network: str = "solana") -> Optional[list[list]]:
+    def gecko_ohlcv(
+        self,
+        pool_address: str,
+        aggregate: int = 5,
+        limit: int = 80,
+        network: str = "solana",
+        timeframe: str = "minute",
+    ) -> Optional[list[list]]:
         """Returns list of [ts, o, h, l, c, vol] or None if unavailable."""
+        frame = timeframe if timeframe in {"minute", "hour", "day"} else "minute"
         data = self.http._get(
             self.http.gecko_rl,
-            f"{config.GECKO_BASE}/networks/{network}/pools/{pool_address}/ohlcv/minute",
+            f"{config.GECKO_BASE}/networks/{network}/pools/{pool_address}/ohlcv/{frame}",
             params={"aggregate": aggregate, "limit": limit, "currency": "usd"},
         )
         if not isinstance(data, dict):

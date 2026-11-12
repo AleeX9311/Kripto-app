@@ -160,13 +160,72 @@ def test_manual_baseline_is_v2_and_keeps_stats():
     state["strategy"]["variants"]["zdaj"]["wins"] = 3
     state["strategy"]["variants"]["zdaj"]["params"]["min_score"] = 0.60
     book = strateg.ensure(state)
-    assert book["rules_version"] == 2
-    assert book["last_change"].startswith("v2 · ročno sproščeno")
+    assert book["rules_version"] == 3
+    assert book["last_change"].startswith("v3 · DNO lans")
     assert book["variants"]["zdaj"]["wins"] == 3
     assert book["variants"]["zdaj"]["params"]["min_score"] == config.MIN_ANALYST_SCORE
     assert book["variants"]["zdaj"]["params"]["min_buyers"] == config.LAUNCH_MIN_BUYERS
     again = strateg.ensure(state)
-    assert sum(1 for row in again["history"] if "ročno sproščeno" in row.get("why", "")) == 1
+    assert sum(1 for row in again["history"] if "DNO lans" in row.get("why", "")) == 1
+
+
+def _ohlc(closes: list[float], spread: float = 0.02) -> list[list]:
+    rows = []
+    for i, close in enumerate(closes):
+        rows.append([i, close, close * (1 + spread), close * (1 - spread), close, 100 + i])
+    return rows
+
+
+def test_bottom_confirms_reversal_and_rejects_a_knife():
+    from agents.bottom import assess
+
+    rise = [2.0] * 6
+    fall = [2.0 - i * 0.10 for i in range(1, 12)]
+    base = [0.95 + i * 0.025 for i in range(10)]
+    closes = rise + fall + base
+    read = assess(_ohlc(closes), buys=80, sells=40)
+    assert read.drawdown is not None and read.drawdown >= 0.45
+    assert read.confirmed, read.reasons
+    knife = closes[:-1] + [min(closes) * 0.9]
+    missed = assess(_ohlc(knife), buys=80, sells=40)
+    assert missed.confirmed is False
+    shallow = assess(_ohlc([1 + (i % 3) * 0.01 for i in range(24)]), buys=10, sells=4)
+    assert shallow.confirmed is False
+
+
+def test_dno_exits_are_full_and_fixed():
+    risk = Risk()
+    stopped = _pos(1.0, 30.0)
+    stopped.lane = "dno"
+    assert risk.check_exit(stopped, _mid_for_net(risk, stopped, -0.30)).startswith("DNO STOP")
+    target = _pos(1.0, 30.0)
+    target.lane = "dno"
+    assert risk.check_exit(target, _mid_for_net(risk, target, 0.50)).startswith("DNO CILJ")
+    held = _pos(1.0, 30.0)
+    held.lane = "dno"
+    assert risk.check_exit(held, _mid_for_net(risk, held, 0.20)) is None
+    assert held.trail_armed is False
+    from agents.executor import Executor
+    size = Executor().size_usd(1000, 1000, config.DNO_MAX_POSITION_PCT)
+    assert size == 30
+    assert size <= 1000 * config.MAX_POSITION_PCT
+
+
+def test_learner_cannot_move_dno_stop_or_target():
+    import strateg
+    poisoned = {
+        "min_score": 0.55, "min_age_min": 45, "min_buyers": 25, "min_liquidity": 0,
+        "pullback_min": 0.03, "trail": 0.06, "time_min": 40, "tp": 0.15,
+        "dno_stop": -0.50, "dno_tp": 0.20, "stop": -0.40, "size": 0.20,
+        "dno_min_drawdown": 0.55,
+    }
+    tightened = strateg._tighten({}, poisoned)
+    assert "dno_stop" not in tightened and "dno_tp" not in tightened and "stop" not in tightened
+    assert tightened["dno_min_drawdown"] == 0.55
+    view = strateg.live_view({"strategy": {"version": 3, "rules_version": 3, "live": {"dno_stop": -0.50, "dno_tp": 0.10, "dno_min_score": 0.20}, "variants": {}, "history": [], "pending": [], "lessons": []}})
+    assert "dno_stop" not in view and "dno_tp" not in view
+    assert view["dno_min_score"] >= config.DNO_MIN_SCORE
+    assert view["dno_min_drawdown"] >= config.DNO_MIN_DRAWDOWN
 
 
 def test_pool_stats_uses_the_http_limiter():
@@ -196,5 +255,8 @@ if __name__ == "__main__":
     test_time_stop_when_flat()
     test_entry_gate_needs_structure_and_one_confirmation()
     test_manual_baseline_is_v2_and_keeps_stats()
+    test_bottom_confirms_reversal_and_rejects_a_knife()
+    test_dno_exits_are_full_and_fixed()
+    test_learner_cannot_move_dno_stop_or_target()
     test_pool_stats_uses_the_http_limiter()
     print("soldesk rules ok")

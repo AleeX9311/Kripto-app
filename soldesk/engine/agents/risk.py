@@ -105,7 +105,11 @@ class Risk:
         return min(config.PARTIAL_TP[0], max(0.08, float(tighter)))
 
     def _limits(self, pos: Position) -> tuple[float, float, float, bool]:
-        if getattr(pos, "lane", "glavni") == "novi_lans":
+        lane = getattr(pos, "lane", "glavni")
+        if lane == "dno":
+            # Trail arm is unreachable. DNO has no trail and no breakeven.
+            return config.DNO_HARD_STOP_PCT, 9.0, config.DNO_TIME_STOP_SEC, False
+        if lane == "novi_lans":
             return config.LAUNCH_HARD_STOP_PCT, config.LAUNCH_TRAIL_ACTIVATE_PCT, config.LAUNCH_TIME_STOP_SEC, False
         time_stop = config.TIME_STOP_SEC
         tighter = getattr(self, "time_stop_sec", None)
@@ -137,7 +141,26 @@ class Risk:
         self.mark(pos, mid)
         net = self.net_pnl_pct(pos, mid)
         stop, trail_at, time_stop, _be = self._limits(pos)
-        launch = getattr(pos, "lane", "glavni") == "novi_lans"
+        lane = getattr(pos, "lane", "glavni")
+        launch = lane == "novi_lans"
+        if lane == "dno":
+            if net <= config.DNO_HARD_STOP_PCT:
+                return (
+                    f"DNO STOP  neto {net:.2%} ≤ {config.DNO_HARD_STOP_PCT:.0%} "
+                    f"(vključuje zdrs {config.EXIT_SLIPPAGE_PCT:.2%} in provizijo {config.EXIT_FEE_PCT:.2%})"
+                )
+            if net >= config.DNO_TAKE_PROFIT_PCT:
+                return f"DNO CILJ  neto {net:.2%} ≥ {config.DNO_TAKE_PROFIT_PCT:.0%}"
+            try:
+                opened = datetime.fromisoformat(pos.opened_at)
+                if opened.tzinfo is None:
+                    opened = opened.replace(tzinfo=timezone.utc)
+                held = (utcnow() - opened).total_seconds()
+            except (TypeError, ValueError):
+                held = 0
+            if held >= config.DNO_TIME_STOP_SEC:
+                return f"DNO ČAS  {held / 3600:.0f} h, neto {net:.2%}"
+            return None
         if net <= stop:
             return (
                 f"HARD STOP  neto {net:.2%} ≤ {stop:.0%} "

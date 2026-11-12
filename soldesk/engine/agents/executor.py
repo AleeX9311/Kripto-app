@@ -55,8 +55,22 @@ class Executor:
             )
             return None, ev
 
-        launch = getattr(cand, "lane", "glavni") == "novi_lans"
+        lane = getattr(cand, "lane", "glavni")
+        launch = lane == "novi_lans"
+        dno = lane == "dno"
         launch_open = sum(1 for p in open_positions if getattr(p, "lane", "") == "novi_lans")
+        dno_open = sum(1 for p in open_positions if getattr(p, "lane", "") == "dno")
+        if dno and dno_open >= config.DNO_MAX_POSITIONS:
+            ev = Event(
+                ts=iso(),
+                agent="EXECUTOR",
+                level="kill",
+                message=f"{cand.symbol}  refused — max {config.DNO_MAX_POSITIONS} DNO positions",
+                mint=cand.mint,
+                symbol=cand.symbol,
+                extra={"lane": "dno"},
+            )
+            return None, ev
         if launch and launch_open >= config.LAUNCH_MAX_POSITIONS:
             ev = Event(
                 ts=iso(),
@@ -91,7 +105,13 @@ class Executor:
             )
             return None, ev
 
-        size = self.size_usd(equity, cash, config.LAUNCH_MAX_POSITION_PCT if launch else config.MAX_POSITION_PCT)
+        if dno:
+            size_pct = config.DNO_MAX_POSITION_PCT
+        elif launch:
+            size_pct = config.LAUNCH_MAX_POSITION_PCT
+        else:
+            size_pct = config.MAX_POSITION_PCT
+        size = self.size_usd(equity, cash, size_pct)
         if size < 1.0:
             ev = Event(
                 ts=iso(),
@@ -119,7 +139,12 @@ class Executor:
 
         fill = mid * (1.0 + config.ENTRY_SLIPPAGE_PCT) * (1.0 + config.ENTRY_FEE_PCT)
         qty = size / fill
-        stop_pct = config.LAUNCH_HARD_STOP_PCT if launch else config.HARD_STOP_PCT
+        if dno:
+            stop_pct = config.DNO_HARD_STOP_PCT
+        elif launch:
+            stop_pct = config.LAUNCH_HARD_STOP_PCT
+        else:
+            stop_pct = config.HARD_STOP_PCT
         hard_stop = fill * (1.0 + stop_pct)
         pct_used = (size / equity) * 100 if equity else 0.0
         assert pct_used <= config.MAX_POSITION_PCT * 100 + 1e-6
@@ -150,7 +175,7 @@ class Executor:
                 f"score {analysis.total:.2f}",
                 f"size ${size:.2f} ({pct_used:.2f}% of equity ${equity:.2f})",
                 f"mid ${mid:.8g} → fill ${fill:.8g} (slip {config.ENTRY_SLIPPAGE_PCT:.2%}+fee {config.ENTRY_FEE_PCT:.2%})",
-                f"hard stop ${hard_stop:.8g} ({config.HARD_STOP_PCT:.0%})",
+                f"hard stop ${hard_stop:.8g} ({stop_pct:.0%})",
                 analysis.structure_label,
             ],
         )
@@ -160,7 +185,8 @@ class Executor:
             level="trade",
             message=(
                 f"PAPER BUY {cand.symbol}  ${size:.2f} ({pct_used:.2f}% of ${equity:.2f})  "
-                f"fill ${fill:.8g}  qty {qty:.6g}  stop {config.HARD_STOP_PCT:.0%}"
+                f"fill ${fill:.8g}  qty {qty:.6g}  stop {stop_pct:.0%}"
+                + (f"  cilj {config.DNO_TAKE_PROFIT_PCT:.0%}" if dno else "")
             ),
             mint=cand.mint,
             symbol=cand.symbol,

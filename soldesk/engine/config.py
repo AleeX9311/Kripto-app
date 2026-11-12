@@ -76,20 +76,30 @@ LAUNCH_TIME_STOP_SEC = 20 * 60
 LAUNCH_BATCH = 8
 LAUNCH_RECHECK_SEC = 90
 
-# Manual baseline v2 (user asked to loosen non-safety gates after a night of
-# zero paper entries). The learner may only tighten from these numbers.
-# Size, stops, and safety kills are not in this list.
-RULES_VERSION = 2
-RULES_NOTE = "v2 · ročno sproščeno po želji uporabnika"
+# Bottom / reversal lane (DNO). User-fixed exits. The learner may tighten
+# the entry only. It must not move the -30% stop or the +50% target.
+DNO_MIN_AGE_MIN = 180
+DNO_MIN_LIQUIDITY = 20_000.0
+DNO_MIN_DRAWDOWN = 0.45
+DNO_MIN_SCORE = 0.60
+DNO_MAX_POSITION_PCT = 0.03
+DNO_MAX_POSITIONS = 3
+DNO_HARD_STOP_PCT = -0.30          # net, including slip and fee. Do not loosen.
+DNO_TAKE_PROFIT_PCT = 0.50         # full exit. Do not loosen.
+DNO_TIME_STOP_SEC = 48 * 60 * 60
+DNO_BASE_CANDLES = 6
+DNO_BASE_RANGE = 0.14
+
+# Manual baselines. v2 loosened non-safety gates. v3 adds the DNO lane.
+# The learner may only tighten from these numbers.
+RULES_VERSION = 3
+RULES_NOTE = "v3 · DNO lans po želji uporabnika"
 RULES_CHANGES = [
-    {"kaj": "Prag analitika", "prej": "0,60", "zdaj": "0,55"},
-    {"kaj": "Novi lans, unikatni kupci", "prej": "40", "zdaj": "25"},
-    {"kaj": "Novi lans, osnovni volumen", "prej": "8.000 USD", "zdaj": "4.000 USD"},
-    {
-        "kaj": "Čas vstopa",
-        "prej": "5m in 1m umik, EMA9, VWAP, nakupi in rast kupcev",
-        "zdaj": "umik na 5m in še eno od: nad EMA9, nad VWAP, nakupi>prodaje",
-    },
+    {"kaj": "Pas DNO", "prej": "ni ga", "zdaj": "dno po dumpu, potrjen obrat ali baza"},
+    {"kaj": "DNO stop", "prej": "—", "zdaj": "−30 % neto, fiksno"},
+    {"kaj": "DNO cilj", "prej": "—", "zdaj": "+50 % cel izstop, fiksno"},
+    {"kaj": "DNO velikost", "prej": "—", "zdaj": "3 % knjige, največ 3 pozicije"},
+    {"kaj": "DNO čas", "prej": "—", "zdaj": "izstop po 48 h, če je še odprt"},
 ]
 
 # ---------------------------------------------------------------------------

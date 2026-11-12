@@ -216,9 +216,9 @@ class Filter:
             self.note_liquidity(c.mint, c.liquidity_usd)
         return rugged_mints
 
-    def check(self, cand: Candidate) -> tuple[FilterResult, Event]:
+    def check(self, cand: Candidate, skip_activity_gate: bool = False) -> tuple[FilterResult, Event]:
         if getattr(cand, "chain", "solana") == "bsc":
-            return self.check_bsc(cand, launch=False)
+            return self.check_bsc(cand, launch=False, skip_activity_gate=skip_activity_gate)
         checks: list[FilterCheck] = []
         creator: Optional[str] = None
         top10: Optional[float] = None
@@ -271,6 +271,12 @@ class Filter:
         # If volume or age already failed, skip expensive rugcheck/RPC.
         # because we did not look them up. Reasons stay precise: volume kill is enough.
         volume_failed = any(c.name in {"volume_1h", "age", "dump_after_bond"} and not c.passed for c in checks)
+        if skip_activity_gate:
+            age_min = None if age is None else age / 60.0
+            checks = [c for c in checks if c.name not in {"volume_1h", "age", "dump_after_bond"}]
+            checks.append(FilterCheck("age", True, f"starost {age_min:.0f} min, pas DNO" if age_min is not None else "pas DNO", age))
+            checks.append(FilterCheck("liquidity", True, f"likvidnost ${cand.liquidity_usd:,.0f}", cand.liquidity_usd))
+            volume_failed = False
         if volume_failed:
             passed = False
             result = FilterResult(
@@ -396,7 +402,7 @@ class Filter:
             )
         return result, ev
 
-    def check_bsc(self, cand: Candidate, launch: bool) -> tuple[FilterResult, Event]:
+    def check_bsc(self, cand: Candidate, launch: bool, skip_activity_gate: bool = False) -> tuple[FilterResult, Event]:
         """BSC filter via GoPlus. Missing security data fails closed."""
         checks: list[FilterCheck] = []
         if not launch:
@@ -414,8 +420,14 @@ class Filter:
                 checks.append(FilterCheck("age", False, f"starost {age / 60:.0f} min < {config.MIN_TOKEN_AGE_MIN:.0f} min", age))
             else:
                 checks.append(FilterCheck("age", True, f"starost {age / 60:.0f} min", age))
-            if any(not c.passed for c in checks):
+            if any(not c.passed for c in checks) and not skip_activity_gate:
                 return self._finish_chain(cand, checks, "bsc-cheap", launch)
+            if skip_activity_gate:
+                age = cand.age_seconds()
+                age_min = None if age is None else age / 60.0
+                checks = [c for c in checks if c.name not in {"volume_1h", "age"}]
+                checks.append(FilterCheck("age", True, f"starost {age_min:.0f} min, pas DNO" if age_min is not None else "pas DNO", age))
+                checks.append(FilterCheck("liquidity", True, f"likvidnost ${cand.liquidity_usd:,.0f}", cand.liquidity_usd))
         else:
             if self.data_source != "SIM" and cand.buyers_1h is None and cand.buyers_5m is None:
                 stats = self.market.token_pool_stats(cand.mint, "bsc")

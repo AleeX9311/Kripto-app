@@ -27,13 +27,14 @@ from agents.logger import Logger
 from agents.risk import Risk
 from agents.scout import Scout
 from market import Market
-from models import Candidate, Event, Position, iso, to_plain, utcnow
+from models import AnalystResult, Candidate, Event, Position, iso, to_plain, utcnow
 from simfeed import SimFeed
 import learning
 import strateg
 import state_store
 from market import candidate_from_dex_pair
 from status import build_status, write_status
+from agents.bottom import evaluate as bottom_evaluate
 from agents.timing import evaluate as timing_evaluate
 from terminal_ui import DeskView, local_ts, render_snapshot_svg
 
@@ -247,6 +248,7 @@ class Desk:
         this_cycle = 0
         handed = 0
         launch_n = 0
+        dno_n = 0
         for cand in cands:
             if self.stop:
                 break
@@ -277,6 +279,8 @@ class Desk:
             self.seen[cand.mint] = time.time()
             if cand.lane == "novi_lans":
                 launch_n += 1
+            elif cand.lane == "dno":
+                dno_n += 1
             elif vol_ok:
                 processed += 1
             this_cycle += 1
@@ -288,7 +292,7 @@ class Desk:
                     ts=iso(),
                     agent="SCOUT",
                     level="info",
-                    message=f"handed {handed} candidate(s) to FILTER ({processed} glavni, {launch_n} novi lans)",
+                    message=f"handed {handed} candidate(s) to FILTER ({processed} glavni, {launch_n} novi lans, {dno_n} dno)",
                 )
             )
 
@@ -302,7 +306,11 @@ class Desk:
     def _process_candidate(self, cand: Candidate) -> None:
         lane = getattr(cand, "lane", "glavni") or "glavni"
         view = self._apply_overlay()
-        result, ev = (self.filter.check_launch(cand) if lane == "novi_lans" else self.filter.check(cand))
+        eligible = lane == "glavni" and _dno_eligible(cand, view)
+        result, ev = (
+            self.filter.check_launch(cand) if lane == "novi_lans"
+            else self.filter.check(cand, skip_activity_gate=eligible)
+        )
         ev.extra = {**(ev.extra or {}), "lane": lane, "chain": getattr(cand, "chain", "solana")}
         self._emit(ev)
         if result.creator and cand.mint in self.risk.banned_tokens:
@@ -313,61 +321,96 @@ class Desk:
             self.reject("reject_filter", cand.mint, cand.symbol, result.kill_reasons, details={"source": result.data_source, "lane": lane, "chain": getattr(cand, "chain", "solana")})
             return
 
-        # Analyst
-        analysis, ev = self.analyst.score(cand, result)
-        self._emit(ev)
-        self._shadow["score"] = analysis.total
-        need, learn_why = learning.threshold(self.state.setdefault("learning", {"buckets": {}}), analysis.total, analysis.structure_label, lane)
-        need = max(need, view["min_score"])
-        if analysis.passed and analysis.total < need:
-            analysis.passed = False
-            learn_why = learn_why or f"prag različice {need:.2f}"
-            ev = Event(
-                ts=iso(), agent="ANALYST", level="kill",
-                message=f"{cand.symbol}  {learn_why}",
-                mint=cand.mint, symbol=cand.symbol,
-            )
-            self._emit(ev)
-        if not analysis.passed:
-            reasons = [
-                f"score {analysis.total:.2f} < {need:.2f}",
-                analysis.structure_label,
-            ] + [f"{c.name}={c.score:.2f} ({c.note})" for c in analysis.components]
-            if learn_why:
-                reasons.append(learn_why)
-            self.reject("reject_analyst", cand.mint, cand.symbol, reasons, score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
-            return
+        dno_ready = False
+        analysis = None
+        if eligible:
+            read = bottom_evaluate(cand, self.market, self.sim, self.state["data_source"], view)
+            self._shadow["drawdown"] = read.drawdown
+            if read.confirmed:
+                cand.lane = "dno"
+                lane = "dno"
+                analysis = AnalystResult(
+                    mint=cand.mint,
+                    symbol=cand.symbol,
+                    total=read.score,
+                    passed=True,
+                    structure_label=f"DNO {read.kind}",
+                )
+                self._shadow["score"] = analysis.total
+                self._emit(Event(
+                    ts=iso(), agent="ANALYST", level="ok",
+                    message=f"{cand.symbol}  DNO {read.score:.2f}  {read.kind}  {'; '.join(read.reasons[:4])}",
+                    mint=cand.mint, symbol=cand.symbol,
+                    extra={"lane": "dno", "chain": getattr(cand, "chain", "solana"), "drawdown": read.drawdown},
+                ))
+                dno_ready = True
+            elif not _main_activity_ok(cand):
+                self._emit(Event(
+                    ts=iso(), agent="ANALYST", level="kill",
+                    message=f"{cand.symbol}  DNO  {'; '.join(read.reasons[:4])}",
+                    mint=cand.mint, symbol=cand.symbol, extra={"lane": "dno"},
+                ))
+                self.reject(
+                    "reject_dno", cand.mint, cand.symbol, read.reasons,
+                    score=read.score, details={"lane": "dno", "chain": getattr(cand, "chain", "solana")},
+                )
+                return
 
-        tight = _overlay_block(cand, lane, view)
-        if tight:
-            ev = Event(ts=iso(), agent="ANALYST", level="kill", message=f"{cand.symbol}  {tight}", mint=cand.mint, symbol=cand.symbol, extra={"lane": lane})
+        if not dno_ready:
+            analysis, ev = self.analyst.score(cand, result)
             self._emit(ev)
-            self.reject("reject_strategy", cand.mint, cand.symbol, [tight], score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
-            return
-
-        if lane == "novi_lans":
-            self._emit(Event(
-                ts=iso(), agent="ANALYST", level="info",
-                message=f"{cand.symbol}  NOVI LANS  čas vstopa je v pravilih pasu, brez umika glavnega pasu",
-                mint=cand.mint, symbol=cand.symbol, extra={"lane": lane},
-            ))
-        else:
-            ok_time, time_reasons, setup = timing_evaluate(
-                cand, self.market, self.sim, self.state["data_source"], self.maker_memory,
-                pullback_min=view["pullback_min"],
-            )
-            _note_timing(self._shadow, time_reasons)
-            if not ok_time:
+            self._shadow["score"] = analysis.total
+            need, learn_why = learning.threshold(self.state.setdefault("learning", {"buckets": {}}), analysis.total, analysis.structure_label, lane)
+            need = max(need, view["min_score"])
+            if analysis.passed and analysis.total < need:
+                analysis.passed = False
+                learn_why = learn_why or f"prag različice {need:.2f}"
                 ev = Event(
                     ts=iso(), agent="ANALYST", level="kill",
-                    message=f"{cand.symbol}  čas vstopa  {'; '.join(time_reasons)}",
+                    message=f"{cand.symbol}  {learn_why}",
                     mint=cand.mint, symbol=cand.symbol,
-                    extra={"reasons": time_reasons, "lane": lane},
                 )
                 self._emit(ev)
-                self.reject("reject_timing", cand.mint, cand.symbol, time_reasons, score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
+            if not analysis.passed:
+                reasons = [
+                    f"score {analysis.total:.2f} < {need:.2f}",
+                    analysis.structure_label,
+                ] + [f"{c.name}={c.score:.2f} ({c.note})" for c in analysis.components]
+                if learn_why:
+                    reasons.append(learn_why)
+                self.reject("reject_analyst", cand.mint, cand.symbol, reasons, score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
                 return
-            analysis.structure_label = setup
+
+            tight = _overlay_block(cand, lane, view)
+            if tight:
+                ev = Event(ts=iso(), agent="ANALYST", level="kill", message=f"{cand.symbol}  {tight}", mint=cand.mint, symbol=cand.symbol, extra={"lane": lane})
+                self._emit(ev)
+                self.reject("reject_strategy", cand.mint, cand.symbol, [tight], score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
+                return
+
+            if lane == "novi_lans":
+                self._emit(Event(
+                    ts=iso(), agent="ANALYST", level="info",
+                    message=f"{cand.symbol}  NOVI LANS  čas vstopa je v pravilih pasu, brez umika glavnega pasu",
+                    mint=cand.mint, symbol=cand.symbol, extra={"lane": lane},
+                ))
+            else:
+                ok_time, time_reasons, setup = timing_evaluate(
+                    cand, self.market, self.sim, self.state["data_source"], self.maker_memory,
+                    pullback_min=view["pullback_min"],
+                )
+                _note_timing(self._shadow, time_reasons)
+                if not ok_time:
+                    ev = Event(
+                        ts=iso(), agent="ANALYST", level="kill",
+                        message=f"{cand.symbol}  čas vstopa  {'; '.join(time_reasons)}",
+                        mint=cand.mint, symbol=cand.symbol,
+                        extra={"reasons": time_reasons, "lane": lane},
+                    )
+                    self._emit(ev)
+                    self.reject("reject_timing", cand.mint, cand.symbol, time_reasons, score=analysis.total, details={"lane": lane, "chain": getattr(cand, "chain", "solana")})
+                    return
+                analysis.structure_label = setup
 
         pause = self.market_note.get("pause_reason") or ""
         if pause:
@@ -434,6 +477,7 @@ class Desk:
                 "buyers": buyers,
                 "age_min": None if age is None else age / 60.0,
                 "buy_ratio": ratio,
+                "drawdown": shadow.get("drawdown"),
                 "pullback": shadow.get("pullback"),
                 "higher_low": bool(shadow.get("higher")),
                 "vwap_ok": bool(shadow.get("vwap")),
@@ -699,6 +743,25 @@ def _note_timing(shadow: dict, reasons: list[str]) -> None:
             shadow["vwap"] = True
         if "nad EMA9" in part and "ni nad" not in part:
             shadow["ema"] = True
+
+
+def _dno_eligible(cand: Candidate, view: dict) -> bool:
+    age = cand.age_seconds()
+    liquidity = cand.liquidity_usd or 0
+    need = float(view.get("dno_min_liquidity") or config.DNO_MIN_LIQUIDITY)
+    if age is None or age < config.DNO_MIN_AGE_MIN * 60:
+        return False
+    return liquidity >= need
+
+
+def _main_activity_ok(cand: Candidate) -> bool:
+    volume = cand.volume_1h_usd
+    age = cand.age_seconds()
+    if volume is None or volume < config.MIN_VOLUME_1H_USD:
+        return False
+    if age is None or age < config.MIN_TOKEN_AGE_MIN * 60:
+        return False
+    return True
 
 
 def _overlay_block(cand: Candidate, lane: str, view: dict) -> Optional[str]:
