@@ -413,7 +413,7 @@
       changes,
       `<div class="row"><span>Samodejno zaostrovanje</span><div class="dim">${bits.length ? esc(bits.join(" · ")) : "Ni dodatnega zaostrovanja čez to osnovo."}</div></div>`,
       `<div class="row"><span>Trde meje</span><div class="dim">velikost ${floors.size != null ? Math.round(floors.size * 100) : 8} % · lans ${floors.launch_size != null ? Math.round(floors.launch_size * 100) : 3} % · stop ${floors.stop != null ? Math.round(floors.stop * 100) : -6} % · lans stop ${floors.launch_stop != null ? Math.round(floors.launch_stop * 100) : -10} %</div></div>`,
-      `<div class="row"><span>DNO</span><div class="dim">velikost ${floors.dno_size != null ? Math.round(floors.dno_size * 100) : 3} % · stop ${floors.dno_stop != null ? Math.round(floors.dno_stop * 100) : -30} % · cilj ${floors.dno_tp != null ? Math.round(floors.dno_tp * 100) : 50} % · največ 3. Stop in cilj se ne premikata.</div></div>`,
+      `<div class="row"><span>DNO</span><div class="dim">velikost ${floors.dno_size != null ? Math.round(floors.dno_size * 100) : 10} % · stop ${floors.dno_stop != null ? Math.round(floors.dno_stop * 100) : -30} % · cilj ${floors.dno_tp != null ? Math.round(floors.dno_tp * 100) : 50} % · največ 5. Velikost, stop in cilj se ne premikajo.</div></div>`,
       `<p class="dim">Čakajočih sence: ${esc(s.pending || 0)}. Senca ne premika kapitala.</p>`
     ].join("");
     const rows = s.variants || [];

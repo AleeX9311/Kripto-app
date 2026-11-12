@@ -105,7 +105,7 @@ def ensure(state: dict) -> dict:
 def _apply_manual_baseline(book: dict) -> None:
     """Stamp a user-approved baseline once. Later promotions may only tighten."""
     if int(book.get("rules_version") or 0) >= int(config.RULES_VERSION):
-        book.setdefault("baseline", _baseline())
+        book["baseline"] = _baseline()
         return
     for row in VARIANTS:
         slot = book["variants"].get(row["id"])
@@ -433,6 +433,8 @@ def _tighten(current: dict, params: dict) -> dict:
     out.pop("launch_stop", None)
     out.pop("dno_stop", None)
     out.pop("dno_tp", None)
+    out.pop("dno_size", None)
+    out.pop("dno_positions", None)
     return out
 
 

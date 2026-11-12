@@ -82,8 +82,8 @@ DNO_MIN_AGE_MIN = 180
 DNO_MIN_LIQUIDITY = 20_000.0
 DNO_MIN_DRAWDOWN = 0.45
 DNO_MIN_SCORE = 0.60
-DNO_MAX_POSITION_PCT = 0.03
-DNO_MAX_POSITIONS = 3
+DNO_MAX_POSITION_PCT = 0.10       # user-set; the 8% cap stays on the other lanes
+DNO_MAX_POSITIONS = 5
 DNO_HARD_STOP_PCT = -0.30          # net, including slip and fee. Do not loosen.
 DNO_TAKE_PROFIT_PCT = 0.50         # full exit. Do not loosen.
 DNO_TIME_STOP_SEC = 48 * 60 * 60
@@ -98,7 +98,7 @@ RULES_CHANGES = [
     {"kaj": "Pas DNO", "prej": "ni ga", "zdaj": "dno po dumpu, potrjen obrat ali baza"},
     {"kaj": "DNO stop", "prej": "—", "zdaj": "−30 % neto, fiksno"},
     {"kaj": "DNO cilj", "prej": "—", "zdaj": "+50 % cel izstop, fiksno"},
-    {"kaj": "DNO velikost", "prej": "—", "zdaj": "3 % knjige, največ 3 pozicije"},
+    {"kaj": "DNO velikost", "prej": "—", "zdaj": "10 % knjige, največ 5 pozicij"},
     {"kaj": "DNO čas", "prej": "—", "zdaj": "izstop po 48 h, če je še odprt"},
 ]
 

@@ -1,4 +1,4 @@
-"""Executor — paper entries only. Sizes at most 8% of current equity. Never more."""
+"""Executor — paper entries only. Main lane stays at 8%. DNO is 10% by user request."""
 
 from __future__ import annotations
 
@@ -11,15 +11,17 @@ from models import AnalystResult, Candidate, Event, Position, iso
 class Executor:
     def __init__(self) -> None:
         assert config.PAPER_MODE, "Executor refuses to start unless PAPER_MODE is True"
-        assert config.MAX_POSITION_PCT <= 0.08 + 1e-12, "max size cannot exceed 8%"
+        assert config.MAX_POSITION_PCT <= 0.08 + 1e-12, "main-lane size cannot exceed 8%"
         assert config.LAUNCH_MAX_POSITION_PCT <= config.MAX_POSITION_PCT + 1e-12
+        assert config.DNO_MAX_POSITION_PCT <= 0.10 + 1e-12, "DNO size cannot exceed the user 10%"
 
-    def size_usd(self, equity: float, cash: float, pct: float | None = None) -> float:
-        cap_pct = config.MAX_POSITION_PCT if pct is None else min(pct, config.MAX_POSITION_PCT)
+    def size_usd(self, equity: float, cash: float, pct: float | None = None, ceiling: float | None = None) -> float:
+        ceiling = config.MAX_POSITION_PCT if ceiling is None else float(ceiling)
+        cap_pct = ceiling if pct is None else min(float(pct), ceiling)
         cap_equity = equity * cap_pct
         cap_cash = cash * cap_pct
         size = min(cap_equity, cap_cash, cash)
-        assert size <= equity * config.MAX_POSITION_PCT + 1e-9, "size exceeds 8% of current balance"
+        assert size <= equity * ceiling + 1e-6, "size exceeds the lane cap"
         assert size <= cash + 1e-9, "size exceeds available cash"
         return size
 
@@ -111,7 +113,12 @@ class Executor:
             size_pct = config.LAUNCH_MAX_POSITION_PCT
         else:
             size_pct = config.MAX_POSITION_PCT
-        size = self.size_usd(equity, cash, size_pct)
+        size = self.size_usd(
+            equity,
+            cash,
+            size_pct,
+            ceiling=config.DNO_MAX_POSITION_PCT if dno else config.MAX_POSITION_PCT,
+        )
         if size < 1.0:
             ev = Event(
                 ts=iso(),
@@ -147,7 +154,8 @@ class Executor:
             stop_pct = config.HARD_STOP_PCT
         hard_stop = fill * (1.0 + stop_pct)
         pct_used = (size / equity) * 100 if equity else 0.0
-        assert pct_used <= config.MAX_POSITION_PCT * 100 + 1e-6
+        lane_cap = config.DNO_MAX_POSITION_PCT if dno else config.MAX_POSITION_PCT
+        assert pct_used <= lane_cap * 100 + 1e-6
 
         pos = Position(
             mint=cand.mint,
