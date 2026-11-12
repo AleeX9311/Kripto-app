@@ -1,47 +1,47 @@
 {
-  "version": 3,
-  "samples": 14,
+  "version": 4,
+  "samples": 15,
   "trust": {
     "kit": {
-      "alpha": 131.0,
+      "alpha": 132.0,
       "beta": 38.0
     },
     "trend": {
       "alpha": 123.0,
-      "beta": 53.0
+      "beta": 54.0
     },
     "varnost": {
       "alpha": 62.0,
-      "beta": 27.0
+      "beta": 28.0
     },
     "bik_medved": {
       "alpha": 76.0,
-      "beta": 42.0
+      "beta": 43.0
     },
     "izvajanje": {
       "alpha": 4.0,
-      "beta": 14.0
+      "beta": 15.0
     }
   },
   "params": {
     "kit": {
-      "min_ratio": 1.43
+      "min_ratio": 1.573
     },
     "trend": {
-      "min_ch5": 0.045
+      "min_ch5": 0.0495
     },
     "varnost": {
-      "min_liq": 36300.0,
+      "min_liq": 39930.0,
       "max_holder": 0.2
     },
     "bik_medved": {
-      "max_ch1h": 243.0
+      "max_ch1h": 218.7
     },
     "izvajanje": {
-      "max_slip": 0.0162
+      "max_slip": 0.01458
     },
     "global": {
-      "stop_loss": -0.08,
+      "stop_loss": -0.072,
       "take_profit": 0.2,
       "time_stop_h": 4.0,
       "max_open": 5.0,
@@ -131,6 +131,36 @@
         },
         "global": {
           "stop_loss": -0.08,
+          "take_profit": 0.2,
+          "time_stop_h": 4.0,
+          "max_open": 5.0,
+          "entry_cost": 0.01
+        }
+      }
+    },
+    {
+      "version": 4,
+      "why": "zaostritev po vsaj 5 poslih: KIT min_ratio 1.43 → 1.573; TREND min_ch5 0.045 → 0.0495; VARNOST min_liq 3.63e+04 → 3.993e+04; BIK/MEDVED max_ch1h 243 → 218.7; IZVAJANJE max_slip 0.0162 → 0.01458; stop -0.080 → -0.072",
+      "at": "2026-11-12T05:29:14+01:00",
+      "params": {
+        "kit": {
+          "min_ratio": 1.573
+        },
+        "trend": {
+          "min_ch5": 0.0495
+        },
+        "varnost": {
+          "min_liq": 39930.0,
+          "max_holder": 0.2
+        },
+        "bik_medved": {
+          "max_ch1h": 218.7
+        },
+        "izvajanje": {
+          "max_slip": 0.01458
+        },
+        "global": {
+          "stop_loss": -0.072,
           "take_profit": 0.2,
           "time_stop_h": 4.0,
           "max_open": 5.0,
@@ -1026,561 +1056,75 @@
       },
       "mae_pct": -0.3409,
       "mfe_pct": 21.646
+    },
+    {
+      "chain": "solana",
+      "category": "ALT",
+      "liq_usd": 322385.61,
+      "vol24": 811272.21,
+      "vol_liq": 2.5165,
+      "age_min": 51927.4,
+      "ch5": 1.76,
+      "ch1h": 5.14,
+      "ch24": -3.3,
+      "buy_ratio": 1.4,
+      "holder": null,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "score": 0.979
+        },
+        "trend": {
+          "vote": "YES",
+          "score": 0.6715
+        },
+        "varnost": {
+          "vote": "YES",
+          "score": 0.85
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "score": 0.9788
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "score": 1.0
+        }
+      },
+      "yes_count": 4,
+      "price": 0.005089,
+      "regime": "NEVTRALNO",
+      "setup": "ponovni_test",
+      "setup_label": "ponovni test preboja",
+      "setup_score": 45,
+      "setup_reasons": "blizu podpore · preboj zadnjega nižjega vrha · padec 63% od vrha",
+      "swing_low": 0.004266764119014168,
+      "ema20": 0.004926469294177244,
+      "confirm_price": 0.005072089614196128,
+      "support_low": 0.005019836226636314,
+      "support_high": 0.005043656080763917,
+      "buffer": 8.168607244493763e-05,
+      "stop_price": 0.00483455,
+      "stop_pct": -5.0,
+      "reward_risk": 4.0,
+      "stop_frac": -0.05,
+      "size_usd": 9.995165,
+      "symbol": "CLAUDIA",
+      "opened_at": "2026-11-12T04:11:56+01:00",
+      "version": 3,
+      "outcome": {
+        "pnl_pct": -7.7585,
+        "pnl_usd": -0.775478,
+        "reason": "stop_loss",
+        "held_sec": 4638,
+        "mfe_pct": 1.0808,
+        "mae_pct": -5.8951
+      },
+      "mae_pct": -5.8951,
+      "mfe_pct": 1.0808
     }
   ],
   "pending": [
-    {
-      "symbol": "BNCB",
-      "pair": "0x320e8096e5e7a46E43446141A5B15d801FC596f5",
-      "chain": "bsc",
-      "price": 4.61,
-      "features": {
-        "chain": "bsc",
-        "category": "ALT",
-        "liq_usd": 3708018.28,
-        "vol24": 2011529.19,
-        "vol_liq": 0.5425,
-        "age_min": 84473.0,
-        "ch5": -0.02,
-        "ch1h": -0.2,
-        "ch24": -0.16,
-        "buy_ratio": 0.0,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.0
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.4935
-          },
-          "varnost": {
-            "vote": "NO",
-            "score": 0.15
-          },
-          "bik_medved": {
-            "vote": "YES",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 1.0
-          }
-        },
-        "yes_count": 2,
-        "price": 4.61,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470991.3590314,
-      "time": "2026-11-12T05:09:51+01:00"
-    },
-    {
-      "symbol": "IRYS",
-      "pair": "0x73de8b8D37fAc1aFe156f6533788A0efF197D636",
-      "chain": "bsc",
-      "price": 0.01633,
-      "features": {
-        "chain": "bsc",
-        "category": "ALT",
-        "liq_usd": 406575.16,
-        "vol24": 769910.21,
-        "vol_liq": 1.8936,
-        "age_min": 473248.3,
-        "ch5": 0.15,
-        "ch1h": -1.16,
-        "ch24": -5.19,
-        "buy_ratio": 0.8889,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.6216
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.5105
-          },
-          "varnost": {
-            "vote": "NO",
-            "score": 0.15
-          },
-          "bik_medved": {
-            "vote": "YES",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 1.0
-          }
-        },
-        "yes_count": 2,
-        "price": 0.01633,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470991.3591595,
-      "time": "2026-11-12T05:09:51+01:00"
-    },
-    {
-      "symbol": "UODF",
-      "pair": "4EU125A9ruqAvMSNWAuFc5GHEdB3Jt3bS3keB6EMiuu5",
-      "chain": "solana",
-      "price": 0.006019,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 244602.31,
-        "vol24": 679257.3,
-        "vol_liq": 2.777,
-        "age_min": 3734.3,
-        "ch5": -0.74,
-        "ch1h": 3.61,
-        "ch24": -93.88,
-        "buy_ratio": 1.6,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.4215
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 0.9851
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 1.0
-          }
-        },
-        "yes_count": 2,
-        "price": 0.006019,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470991.9870374,
-      "time": "2026-11-12T05:09:51+01:00"
-    },
-    {
-      "symbol": "CASH",
-      "pair": "3wijQvPKm6jHQrAkfPpok5o8WjCWPm1DGG17NmeW8q1w",
-      "chain": "solana",
-      "price": 0.9996,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 6938988.15,
-        "vol24": 898888.87,
-        "vol_liq": 0.1295,
-        "age_min": 613393.5,
-        "ch5": 0.0,
-        "ch1h": 0.0,
-        "ch24": -0.01,
-        "buy_ratio": 0.0,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.0
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.4955
-          },
-          "varnost": {
-            "vote": "NO",
-            "score": 0.15
-          },
-          "bik_medved": {
-            "vote": "YES",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 1.0
-          }
-        },
-        "yes_count": 2,
-        "price": 0.9996,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470991.9871914,
-      "time": "2026-11-12T05:09:51+01:00"
-    },
-    {
-      "symbol": "咪好",
-      "pair": "GSucfCJDqx8pShmYr2KokoAbjUHjq6ivvAfkmi5A8KSB",
-      "chain": "solana",
-      "price": 0.0003129,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 44927.66,
-        "vol24": 1345375.27,
-        "vol_liq": 29.9454,
-        "age_min": 1663.6,
-        "ch5": -1.97,
-        "ch1h": 10.86,
-        "ch24": -28.82,
-        "buy_ratio": 1.9783,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "YES",
-            "score": 1.0
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.2985
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 0.9553
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.3704
-          }
-        },
-        "yes_count": 3,
-        "price": 0.0003129,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470992.609237,
-      "time": "2026-11-12T05:09:52+01:00"
-    },
-    {
-      "symbol": "Max",
-      "pair": "723Hi42zhg8ypDpupFSCBnVPxUbGUVGrss7NR6nfxaZX",
-      "chain": "solana",
-      "price": 0.0001043,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 35238.01,
-        "vol24": 5796867.41,
-        "vol_liq": 164.5061,
-        "age_min": 3652.2,
-        "ch5": -7.57,
-        "ch1h": -17.99,
-        "ch24": 195.0,
-        "buy_ratio": 1.1,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.7692
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.0
-          },
-          "varnost": {
-            "vote": "NO",
-            "score": 0.15
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.3642
-          }
-        },
-        "yes_count": 1,
-        "price": 0.0001043,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470992.6093988,
-      "time": "2026-11-12T05:09:52+01:00"
-    },
-    {
-      "symbol": "Dacity",
-      "pair": "G2UuRbmVDzDFP4qyoBJrSKBXSi7d6V4bPP9tHPs36y4b",
-      "chain": "solana",
-      "price": 0.00145,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 203884.25,
-        "vol24": 7313143.46,
-        "vol_liq": 35.8691,
-        "age_min": 45652.9,
-        "ch5": 3.29,
-        "ch1h": 1.29,
-        "ch24": -80.57,
-        "buy_ratio": 0.5556,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.3885
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.8245
-          },
-          "varnost": {
-            "vote": "NO",
-            "score": 0.15
-          },
-          "bik_medved": {
-            "vote": "YES",
-            "score": 0.9947
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 1.0
-          }
-        },
-        "yes_count": 2,
-        "price": 0.00145,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470992.6094966,
-      "time": "2026-11-12T05:09:52+01:00"
-    },
-    {
-      "symbol": "ANSEM",
-      "pair": "FnzKY6x7entQ1eR3D225dQyT7ybfka4PskBMQhb8L3CC",
-      "chain": "solana",
-      "price": 0.05931,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 1388285.03,
-        "vol24": 2126484.71,
-        "vol_liq": 1.5317,
-        "age_min": 213544.1,
-        "ch5": -0.51,
-        "ch1h": 0.92,
-        "ch24": 5.29,
-        "buy_ratio": 0.6667,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.4662
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.4445
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 0.9962
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 1.0
-          }
-        },
-        "yes_count": 2,
-        "price": 0.05931,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470993.23691,
-      "time": "2026-11-12T05:09:53+01:00"
-    },
-    {
-      "symbol": "HOLD",
-      "pair": "GUsid5mPW6KiExjQDDggoTHrFv4ecGqqAgYwiHa4Ujbb",
-      "chain": "solana",
-      "price": 0.0001206,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 30997.85,
-        "vol24": 2118010.81,
-        "vol_liq": 68.3277,
-        "age_min": 1859.3,
-        "ch5": 10.32,
-        "ch1h": -29.28,
-        "ch24": -90.42,
-        "buy_ratio": 1.3571,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.949
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "varnost": {
-            "vote": "NO",
-            "score": 0.15
-          },
-          "bik_medved": {
-            "vote": "YES",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.3642
-          }
-        },
-        "yes_count": 2,
-        "price": 0.0001206,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470993.2370448,
-      "time": "2026-11-12T05:09:53+01:00"
-    },
-    {
-      "symbol": "BURNIE",
-      "pair": "5tYFviFWQRKV9BJSTHGitbdqEYC1BGUgRUDnSADUXqJP",
-      "chain": "solana",
-      "price": 0.0007435,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 160894.85,
-        "vol24": 2199827.1,
-        "vol_liq": 13.6725,
-        "age_min": 321181.3,
-        "ch5": -0.21,
-        "ch1h": -12.34,
-        "ch24": 134.0,
-        "buy_ratio": 1.0,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 0.6993
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.4745
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "YES",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.9938
-          }
-        },
-        "yes_count": 3,
-        "price": 0.0007435,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470993.857694,
-      "time": "2026-11-12T05:09:53+01:00"
-    },
-    {
-      "symbol": "FLOAT",
-      "pair": "FJk9sajdc2Q4heRPPu3yLzkmf2ZByZkpiHQLv9e2bn5A",
-      "chain": "solana",
-      "price": 0.003813,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 371889.31,
-        "vol24": 2614218.96,
-        "vol_liq": 7.0296,
-        "age_min": 20514.2,
-        "ch5": 1.59,
-        "ch1h": -1.07,
-        "ch24": -59.6,
-        "buy_ratio": 1.5,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.6545
-          },
-          "varnost": {
-            "vote": "YES",
-            "score": 0.85
-          },
-          "bik_medved": {
-            "vote": "YES",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 1.0
-          }
-        },
-        "yes_count": 3,
-        "price": 0.003813,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470994.4632187,
-      "time": "2026-11-12T05:09:54+01:00"
-    },
-    {
-      "symbol": "PAYDAY",
-      "pair": "9rQAUw4uNyfsqsJ9F3BPo3hBFY1V6ptaEtPkRhhH3zpL",
-      "chain": "solana",
-      "price": 0.0001747,
-      "features": {
-        "chain": "solana",
-        "category": "ALT",
-        "liq_usd": 33765.64,
-        "vol24": 1649477.79,
-        "vol_liq": 48.8508,
-        "age_min": 3429.0,
-        "ch5": -1.82,
-        "ch1h": -14.19,
-        "ch24": 12.28,
-        "buy_ratio": 2.0,
-        "holder": null,
-        "votes": {
-          "kit": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "trend": {
-            "vote": "NO",
-            "score": 0.3135
-          },
-          "varnost": {
-            "vote": "NO",
-            "score": 0.15
-          },
-          "bik_medved": {
-            "vote": "NO",
-            "score": 1.0
-          },
-          "izvajanje": {
-            "vote": "YES",
-            "score": 0.3642
-          }
-        },
-        "yes_count": 1,
-        "price": 0.0001747,
-        "regime": "NEVTRALNO"
-      },
-      "check_after": 1794470994.4633296,
-      "time": "2026-11-12T05:09:54+01:00"
-    },
     {
       "symbol": "TA",
       "pair": "0xFA7421F1ed6AD1548316a847e8437af7219A8F18",
@@ -4708,39 +4252,561 @@
       },
       "check_after": 1794472107.085396,
       "time": "2026-11-12T05:28:27+01:00"
+    },
+    {
+      "symbol": "quq",
+      "pair": "0x9485Ff32b6b4444C21D5abe4D9a2283d127075a2",
+      "chain": "bsc",
+      "price": 0.00163,
+      "features": {
+        "chain": "bsc",
+        "category": "ALT",
+        "liq_usd": 972380.2,
+        "vol24": 89210576.23,
+        "vol_liq": 91.7445,
+        "age_min": 748583.8,
+        "ch5": 0.0,
+        "ch1h": 0.0,
+        "ch24": 4.49,
+        "buy_ratio": 0.8824,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.561
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.495
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 1.0
+          }
+        },
+        "yes_count": 2,
+        "price": 0.00163,
+        "regime": "MEDVED"
+      },
+      "check_after": 1794472310.502219,
+      "time": "2026-11-12T05:31:50+01:00"
+    },
+    {
+      "symbol": "XPIN",
+      "pair": "0x08dEBfC510A2EB0148107Da7AB8E96531323F4D4",
+      "chain": "bsc",
+      "price": 0.0007011,
+      "features": {
+        "chain": "bsc",
+        "category": "ALT",
+        "liq_usd": 564176.41,
+        "vol24": 559185.45,
+        "vol_liq": 0.9912,
+        "age_min": 646317.4,
+        "ch5": 0.08,
+        "ch1h": 0.23,
+        "ch24": 0.5,
+        "buy_ratio": 1.25,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.7947
+          },
+          "trend": {
+            "vote": "YES",
+            "score": 0.503
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "YES",
+            "score": 0.9989
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 1.0
+          }
+        },
+        "yes_count": 3,
+        "price": 0.0007011,
+        "regime": "MEDVED"
+      },
+      "check_after": 1794472310.5023553,
+      "time": "2026-11-12T05:31:50+01:00"
+    },
+    {
+      "symbol": "Monkey",
+      "pair": "0xd9E51Cb178dCbD0de2333ef5cf94cd042aE49F31",
+      "chain": "bsc",
+      "price": 4.008e-24,
+      "features": {
+        "chain": "bsc",
+        "category": "ALT",
+        "liq_usd": 52464.24,
+        "vol24": 85412.6,
+        "vol_liq": 1.628,
+        "age_min": 143520.4,
+        "ch5": 9.31,
+        "ch1h": -2.07,
+        "ch24": -73.19,
+        "buy_ratio": 14.0,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 1.0
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 1.0
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.9863
+          }
+        },
+        "yes_count": 2,
+        "price": 4.008e-24,
+        "regime": "MEDVED"
+      },
+      "check_after": 1794472310.5024478,
+      "time": "2026-11-12T05:31:50+01:00"
+    },
+    {
+      "symbol": "BANANAS31",
+      "pair": "0x7F51BBf34156ba802dEB0E38B7671DC4fa32041d",
+      "chain": "bsc",
+      "price": 0.005608,
+      "features": {
+        "chain": "bsc",
+        "category": "ALT",
+        "liq_usd": 3411084.48,
+        "vol24": 1065900.37,
+        "vol_liq": 0.3125,
+        "age_min": 1042291.8,
+        "ch5": -0.1,
+        "ch1h": -0.54,
+        "ch24": -4.67,
+        "buy_ratio": 0.75,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.4768
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.485
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 1.0
+          }
+        },
+        "yes_count": 2,
+        "price": 0.005608,
+        "regime": "MEDVED"
+      },
+      "check_after": 1794472311.7734947,
+      "time": "2026-11-12T05:31:51+01:00"
+    },
+    {
+      "symbol": "咪好",
+      "pair": "GSucfCJDqx8pShmYr2KokoAbjUHjq6ivvAfkmi5A8KSB",
+      "chain": "solana",
+      "price": 0.0002616,
+      "features": {
+        "chain": "solana",
+        "category": "ALT",
+        "liq_usd": 40940.64,
+        "vol24": 1335417.64,
+        "vol_liq": 32.6184,
+        "age_min": 1685.6,
+        "ch5": -11.69,
+        "ch1h": -9.52,
+        "ch24": -46.19,
+        "buy_ratio": 3.6129,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.0
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "NO",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.3004
+          }
+        },
+        "yes_count": 2,
+        "price": 0.0002616,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794472311.7738209,
+      "time": "2026-11-12T05:31:51+01:00"
+    },
+    {
+      "symbol": "Max",
+      "pair": "723Hi42zhg8ypDpupFSCBnVPxUbGUVGrss7NR6nfxaZX",
+      "chain": "solana",
+      "price": 9.606e-05,
+      "features": {
+        "chain": "solana",
+        "category": "ALT",
+        "liq_usd": 33758.71,
+        "vol24": 5812154.86,
+        "vol_liq": 172.1676,
+        "age_min": 3674.2,
+        "ch5": 3.26,
+        "ch1h": -18.85,
+        "ch24": 174.0,
+        "buy_ratio": 0.7,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.445
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.821
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.2936
+          }
+        },
+        "yes_count": 2,
+        "price": 9.606e-05,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794472311.7739487,
+      "time": "2026-11-12T05:31:51+01:00"
+    },
+    {
+      "symbol": "Dacity",
+      "pair": "G2UuRbmVDzDFP4qyoBJrSKBXSi7d6V4bPP9tHPs36y4b",
+      "chain": "solana",
+      "price": 0.001767,
+      "features": {
+        "chain": "solana",
+        "category": "ALT",
+        "liq_usd": 226128.6,
+        "vol24": 7438518.33,
+        "vol_liq": 32.8951,
+        "age_min": 45674.9,
+        "ch5": 19.99,
+        "ch1h": 23.2,
+        "ch24": -75.26,
+        "buy_ratio": 1.0341,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.6574
+          },
+          "trend": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "YES",
+            "score": 0.8939
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 1.0
+          }
+        },
+        "yes_count": 3,
+        "price": 0.001767,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794472311.7740471,
+      "time": "2026-11-12T05:31:51+01:00"
+    },
+    {
+      "symbol": "Max",
+      "pair": "Eoe22HdCa9rhtBwKL6nNZmZxfuzF35xkxobcvfaF1vWQ",
+      "chain": "solana",
+      "price": 0.001738,
+      "features": {
+        "chain": "solana",
+        "category": "ALT",
+        "liq_usd": 167419.03,
+        "vol24": 53116786.15,
+        "vol_liq": 317.2685,
+        "age_min": 451.4,
+        "ch5": -2.22,
+        "ch1h": 12.14,
+        "ch24": 4593.0,
+        "buy_ratio": 1.0882,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.6918
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.273
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "NO",
+            "score": 0.9445
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.9931
+          }
+        },
+        "yes_count": 1,
+        "price": 0.001738,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794472311.7741408,
+      "time": "2026-11-12T05:31:51+01:00"
+    },
+    {
+      "symbol": "ANSEM",
+      "pair": "FnzKY6x7entQ1eR3D225dQyT7ybfka4PskBMQhb8L3CC",
+      "chain": "solana",
+      "price": 0.05895,
+      "features": {
+        "chain": "solana",
+        "category": "ALT",
+        "liq_usd": 1381994.17,
+        "vol24": 2114553.56,
+        "vol_liq": 1.5301,
+        "age_min": 213566.1,
+        "ch5": -0.06,
+        "ch1h": -0.45,
+        "ch24": 2.83,
+        "buy_ratio": 0.0,
+        "holder": 0.49,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.0
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.489
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 1.0
+          }
+        },
+        "yes_count": 2,
+        "price": 0.05895,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794472312.4346373,
+      "time": "2026-11-12T05:31:52+01:00"
+    },
+    {
+      "symbol": "BURNIE",
+      "pair": "5tYFviFWQRKV9BJSTHGitbdqEYC1BGUgRUDnSADUXqJP",
+      "chain": "solana",
+      "price": 0.0007645,
+      "features": {
+        "chain": "solana",
+        "category": "ALT",
+        "liq_usd": 162850.3,
+        "vol24": 2201143.42,
+        "vol_liq": 13.5164,
+        "age_min": 321203.3,
+        "ch5": 0.92,
+        "ch1h": -6.05,
+        "ch24": 144.0,
+        "buy_ratio": 2.6667,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 1.0
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.587
+          },
+          "varnost": {
+            "vote": "YES",
+            "score": 0.85
+          },
+          "bik_medved": {
+            "vote": "YES",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.9931
+          }
+        },
+        "yes_count": 3,
+        "price": 0.0007645,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794472313.0828571,
+      "time": "2026-11-12T05:31:53+01:00"
+    },
+    {
+      "symbol": "HOLD",
+      "pair": "GUsid5mPW6KiExjQDDggoTHrFv4ecGqqAgYwiHa4Ujbb",
+      "chain": "solana",
+      "price": 0.0001339,
+      "features": {
+        "chain": "solana",
+        "category": "ALT",
+        "liq_usd": 32704.0,
+        "vol24": 2002645.0,
+        "vol_liq": 61.2355,
+        "age_min": 1881.7,
+        "ch5": -0.97,
+        "ch1h": -7.17,
+        "ch24": -85.44,
+        "buy_ratio": 0.5161,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.3281
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.3981
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "NO",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.2936
+          }
+        },
+        "yes_count": 1,
+        "price": 0.0001339,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794472336.3617103,
+      "time": "2026-11-12T05:32:16+01:00"
+    },
+    {
+      "symbol": "PAYDAY",
+      "pair": "9rQAUw4uNyfsqsJ9F3BPo3hBFY1V6ptaEtPkRhhH3zpL",
+      "chain": "solana",
+      "price": 0.0001599,
+      "features": {
+        "chain": "solana",
+        "category": "ALT",
+        "liq_usd": 32143.84,
+        "vol24": 1433392.24,
+        "vol_liq": 44.5931,
+        "age_min": 3451.4,
+        "ch5": -6.58,
+        "ch1h": -36.62,
+        "ch24": -61.79,
+        "buy_ratio": 0.9286,
+        "holder": null,
+        "votes": {
+          "kit": {
+            "vote": "NO",
+            "score": 0.5903
+          },
+          "trend": {
+            "vote": "NO",
+            "score": 0.0
+          },
+          "varnost": {
+            "vote": "NO",
+            "score": 0.15
+          },
+          "bik_medved": {
+            "vote": "NO",
+            "score": 1.0
+          },
+          "izvajanje": {
+            "vote": "YES",
+            "score": 0.2936
+          }
+        },
+        "yes_count": 1,
+        "price": 0.0001599,
+        "regime": "NEVTRALNO"
+      },
+      "check_after": 1794472336.3618279,
+      "time": "2026-11-12T05:32:16+01:00"
     }
   ],
   "lessons": [
-    {
-      "time": "2026-11-11T18:54:16+01:00",
-      "agent": "trend",
-      "text": "Lekcija TREND: rekel je DA, izid je bil slab. Najbolj izstopa 5m sprememba (9.4%)."
-    },
-    {
-      "time": "2026-11-11T18:54:16+01:00",
-      "agent": "varnost",
-      "text": "Lekcija VARNOST: rekel je DA, izid je bil slab. Najbolj izstopa 5m sprememba (9.4%)."
-    },
-    {
-      "time": "2026-11-11T18:54:16+01:00",
-      "agent": "bik_medved",
-      "text": "Lekcija BIK/MEDVED: rekel je DA, izid je bil slab. Najbolj izstopa 5m sprememba (9.4%)."
-    },
-    {
-      "time": "2026-11-11T18:54:16+01:00",
-      "agent": "izvajanje",
-      "text": "Lekcija IZVAJANJE: rekel je DA, izid je bil slab. Najbolj izstopa 5m sprememba (9.4%)."
-    },
-    {
-      "time": "2026-11-11T23:48:29+01:00",
-      "agent": "kit",
-      "text": "Lekcija KIT: NE je bil upravičen. razmerje nakupov (0.40)."
-    },
-    {
-      "time": "2026-11-11T23:48:29+01:00",
-      "agent": "trend",
-      "text": "Lekcija TREND: rekel je DA, izid je bil slab. Najbolj izstopa razmerje nakupov (0.40)."
-    },
     {
       "time": "2026-11-11T23:48:29+01:00",
       "agent": "varnost",
@@ -4910,17 +4976,47 @@
       "time": "2026-11-12T05:22:08+01:00",
       "agent": "izvajanje",
       "text": "Lekcija IZVAJANJE: DA je bil upravičen. razmerje nakupov (0.75)."
+    },
+    {
+      "time": "2026-11-12T05:29:14+01:00",
+      "agent": "kit",
+      "text": "Lekcija KIT: NE je bil upravičen. 1h sprememba (5.1%)."
+    },
+    {
+      "time": "2026-11-12T05:29:14+01:00",
+      "agent": "trend",
+      "text": "Lekcija TREND: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (5.1%)."
+    },
+    {
+      "time": "2026-11-12T05:29:14+01:00",
+      "agent": "varnost",
+      "text": "Lekcija VARNOST: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (5.1%)."
+    },
+    {
+      "time": "2026-11-12T05:29:14+01:00",
+      "agent": "bik_medved",
+      "text": "Lekcija BIK/MEDVED: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (5.1%)."
+    },
+    {
+      "time": "2026-11-12T05:29:14+01:00",
+      "agent": "izvajanje",
+      "text": "Lekcija IZVAJANJE: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (5.1%)."
+    },
+    {
+      "time": "2026-11-12T05:29:14+01:00",
+      "agent": "varnost",
+      "text": "Lekcija knjige: zaostritev po vsaj 5 poslih: KIT min_ratio 1.43 → 1.573; TREND min_ch5 0.045 → 0.0495; VARNOST min_liq 3.63e+04 → 3.993e+04; BIK/MEDVED max_ch1h 243 → 218.7; IZVAJANJE max_slip 0.0162 → 0.01458; stop -0.080 → -0.072"
     }
   ],
   "avoid": [],
   "since_adjust": {
-    "kit": 4,
-    "trend": 4,
-    "varnost": 4,
-    "bik_medved": 4,
-    "izvajanje": 4
+    "kit": 0,
+    "trend": 0,
+    "varnost": 0,
+    "bik_medved": 0,
+    "izvajanje": 0
   },
-  "global_since": 4,
+  "global_since": 0,
   "setup_trust": {
     "povratek": {
       "alpha": 4.0,
@@ -4930,8 +5026,8 @@
     },
     "ponovni_test": {
       "alpha": 2.0,
-      "beta": 3.0,
-      "n": 1,
+      "beta": 4.0,
+      "n": 2,
       "label": "ponovni test preboja"
     },
     "potrjeno_dno": {
