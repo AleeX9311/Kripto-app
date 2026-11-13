@@ -216,6 +216,12 @@ def gecko_ohlcv(pool: str, network: str, aggregate: int) -> list[list]:
 
 def _age_hours(pair: dict) -> Optional[float]:
     created = pair.get("pairCreatedAt")
+    if isinstance(created, str) and "T" in created:
+        try:
+            stamp = datetime.fromisoformat(created.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return max(0.0, (datetime.now(timezone.utc) - stamp).total_seconds()) / 3600.0
     ms = _f(created)
     if ms is None:
         return None
@@ -245,64 +251,65 @@ def consider(pair: dict) -> bool:
     return True
 
 
+def _pair_from_gecko(network: str, pool: dict, included: dict) -> Optional[dict]:
+    attrs = pool.get("attributes") or {}
+    rel = ((pool.get("relationships") or {}).get("base_token") or {}).get("data") or {}
+    token = included.get(rel.get("id")) or {}
+    token_attrs = token.get("attributes") or {}
+    mint = token_attrs.get("address") or str(rel.get("id") or "").split("_", 1)[-1]
+    if not mint or not attrs.get("address"):
+        return None
+    vol = (attrs.get("volume_usd") or {}).get("h24")
+    return {
+        "chainId": network,
+        "dexId": "gecko-trending",
+        "pairAddress": attrs.get("address"),
+        "baseToken": {
+            "address": mint,
+            "symbol": token_attrs.get("symbol") or (attrs.get("name") or "?").split(" / ")[0],
+            "name": token_attrs.get("name") or attrs.get("name") or "",
+        },
+        "priceUsd": attrs.get("base_token_price_usd"),
+        "liquidity": {"usd": attrs.get("reserve_in_usd")},
+        "volume": {"h24": vol},
+        "marketCap": attrs.get("market_cap_usd") or attrs.get("fdv_usd"),
+        "fdv": attrs.get("fdv_usd"),
+        "pairCreatedAt": attrs.get("pool_created_at"),
+        "url": f"https://www.geckoterminal.com/{network}/pools/{attrs.get('address')}",
+    }
+
+
 def discover() -> list[dict]:
+    """Trending established pools only. New-pool and trench feeds are never called."""
     found: dict[str, dict] = {}
     for network in ("solana", "bsc"):
         data, code = _get(
             f"{GECKO}/networks/{network}/trending_pools",
-            params={"page": 1},
+            params={"page": 1, "include": "base_token"},
             headers={"User-Agent": UA, "Accept": "application/json"},
         )
         if code == 429:
-            time.sleep(2)
-        pools = []
-        if isinstance(data, dict):
-            pools = data.get("data") or []
-        addrs = []
-        for pool in pools[:8]:
-            attrs = (pool.get("attributes") or {})
-            addr = attrs.get("address")
-            if addr:
-                addrs.append(addr)
-        if not addrs:
+            time.sleep(2.5)
+            data, _ = _get(
+                f"{GECKO}/networks/{network}/trending_pools",
+                params={"page": 1, "include": "base_token"},
+                headers={"User-Agent": UA, "Accept": "application/json"},
+            )
+        if not isinstance(data, dict):
             continue
-        # Gecko pool address is not always the dex pair. Search by network trending via dexscreener token boosts instead below.
-    boosts, code = _get(f"{DEX}/token-boosts/top/v1")
-    if code == 429:
-        time.sleep(2)
-        boosts, _ = _get(f"{DEX}/token-boosts/top/v1")
-    mints = []
-    if isinstance(boosts, list):
-        for row in boosts:
-            if (row.get("chainId") or "").lower() in {"solana", "bsc"} and row.get("tokenAddress"):
-                mints.append((row["chainId"].lower(), row["tokenAddress"]))
-    # Also a broad search so BNB and SOL both appear when boosts are thin.
-    for query in ("SOL", "BNB"):
-        data, _ = _get(f"{DEX}/latest/dex/search", params={"q": query})
-        pairs = (data or {}).get("pairs") if isinstance(data, dict) else None
-        for pair in pairs or []:
-            mint = ((pair.get("baseToken") or {}).get("address"))
-            chain = (pair.get("chainId") or "").lower()
-            if mint and chain in {"solana", "bsc"}:
-                mints.append((chain, mint))
-    for chain, mint in mints[:24]:
-        data, code = _get(f"{DEX}/tokens/v1/{chain}/{mint}")
-        if code == 429:
-            time.sleep(1.5)
-            data, _ = _get(f"{DEX}/tokens/v1/{chain}/{mint}")
-        pairs = data if isinstance(data, list) else []
-        best = None
-        for pair in pairs:
-            if not consider(pair):
+        included = {item.get("id"): item for item in (data.get("included") or [])}
+        for pool in data.get("data") or []:
+            pair = _pair_from_gecko(network, pool, included)
+            if not pair or not consider(pair):
                 continue
-            vol = _f(((pair.get("volume") or {}).get("h24"))) or 0
-            if best is None or vol > (_f(((best.get("volume") or {}).get("h24"))) or 0):
-                best = pair
-        if best:
-            found[f"{chain}:{mint}"] = best
-        if len(found) >= 8:
-            break
-        time.sleep(0.25)
+            key = f"{network}:{pair['baseToken']['address']}"
+            prev = found.get(key)
+            vol = _f(pair["volume"]["h24"]) or 0
+            if prev is None or vol > (_f(prev["volume"]["h24"]) or 0):
+                found[key] = pair
+            if len(found) >= 6:
+                return list(found.values())
+        time.sleep(0.4)
     return list(found.values())
 
 
