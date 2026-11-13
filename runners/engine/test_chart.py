@@ -1,7 +1,7 @@
 """Chart and week-cap checks. No network."""
 
 from chart import read_chart
-from scan import week_id, can_enter
+from scan import week_id, can_enter, consider, watch_reason
 
 
 def _bar(i, price):
@@ -26,6 +26,18 @@ def test_higher_lows_and_zones():
     assert chart["zones"]["invalidation"] > 0
 
 
+def test_universe_and_watch_reason():
+    young = {
+        "chainId": "solana", "dexId": "raydium", "pairCreatedAt": "2026-11-13T12:00:00+00:00",
+        "marketCap": 5_000_000, "volume": {"h24": 3_000_000},
+    }
+    assert consider(young) is False
+    old = dict(young)
+    old["pairCreatedAt"] = "2026-01-01T00:00:00+00:00"
+    assert consider(old) is True
+    assert watch_reason({"chart_1h": {"ok": True, "structure": True, "in_buy_zone": False}}) == "čaka pullback v cono A"
+
+
 def test_week_cap_blocks_a_sixth_entry():
     assert can_enter({"week_id": week_id(), "week_entries": 5, "positions": []}, "mint") is False
     assert can_enter({"week_id": "1999-W01", "week_entries": 5, "positions": []}, "mint") is True
@@ -33,5 +45,6 @@ def test_week_cap_blocks_a_sixth_entry():
 
 if __name__ == "__main__":
     test_higher_lows_and_zones()
+    test_universe_and_watch_reason()
     test_week_cap_blocks_a_sixth_entry()
     print("runner chart ok")

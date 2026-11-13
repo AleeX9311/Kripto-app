@@ -87,19 +87,33 @@ def save_state(state: dict) -> None:
     STATE_PATH.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _get(url: str, params=None, headers=None, timeout=12) -> tuple[Optional[object], Optional[int]]:
-    try:
-        res = requests.get(url, params=params, headers=headers or {"User-Agent": UA}, timeout=timeout)
-    except requests.RequestException:
-        return None, None
-    if res.status_code == 429:
-        return None, 429
-    if res.status_code >= 400:
-        return None, res.status_code
-    try:
-        return res.json(), res.status_code
-    except ValueError:
-        return None, res.status_code
+def _get(url: str, params=None, headers=None, timeout=12, retries: int = 3) -> tuple[Optional[object], Optional[int]]:
+    """Retry timeouts and 429/5xx with backoff. The last HTTP status is always returned."""
+    delay = 1.0
+    last_code: Optional[int] = None
+    hdrs = {"User-Agent": UA, "Accept": "application/json"}
+    if headers:
+        hdrs.update(headers)
+    for attempt in range(retries):
+        try:
+            res = requests.get(url, params=params, headers=hdrs, timeout=timeout)
+        except requests.RequestException:
+            last_code = None
+            time.sleep(delay)
+            delay *= 2
+            continue
+        last_code = res.status_code
+        if res.status_code == 429 or res.status_code >= 500:
+            time.sleep(delay)
+            delay *= 2
+            continue
+        if res.status_code >= 400:
+            return None, res.status_code
+        try:
+            return res.json(), res.status_code
+        except ValueError:
+            return None, res.status_code
+    return None, last_code
 
 
 def _f(value) -> Optional[float]:
@@ -279,38 +293,86 @@ def _pair_from_gecko(network: str, pool: dict, included: dict) -> Optional[dict]
     }
 
 
-def discover() -> list[dict]:
-    """Trending established pools only. New-pool and trench feeds are never called."""
+def _keep(found: dict[str, dict], pair: Optional[dict]) -> None:
+    if not pair or not consider(pair):
+        return
+    mint = (pair.get("baseToken") or {}).get("address")
+    chain = (pair.get("chainId") or "").lower()
+    if not mint:
+        return
+    key = f"{chain}:{mint}"
+    vol = _f((pair.get("volume") or {}).get("h24")) or 0
+    prev = found.get(key)
+    if prev is None or vol > (_f((prev.get("volume") or {}).get("h24")) or 0):
+        found[key] = pair
+
+
+def discover() -> tuple[list[dict], dict]:
+    """Established runners from Gecko pages 1–3, then DexScreener boosts and search.
+
+    New-pool and trench feeds are never called. Every HTTP status is recorded.
+    """
     found: dict[str, dict] = {}
+    sources: list[dict] = []
+    fetched = 0
+
+    def note(name: str, code: Optional[int], rows: int) -> None:
+        sources.append({"name": name, "status": code if code is not None else "ni odgovora", "rows": rows})
+
     for network in ("solana", "bsc"):
-        data, code = _get(
-            f"{GECKO}/networks/{network}/trending_pools",
-            params={"page": 1, "include": "base_token"},
-            headers={"User-Agent": UA, "Accept": "application/json"},
-        )
-        if code == 429:
-            time.sleep(2.5)
-            data, _ = _get(
+        for page in (1, 2, 3):
+            data, code = _get(
                 f"{GECKO}/networks/{network}/trending_pools",
-                params={"page": 1, "include": "base_token"},
-                headers={"User-Agent": UA, "Accept": "application/json"},
+                params={"page": page, "include": "base_token"},
             )
-        if not isinstance(data, dict):
+            pools = (data or {}).get("data") if isinstance(data, dict) else []
+            pools = pools or []
+            note(f"gecko {network} p{page}", code, len(pools))
+            fetched += len(pools)
+            included = {item.get("id"): item for item in ((data or {}).get("included") or [])} if isinstance(data, dict) else {}
+            for pool in pools:
+                _keep(found, _pair_from_gecko(network, pool, included))
+            time.sleep(0.35)
+
+    boosts, code = _get(f"{DEX}/token-boosts/top/v1")
+    boost_rows = boosts if isinstance(boosts, list) else []
+    note("dex boosts", code, len(boost_rows))
+    fetched += len(boost_rows)
+    looked = 0
+    for row in boost_rows:
+        chain = (row.get("chainId") or "").lower()
+        mint = row.get("tokenAddress")
+        if chain not in {"solana", "bsc"} or not mint or looked >= 16:
             continue
-        included = {item.get("id"): item for item in (data.get("included") or [])}
-        for pool in data.get("data") or []:
-            pair = _pair_from_gecko(network, pool, included)
-            if not pair or not consider(pair):
-                continue
-            key = f"{network}:{pair['baseToken']['address']}"
-            prev = found.get(key)
-            vol = _f(pair["volume"]["h24"]) or 0
-            if prev is None or vol > (_f(prev["volume"]["h24"]) or 0):
-                found[key] = pair
-            if len(found) >= 6:
-                return list(found.values())
-        time.sleep(0.4)
-    return list(found.values())
+        looked += 1
+        payload, tok_code = _get(f"{DEX}/tokens/v1/{chain}/{mint}")
+        pairs = payload if isinstance(payload, list) else []
+        if not pairs and tok_code not in (None, 200):
+            note(f"dex token {chain}", tok_code, 0)
+        best = None
+        for pair in pairs:
+            vol = _f(((pair.get("volume") or {}).get("h24"))) or 0
+            if best is None or vol > (_f(((best.get("volume") or {}).get("h24"))) or 0):
+                best = pair
+        _keep(found, best)
+        time.sleep(0.2)
+
+    for query in ("SOL", "BNB", "USDT"):
+        data, code = _get(f"{DEX}/latest/dex/search", params={"q": query})
+        pairs = (data or {}).get("pairs") if isinstance(data, dict) else None
+        pairs = pairs or []
+        note(f"dex search {query}", code, len(pairs))
+        fetched += len(pairs)
+        for pair in pairs:
+            _keep(found, pair)
+
+    ranked = sorted(found.values(), key=lambda pair: _f((pair.get("volume") or {}).get("h24")) or 0, reverse=True)
+    report = {
+        "fetched": fetched,
+        "passed_universe": len(ranked),
+        "sources": sources,
+    }
+    return ranked, report
 
 
 def _mark(state: dict, message: str, agent: str) -> None:
@@ -361,17 +423,18 @@ def manage_positions(state: dict, rows: list[dict]) -> None:
     state["closed"] = (state.get("closed") or [])[-40:]
 
 
+def watch_reason(row: dict) -> str:
+    chart = row.get("chart_1h") or {}
+    if not chart.get("ok"):
+        return "ni sveč za cono"
+    if not chart.get("structure"):
+        return "čaka višja minimuma"
+    return "čaka pullback v cono A"
+
+
 def maybe_enter(state: dict, row: dict) -> None:
     chart = row.get("chart_1h") or {}
     if not chart.get("in_buy_zone"):
-        if row.get("market_cap") and row["market_cap"] >= MIN_MC:
-            watch = state.setdefault("watchlist", [])
-            if not any(w.get("mint") == row["mint"] for w in watch):
-                watch.append({
-                    "mint": row["mint"], "symbol": row["symbol"], "chain": row["chain"],
-                    "note": "Shrani in javi, če bo spet tekel", "ts": iso(),
-                })
-                _mark(state, f"Watchlist {row['symbol']}. Javi, če trendline poči ali višji minimum drži.", "SCOUT")
         return
     if not can_enter(state, row["mint"]):
         _mark(state, f"{row['symbol']} je v coni, toda tedenski limit {WEEK_CAP} je poln. Ni posla.", "ARCH")
@@ -446,7 +509,7 @@ def build_candidate(pair: dict, gmgn: Gmgn) -> dict:
 def pass_once(state: dict) -> dict:
     gmgn = Gmgn()
     _mark(state, "Scout: preskočim trenches in nove pare. Iščem samo tekače z več milijoni prometa.", "SCOUT")
-    pairs = discover()
+    pairs, report = discover()
     rows = []
     for pair in pairs:
         try:
@@ -459,6 +522,15 @@ def pass_once(state: dict) -> dict:
     check_watch(state, rows)
     for row in setups:
         maybe_enter(state, row)
+    state["watchlist"] = [
+        {
+            "mint": row["mint"], "symbol": row["symbol"], "chain": row["chain"],
+            "note": watch_reason(row), "ts": iso(),
+        }
+        for row in rows if not row.get("setup")
+    ]
+    if state["watchlist"]:
+        _mark(state, f"Watchlist {len(state['watchlist'])}: {state['watchlist'][0]['symbol']} {state['watchlist'][0]['note']}.", "SCOUT")
     if not setups:
         _mark(state, "Ni setupov — to je dobro znak. Večina kovancev ni pravi posel.", "ARCH")
     else:
@@ -500,6 +572,11 @@ def pass_once(state: dict) -> dict:
         "meta_tldr": meta,
         "scanned": len(rows),
         "setups": len(setups),
+        "fetched": report["fetched"],
+        "passed_universe": report["passed_universe"],
+        "analysed": len(rows),
+        "in_zone": len(setups),
+        "sources": report["sources"],
     }
     STATUS_PATH.write_text(json.dumps(status, ensure_ascii=False) + "\n", encoding="utf-8")
     save_state(state)

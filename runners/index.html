@@ -136,6 +136,13 @@
   const cell = (v) => (v === null || v === undefined || v === "") ? "n/a" : esc(v);
   const pct = (v) => (v === null || v === undefined) ? "n/a" : esc(v) + " %";
 
+  function scanLine(d) {
+    const scanned = Number(d.analysed ?? d.scanned ?? 0);
+    const zone = Number(d.in_zone ?? d.setups ?? 0);
+    if (scanned > 0 && zone === 0) return scanned + " pregledanih, 0 v coni nakupa";
+    if (scanned > 0) return scanned + " pregledanih, " + zone + " v coni nakupa";
+    return "Skener še ni dobil tekačev.";
+  }
   function lastOf(id) {
     const ev = (data && data.events) || [];
     return [...ev].reverse().find((e) => e.agent === id);
@@ -190,7 +197,9 @@
   function desk() {
     const d = data || {};
     document.getElementById("view-desk").innerHTML = room() + stats() +
-      `<article class="glass"><p class="${d.setups ? "warn" : "ok"}">${d.setups ? d.setups + " papirnih setupov." : "Ni setupov — to je dobro znak."}</p>
+      `<article class="glass"><p class="${(d.in_zone || d.setups) ? "warn" : "ok"}">${scanLine(d)}</p>
+      <p class="dim">Preneseno ${d.fetched ?? "—"} · vesolje ${d.passed_universe ?? "—"} · pregledano ${d.analysed ?? d.scanned ?? "—"} · v coni ${d.in_zone ?? d.setups ?? "—"}</p>
+      <p class="dim">${((d.sources)||[]).map((s)=>esc(s.name)+" "+esc(s.status)+"/"+esc(s.rows)).join(" · ") || "Še ni virov."}</p>
       <p class="dim">${esc(d.gmgn || "GMGN ključ ni nastavljen. Manjkajoča polja so n/a.")}</p></article>`;
   }
 
@@ -202,6 +211,7 @@
       return `<tr><td>${cols.join("</td><td>")}</td></tr>`;
     }).join("");
     document.getElementById("view-run").innerHTML = `<article class="glass"><h2>Tveganje živih tekačev</h2>
+      <p class="${rows.length ? "dim" : "ok"}">${scanLine(data || {})}</p>
       ${rows.length ? `<div class="scroll"><table><thead><tr><th>Token</th><th>reused/recycled dev?</th><th>X created</th><th>dev coins before</th><th>dev's best (ATH)</th><th>creator fee + rewards</th><th>top10</th><th>insiders</th><th>dev holds</th><th>bundlers</th><th>entrapment</th><th>likvidnost / volumen</th><th>social</th><th>main risk</th></tr></thead><tbody>${body}</tbody></table></div>` : `<p class="ok">Ni setupov — to je dobro znak.</p>`}
       <p class="dim">${esc((data && data.meta_tldr) || "")}</p></article>`;
   }
@@ -264,7 +274,7 @@
     const list = (data && data.candidates) || [];
     const opts = list.map((c,i) => `<option value="${i}">${esc(c.symbol)} · ${esc(c.chain)}</option>`).join("");
     document.getElementById("view-graf").innerHTML = `<article class="glass"><h2>Živi graf</h2>
-      ${list.length ? `<select id="pick">${opts}</select><canvas id="chart"></canvas><p id="chartNote" class="dim"></p>` : `<p class="ok">Ni živih sveč. Ni setupov — to je dobro znak.</p><p id="chartNote" class="dim"></p>`}
+      ${list.length ? `<select id="pick">${opts}</select><canvas id="chart"></canvas><p id="chartNote" class="dim"></p>` : `<p class="ok">${scanLine(data || {})}</p><p id="chartNote" class="dim"></p>`}
       <p class="dim">Cone pridejo samo iz zadnjega posnetka skenerja. 1h sveče, 4h struktura v opisu.</p></article>`;
     if (!list.length) return;
     const paint = () => drawChart(list[Number(document.getElementById("pick").value)]);
@@ -306,7 +316,7 @@
     const age = document.getElementById("age");
     if (d && d.last_update) {
       const sec = Math.max(0, Math.round((Date.now() - new Date(d.last_update).getTime()) / 1000));
-      age.textContent = "Živi posnetek pred " + sec + "s · " + (d.empty_ok ? "ni setupov" : (d.setups || 0) + " setupov");
+      age.textContent = "Živi posnetek pred " + sec + "s · " + scanLine(d);
     }
     desk(); runners(); watch(); meta(); prav();
     const on = document.querySelector(".view.on");
@@ -379,7 +389,7 @@
       if (!json || json.note !== "PAPER") throw new Error("posnetek");
       data = json;
     } catch (_) {
-      if (!data) document.getElementById("age").textContent = "Ni setupov — to je dobro znak. Posnetka še ni.";
+      if (!data) document.getElementById("age").textContent = "Posnetka še ni.";
     }
     render();
   }
