@@ -1,26 +1,26 @@
 {
   "version": 5,
-  "samples": 20,
+  "samples": 21,
   "trust": {
     "kit": {
-      "alpha": 194.0,
+      "alpha": 195.0,
       "beta": 51.0
     },
     "trend": {
       "alpha": 181.0,
-      "beta": 69.0
+      "beta": 70.0
     },
     "varnost": {
       "alpha": 120.0,
-      "beta": 43.0
+      "beta": 44.0
     },
     "bik_medved": {
       "alpha": 93.0,
-      "beta": 53.0
+      "beta": 54.0
     },
     "izvajanje": {
       "alpha": 4.0,
-      "beta": 20.0
+      "beta": 21.0
     }
   },
   "params": {
@@ -1482,6 +1482,72 @@
       },
       "mae_pct": -8.3472,
       "mfe_pct": 0.9182
+    },
+    {
+      "chain": "solana",
+      "category": "ALT",
+      "liq_usd": 197758.47,
+      "vol24": 5070160.41,
+      "vol_liq": 25.6381,
+      "age_min": 1799.7,
+      "ch5": 6.99,
+      "ch1h": 30.59,
+      "ch24": 14.12,
+      "buy_ratio": 1.0704,
+      "holder": null,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "score": 0.6186
+        },
+        "trend": {
+          "vote": "YES",
+          "score": 1.0
+        },
+        "varnost": {
+          "vote": "YES",
+          "score": 0.85
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "score": 0.8446
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "score": 1.0
+        }
+      },
+      "yes_count": 4,
+      "price": 0.002293,
+      "regime": "MEDVED",
+      "setup": "ponovni_test",
+      "setup_label": "ponovni test preboja",
+      "setup_score": 55,
+      "setup_reasons": "blizu podpore · zeleni volumen večji · preboj zadnjega nižjega vrha · padec 91% od vrha",
+      "swing_low": 0.001300447672470526,
+      "ema20": 0.001964694222698611,
+      "confirm_price": 0.0022404174253048076,
+      "support_low": 0.0021034130873864433,
+      "support_high": 0.0022433259386073073,
+      "buffer": 0.00011563492000695251,
+      "stop_price": 0.001987778167379491,
+      "stop_pct": -13.31102628087698,
+      "reward_risk": 1.5025137489761102,
+      "stop_frac": -0.1331102628087698,
+      "size_usd": 4.277486,
+      "symbol": "Max",
+      "opened_at": "2026-11-13T04:00:09+01:00",
+      "version": 5,
+      "outcome": {
+        "pnl_pct": -10.3587,
+        "pnl_usd": -0.443091,
+        "reason": "stop_loss",
+        "held_sec": 438,
+        "mfe_pct": 0.0436,
+        "mae_pct": -8.5478
+      },
+      "mae_pct": -8.5478,
+      "mfe_pct": 0.0436
     }
   ],
   "pending": [
@@ -5169,31 +5235,6 @@
   "lessons": [
     {
       "time": "2026-11-12T09:31:59+01:00",
-      "agent": "varnost",
-      "text": "Lekcija VARNOST: rekel je NE, a pozneje je šlo navzgor. Najbolj izstopa 5m sprememba (-11.7%). Cena +22.4 % po 4 h."
-    },
-    {
-      "time": "2026-11-12T09:31:59+01:00",
-      "agent": "bik_medved",
-      "text": "Lekcija BIK/MEDVED: rekel je NE, a pozneje je šlo navzgor. Najbolj izstopa 5m sprememba (-11.7%). Cena +22.4 % po 4 h."
-    },
-    {
-      "time": "2026-11-12T09:31:59+01:00",
-      "agent": "kit",
-      "text": "Lekcija KIT: NE je bil upravičen. likvidnost ($33759). Cena -20.9 % po 4 h."
-    },
-    {
-      "time": "2026-11-12T09:31:59+01:00",
-      "agent": "trend",
-      "text": "Lekcija TREND: NE je bil upravičen. likvidnost ($33759). Cena -20.9 % po 4 h."
-    },
-    {
-      "time": "2026-11-12T09:31:59+01:00",
-      "agent": "varnost",
-      "text": "Lekcija VARNOST: NE je bil upravičen. likvidnost ($33759). Cena -20.9 % po 4 h."
-    },
-    {
-      "time": "2026-11-12T09:31:59+01:00",
       "agent": "kit",
       "text": "Lekcija KIT: NE je bil upravičen. 5m sprememba (20.0%). Cena -8.4 % po 4 h."
     },
@@ -5366,17 +5407,42 @@
       "time": "2026-11-13T03:58:21+01:00",
       "agent": "varnost",
       "text": "Lekcija knjige: zaostritev po vsaj 5 poslih: KIT min_ratio 1.573 → 1.73; TREND min_ch5 0.0495 → 0.05445; VARNOST min_liq 3.993e+04 → 4.392e+04; BIK/MEDVED max_ch1h 218.7 → 196.8; IZVAJANJE max_slip 0.01458 → 0.01312"
+    },
+    {
+      "time": "2026-11-13T04:07:22+01:00",
+      "agent": "kit",
+      "text": "Lekcija KIT: NE je bil upravičen. 1h sprememba (30.6%)."
+    },
+    {
+      "time": "2026-11-13T04:07:22+01:00",
+      "agent": "trend",
+      "text": "Lekcija TREND: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (30.6%)."
+    },
+    {
+      "time": "2026-11-13T04:07:22+01:00",
+      "agent": "varnost",
+      "text": "Lekcija VARNOST: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (30.6%)."
+    },
+    {
+      "time": "2026-11-13T04:07:22+01:00",
+      "agent": "bik_medved",
+      "text": "Lekcija BIK/MEDVED: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (30.6%)."
+    },
+    {
+      "time": "2026-11-13T04:07:22+01:00",
+      "agent": "izvajanje",
+      "text": "Lekcija IZVAJANJE: rekel je DA, izid je bil slab. Najbolj izstopa 1h sprememba (30.6%)."
     }
   ],
   "avoid": [],
   "since_adjust": {
-    "kit": 0,
-    "trend": 0,
-    "varnost": 0,
-    "bik_medved": 0,
-    "izvajanje": 0
+    "kit": 1,
+    "trend": 1,
+    "varnost": 1,
+    "bik_medved": 1,
+    "izvajanje": 1
   },
-  "global_since": 0,
+  "global_since": 1,
   "setup_trust": {
     "povratek": {
       "alpha": 4.0,
@@ -5386,8 +5452,8 @@
     },
     "ponovni_test": {
       "alpha": 2.0,
-      "beta": 6.0,
-      "n": 4,
+      "beta": 7.0,
+      "n": 5,
       "label": "ponovni test preboja"
     },
     "potrjeno_dno": {
