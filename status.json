@@ -2,7 +2,7 @@
   "note": "SIMULACIJA",
   "started": "2026-11-09T20:47:36+01:00",
   "ends": "2026-11-16T20:45:00+01:00",
-  "last_update": "2026-11-13T06:21:13+01:00",
+  "last_update": "2026-11-13T06:23:38+01:00",
   "equity_eur": 83.46,
   "equity_usd": 92.35,
   "pct_vs_eur50": -16.54,
@@ -2761,6 +2761,16 @@
   ],
   "activity": [
     {
+      "time": "2026-11-13T06:22:24+01:00",
+      "type": "scan",
+      "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
+    },
+    {
+      "time": "2026-11-13T06:22:24+01:00",
+      "type": "scan",
+      "text": "REŽIM BNB NEVTRALNO · SOL NEVTRALNO"
+    },
+    {
       "time": "2026-11-13T06:20:01+01:00",
       "type": "scan",
       "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
@@ -2952,24 +2962,9 @@
       "time": "2026-11-13T05:39:14+01:00",
       "type": "scan",
       "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
-    },
-    {
-      "time": "2026-11-13T05:39:14+01:00",
-      "type": "scan",
-      "text": "REŽIM BNB BIK · SOL MEDVED"
-    },
-    {
-      "time": "2026-11-13T05:37:13+01:00",
-      "type": "scan",
-      "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
     }
   ],
   "equity_history": [
-    {
-      "t": "2026-11-12T12:59:00+01:00",
-      "usd": 97.46,
-      "eur": 87.26
-    },
     {
       "t": "2026-11-12T13:01:02+01:00",
       "usd": 97.46,
@@ -5464,6 +5459,11 @@
       "t": "2026-11-13T06:21:13+01:00",
       "usd": 92.35,
       "eur": 83.46
+    },
+    {
+      "t": "2026-11-13T06:23:38+01:00",
+      "usd": 92.35,
+      "eur": 83.46
     }
   ],
   "learning": {
@@ -5612,8 +5612,8 @@
     ]
   },
   "regime": {
-    "bsc": "BIK",
-    "solana": "MEDVED"
+    "bsc": "NEVTRALNO",
+    "solana": "NEVTRALNO"
   },
   "brake": true,
   "metrics": {
@@ -5678,16 +5678,14 @@
       "chain": "solana",
       "url": "https://dexscreener.com/solana/4eu125a9ruqavmsnwaufc5ghedb3jt3bs3keb6emiuu5",
       "label": "Čaka na potrditev",
-      "score": 35,
+      "score": 0,
       "reasons": [
-        "stran od podpore",
-        "višje dno",
-        "padec 100% od vrha"
+        "ni dovolj 15m sveč"
       ],
       "since": "2026-11-12T04:32:27+01:00",
       "price": 4.986339283363667e-06,
-      "swing_low": 2.721924846965186e-06,
-      "ema20": 0.0021905052381488645,
+      "swing_low": null,
+      "ema20": null,
       "confirm_price": null,
       "support_low": 2.721924846965186e-06,
       "support_high": 2.721924846965186e-06,
@@ -5697,18 +5695,22 @@
       "symbol": "GTA6",
       "chain": "solana",
       "url": "https://dexscreener.com/solana/fdamuzyiea7cq1vniqcbhuhpfcmmcjfga6dwqq1hhld2",
-      "label": "Čaka na potrditev",
-      "score": 0,
+      "label": "povratek v trendu",
+      "score": 65,
       "reasons": [
-        "ni dovolj 15m sveč"
+        "blizu podpore",
+        "višje dno",
+        "povratek nad EMA20",
+        "zeleni volumen večji",
+        "preboj zadnjega nižjega vrha"
       ],
       "since": "2026-11-13T03:21:04+01:00",
-      "price": 228.37335750475305,
-      "swing_low": null,
-      "ema20": null,
-      "confirm_price": null,
-      "support_low": 222.70401617336586,
-      "support_high": 226.56638789976114,
+      "price": 229.86731173313612,
+      "swing_low": 222.78705667799179,
+      "ema20": 228.25960855464754,
+      "confirm_price": 229.86731173313612,
+      "support_low": 228.73809776116238,
+      "support_high": 229.85252189515666,
       "note": "ni napoved"
     },
     {
@@ -5725,8 +5727,8 @@
       "swing_low": null,
       "ema20": null,
       "confirm_price": null,
-      "support_low": 0.00040006831650831354,
-      "support_high": 0.00040006831650831354,
+      "support_low": 1.9686098255428788e-05,
+      "support_high": 1.9686098255428788e-05,
       "note": "ni napoved"
     }
   ]
