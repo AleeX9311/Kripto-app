@@ -1,0 +1,108 @@
+name: Runner desk
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/kick/runners"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: runners-data
+  cancel-in-progress: false
+
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GMGN_API_KEY: ${{ secrets.GMGN_API_KEY }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Install dependencies
+        run: python3 -m pip install --quiet -r runners/engine/requirements.txt
+
+      - name: Load book from runners-data
+        run: |
+          set -euo pipefail
+          if git fetch --depth=1 origin runners-data; then
+            git show FETCH_HEAD:state.json > runners/engine/state.json || true
+            echo "Loaded runners-data"
+          else
+            echo "runners-data is missing — a new $1000 paper book"
+          fi
+
+      - name: Paper passes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          publish() {
+            test -f runners/engine/state.json
+            test -f runners/engine/status.json
+            WT="${RUNNER_TEMP}/runners-wt"
+            if [ ! -e "$WT/.git" ]; then
+              rm -rf "$WT"
+              if git fetch --depth=1 origin runners-data; then
+                git worktree add -B runners-data "$WT" FETCH_HEAD
+              else
+                git worktree add --detach "$WT" HEAD
+                git -C "$WT" switch --orphan runners-data
+                git -C "$WT" rm -rf --cached . >/dev/null 2>&1 || true
+              fi
+            fi
+            cp runners/engine/state.json "$WT/state.json"
+            cp runners/engine/status.json "$WT/status.json"
+            git -C "$WT" add -- state.json status.json
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                state.json|status.json) ;;
+                *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
+              esac
+            done < <(git -C "$WT" ls-files)
+            if git -C "$WT" diff --cached --quiet; then
+              echo "No snapshot changes"
+              return 0
+            fi
+            git -C "$WT" commit -m "Update runner desk snapshot"
+            git -C "$WT" push origin HEAD:runners-data
+          }
+
+          others=$(gh run list --workflow "Runner desk" --limit 30 --json databaseId,status \
+            --jq "[.[] | select(.databaseId != ${GITHUB_RUN_ID} and (.status==\"in_progress\" or .status==\"queued\" or .status==\"pending\" or .status==\"waiting\" or .status==\"requested\"))] | length" || true)
+          if [ "${others:-0}" -gt 0 ]; then
+            echo "Another Runner desk run is already active or queued (${others}). Leaving it."
+            exit 0
+          fi
+
+          python3 runners/engine/scan.py --minutes 348 --sleep 90 &
+          pid=$!
+          sleep 40
+          publish || echo "publish skipped"
+          while kill -0 "$pid" 2>/dev/null; do
+            sleep 90
+            publish || echo "publish skipped"
+          done
+          set +e
+          wait "$pid"
+          code=$?
+          set -e
+          publish || echo "final publish skipped"
+          if [ "$code" -eq 0 ]; then
+            gh workflow run "Runner desk" --ref main || echo "re-dispatch failed; the */5 cron is the backup"
+          fi
+          exit "$code"

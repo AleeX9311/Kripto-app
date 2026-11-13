@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07080d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Runner Desk" />
+  <meta name="description" content="Papirni Runner Desk. Virtualni denar, brez denarnice." />
+  <title>Runner Desk</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" href="icon-192.png" />
+  <style>
+    :root { --bg:#07080d; --card:#12141c; --line:#243044; --text:#eef3ff; --muted:#93a0b8; --ok:#39ff88; --warn:#ffb020; --bad:#ff4d6d; --tab:58px; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 -apple-system,BlinkMacSystemFont,sans-serif; padding-bottom:calc(var(--tab) * 2 + env(safe-area-inset-bottom)); }
+    header { padding:calc(12px + env(safe-area-inset-top)) 14px 8px; }
+    h1 { margin:0; font-size:22px; letter-spacing:.04em; }
+    .banner { display:inline-block; margin-top:6px; padding:3px 8px; border-radius:99px; border:1px solid var(--ok); color:var(--ok); font-size:11px; letter-spacing:.08em; }
+    .sub { color:var(--muted); font-size:12px; margin-top:6px; }
+    main { padding:0 12px 16px; display:grid; gap:12px; }
+    .view { display:none; gap:12px; }
+    .view.on { display:grid; }
+    .card { background:linear-gradient(180deg,rgba(22,26,38,.95),rgba(10,12,18,.9)); border:1px solid var(--line); border-radius:16px; padding:12px; }
+    h2 { margin:0 0 8px; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+    .agents { display:grid; gap:8px; }
+    .agent { border:1px solid color-mix(in srgb,var(--c) 55%,transparent); border-radius:14px; padding:10px; background:rgba(0,0,0,.25); }
+    .agent b { color:var(--c); }
+    .agent small { display:block; color:var(--muted); margin:2px 0 6px; }
+    .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+    .stat { padding:8px; border:1px solid var(--line); border-radius:12px; }
+    .stat span { display:block; color:var(--muted); font-size:10px; letter-spacing:.06em; text-transform:uppercase; }
+    .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th,td { text-align:left; padding:6px 4px; border-bottom:1px solid rgba(255,255,255,.06); vertical-align:top; }
+    .scroll { overflow-x:auto; }
+    .scroll table { min-width:760px; }
+    .row { padding:8px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+    .dim { color:var(--muted); font-size:12px; }
+    button, select { background:#10141e; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:6px 8px; }
+    canvas { width:100%; height:280px; display:block; background:#080a10; border-radius:12px; }
+    .tabs { position:fixed; left:0; right:0; bottom:0; z-index:5; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(2,1fr); height:calc(var(--tab) * 2); background:rgba(8,10,16,.96); border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom); }
+    .tabs button { background:transparent; border:0; color:var(--muted); font-size:10px; }
+    .tabs button.on { color:white; }
+    .log { font-size:12px; }
+    .log b { font-size:11px; }
+    pre { white-space:pre-wrap; font:12px/1.45 ui-monospace,monospace; margin:0; }
+    a { color:#7dd3fc; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>RUNNER DESK</h1>
+    <div class="banner">PAPER · VIRTUALNI DENAR</div>
+    <p class="sub" id="age">Čakam posnetek skenerja. Ni napoved.</p>
+  </header>
+  <main>
+    <section class="view on" id="view-desk"></section>
+    <section class="view" id="view-run"></section>
+    <section class="view" id="view-graf"></section>
+    <section class="view" id="view-watch"></section>
+    <section class="view" id="view-meta"></section>
+    <section class="view" id="view-poz"></section>
+    <section class="view" id="view-video"></section>
+    <section class="view" id="view-prav"></section>
+  </main>
+  <nav class="tabs">
+    <button type="button" data-tab="desk" class="on">DESK</button>
+    <button type="button" data-tab="run">RUNNERJI</button>
+    <button type="button" data-tab="graf">GRAF</button>
+    <button type="button" data-tab="watch">WATCH</button>
+    <button type="button" data-tab="meta">META</button>
+    <button type="button" data-tab="poz">POZIVI</button>
+    <button type="button" data-tab="video">VIDEO</button>
+    <button type="button" data-tab="prav">PRAVILA</button>
+  </nav>
+  <script src="content.js"></script>
+  <script>
+(function () {
+  "use strict";
+  const S = window.RUNNER_SPEC;
+  const URL = "https://raw.githubusercontent.com/AleeX9311/Kripto-app/runners-data/status.json";
+  const $ = (id) => document.getElementById(id);
+  let data = null;
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+  const money = (n) => { const v = Number(n); return Number.isFinite(v) ? "$" + v.toLocaleString("en-US", { maximumFractionDigits: 0 }) : "n/a"; };
+  const cell = (v) => v === null || v === undefined || v === "" ? "n/a" : esc(v);
+  const pct = (v) => v === null || v === undefined ? "n/a" : esc(v) + " %";
+
+  function agentsHtml() {
+    const ev = (data && data.events) || [];
+    return S.agents.map((a) => {
+      const last = [...ev].reverse().find((e) => e.agent === a.id);
+      const line = last ? last.message : "čaka posnetek";
+      return `<article class="agent" style="--c:${a.c}"><b>${esc(a.name)}</b><small>${esc(a.role)}</small><div>${esc(line)}</div><p class="dim">${esc(a.brief)}</p></article>`;
+    }).join("");
+  }
+
+  function desk() {
+    const d = data || {};
+    const n = d.week_entries || 0;
+    const empty = !d.setups;
+    $("view-desk").innerHTML = `
+      <article class="card"><h2>Agenti</h2><div class="agents">${agentsHtml()}</div></article>
+      <article class="card"><div class="stats">
+        <div class="stat"><span>Knjiga</span><b>${money(d.equity || 1000)}</b></div>
+        <div class="stat"><span>Teden</span><b>${n} / ${d.week_cap || 5}</b></div>
+        <div class="stat"><span>Velikost</span><b>10 %</b></div>
+        <div class="stat"><span>GMGN</span><b class="${String(d.gmgn||"").includes("rate") ? "warn" : ""}">${esc(d.gmgn || "ni ključa")}</b></div>
+      </div>
+      <p class="${empty ? "ok" : "warn"}">${empty ? "Ni setupov — to je dobro znak." : esc(d.setups) + " setupov v coni."}</p>
+      <p class="dim">Trda meja je 5 papirnih vstopov na ISO teden. V videu je dovolj 3–4. Ni napoved.</p></article>
+      <article class="card"><h2>Dnevnik predaj</h2><div class="log">${((d.events)||[]).slice().reverse().slice(0,8).map((e)=>`<div class="row"><b style="color:${(S.agents.find(a=>a.id===e.agent)||{}).c||"#fff"}">${esc(e.agent)}</b><div>${esc(e.message)}</div></div>`).join("") || "<p class='dim'>Meta Analyst bo vprašal Scout, ko skener odda posnetek.</p>"}</div></article>`;
+  }
+
+  function riskTable(rows, title) {
+    const head = "<tr><th>Token</th><th>reused/recycled dev?</th><th>X created</th><th>dev coins before</th><th>dev's best coin (ATH mcap)</th><th>creator fee + holder rewards</th><th>top10 %</th><th>insiders %</th><th>dev holds %</th><th>bundlers %</th><th>entrapment %</th><th>likvidnost / volumen</th><th>social</th><th>main risk</th></tr>";
+    const body = rows.map((r) => `<tr><td>${r}</td></tr>`).join("");
+    return `<article class="card"><h2>${title}</h2><div class="scroll"><table>${head}<tbody>${body}</tbody></table></div></article>`;
+  }
+
+  function runners() {
+    const primer = S.devTable.map((r) => r.map(cell).join("</td><td>") + "</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>primer iz videa</td>");
+    const live = ((data && data.candidates) || []).map((c) => {
+      const k = c.risk || {};
+      const bits = [esc(c.symbol) + (k.rug ? " · RUG" : ""), cell(k.reused_dev), cell(k.x_created), cell(k.dev_coins_before), cell(k.dev_best || k.dev_best_mcap), cell([k.creator_fee, k.holder_rewards].filter(Boolean).join(" · ")), pct(k.top10_pct), pct(k.insiders_pct), pct(k.dev_holds_pct), pct(k.bundlers_pct), pct(k.entrapment_pct), `${money(k.liquidity_usd)} / ${money(k.volume_24h)}`, cell(k.social), cell(k.main_risk)];
+      return bits.join("</td><td>");
+    });
+    const empty = !live.length || !((data && data.setups) || 0);
+    $("view-run").innerHTML = riskTable(primer, "Primer iz videa") + (live.length ? riskTable(live, "Živi tekači") : "") + `<article class="card"><p class="${empty ? "ok" : ""}">${empty ? "Ni setupov — to je dobro znak." : ""}</p><p class="dim">Trenches in novi pari so izpuščeni. Polja brez vira so n/a. NVIDIA Ai v videu: $1.93K MC, 0% tax, zero liquidity, sveča v nič.</p><h2>Trending iz videa</h2><p>${S.trending.map((t)=>esc(t[0])+" "+esc(t[1])).join(" · ")}</p></article>`;
+  }
+
+  function drawZones(canvas, spec, title) {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const w = canvas.clientWidth || 360, h = 280;
+    canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr);
+    const g = canvas.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const levels = spec.levels;
+    const min = Math.min(...levels.map((l) => l.lo)) * 0.97;
+    const max = Math.max(...levels.map((l) => l.hi || l.lo)) * 1.03;
+    const y = (p) => 16 + (h - 32) * (1 - (p - min) / (max - min));
+    g.font = "11px sans-serif";
+    let flip = false;
+    levels.forEach((l) => {
+      const y1 = y(l.hi || l.lo), y2 = y(l.lo);
+      const top = Math.min(y1, y2);
+      g.fillStyle = l.color;
+      g.globalAlpha = 0.22;
+      g.fillRect(8, top, w - 16, Math.max(6, Math.abs(y2 - y1)));
+      g.globalAlpha = 1;
+      g.fillStyle = l.color;
+      g.fillText(l.name, flip ? w * 0.42 : 12, Math.max(14, top + 11));
+      flip = !flip;
+    });
+    if (spec.path) {
+      g.beginPath();
+      spec.path.forEach((p, i) => {
+        const x = 16 + (i / (spec.path.length - 1)) * (w - 32);
+        i ? g.lineTo(x, y(p)) : g.moveTo(x, y(p));
+      });
+      g.strokeStyle = "#e8eefc"; g.lineWidth = 1.6; g.stroke();
+    }
+    g.fillStyle = "#9ab";
+    g.fillText(title, 12, h - 8);
+  }
+
+  function pokemonSpec() {
+    const P = S.pokemon;
+    return {
+      levels: [
+        { name: "Resistance ATH $0.002425", lo: P.ath, hi: P.ath, color: "#ff4d6d" },
+        { name: "Resistance $0.00268–0.00270", lo: P.ath2[0], hi: P.ath2[1], color: "#ff4d6d" },
+        { name: "No-entry zone – počakaj na dip", lo: P.noEntry[0], hi: P.noEntry[1], color: "#ffb020" },
+        { name: "Invalidation $0.00163", lo: P.invalidation, hi: P.invalidation, color: "#c4b5fd" },
+        { name: "Buy Zone A + Stop A $0.00137", lo: P.stopA, hi: P.buyA[1], color: "#39ff88" },
+        { name: "Buy Zone B + Stop B $0.00103", lo: P.stopB, hi: P.buyB, color: "#34d399" },
+      ],
+      path: [0.0011, 0.0012, 0.00145, 0.0022, 0.002425, 0.0019, 0.00168, 0.0015, 0.00142, 0.0012, 0.00115],
+    };
+  }
+
+  function liveSpec(c) {
+    const z = (c.chart_1h && c.chart_1h.zones) || {};
+    const levels = [];
+    if (z.ath) levels.push({ name: "ATH", lo: z.ath, hi: z.ath, color: "#ff4d6d" });
+    if (z.no_entry) levels.push({ name: z.no_entry.name, lo: z.no_entry.lo, hi: z.no_entry.hi, color: "#ffb020" });
+    if (z.invalidation) levels.push({ name: "Invalidation", lo: z.invalidation, hi: z.invalidation, color: "#c4b5fd" });
+    if (z.buy_a) levels.push({ name: "Buy Zone A + Stop A", lo: z.buy_a.stop, hi: z.buy_a.hi, color: "#39ff88" });
+    if (z.buy_b) levels.push({ name: "Buy Zone B + Stop B", lo: z.buy_b.stop, hi: z.buy_b.hi, color: "#34d399" });
+    const path = (c.candles_1h || []).map((b) => b[3]).filter((n) => Number.isFinite(n));
+    const rr = c.chart_1h && c.chart_1h.rr;
+    return { levels, path, rr, structure: c.chart_1h };
+  }
+
+  function graf() {
+    const list = (data && data.candidates) || [];
+    const opts = [`<option value="pokemon">Pokémon primer</option>`].concat(list.map((c, i) => `<option value="${i}">${esc(c.symbol)} ${esc(c.chain)}</option>`)).join("");
+    $("view-graf").innerHTML = `<article class="card"><h2>Graf</h2><select id="pick">${opts}</select><canvas id="chart"></canvas><p id="chartNote" class="dim"></p><p class="dim">Catecoin iz videa: coni $0.061–0.059 in $0.050–0.049, cilja $0.0687 in $0.081. 1h in 4h. R:R je izračun, ne napoved. Nered denarnic je umaknjen.</p></article>`;
+    const paint = () => {
+      const sel = $("pick").value;
+      const canvas = $("chart");
+      if (sel === "pokemon") {
+        drawZones(canvas, pokemonSpec(), "Pokémon · primer iz videa");
+        $("chartNote").textContent = S.pokemon.note + " R:R na primeru: od Buy A $0.00146 do ATH $0.002425 proti Stop A $0.00137 je približno " + ((0.002425 - 0.00146) / (0.00146 - 0.00137)).toFixed(2) + " R.";
+      } else {
+        const c = list[Number(sel)];
+        const spec = liveSpec(c);
+        drawZones(canvas, spec, (c.symbol || "") + " 1h");
+        const ch = c.chart_1h || {};
+        $("chartNote").textContent = `${c.tldr || ""} 4h struktura: ${(c.chart_4h && c.chart_4h.structure) ? "višji vrhovi in minimumi" : "ni potrjena"}. R:R ${ch.rr ?? "n/a"}. Višji vrhovi ${ch.higher_highs ? "da" : "ne"}, dva višja minimuma ${ch.higher_lows ? "da" : "ne"}, preboj trendline ${ch.trendline_break ? "da" : "ne"}.`;
+      }
+    };
+    $("pick").addEventListener("change", paint);
+    paint();
+  }
+
+  function watch() {
+    const rows = (data && data.watchlist) || [];
+    $("view-watch").innerHTML = `<article class="card"><h2>Watchlist</h2><p>Shrani Pokémon in mi javi, če bo spet tekel. Opozorilo je preboj trendline ali višji minimum.</p>${rows.length ? rows.map((w)=>`<div class="row"><b>${esc(w.symbol)}</b> ${esc(w.chain)}<div class="dim">${esc(w.note || "")}</div></div>`).join("") : "<p class='dim'>Seznam je prazen. To je v redu.</p>"}</article>`;
+  }
+
+  function meta() {
+    $("view-meta").innerHTML = `<article class="card"><h2>Jutranje poročilo</h2><p>${esc((data && data.meta_tldr) || "Še ni jutranjega TLDR. Meta Analyst pokrije zadnjih 48 ur in opozori, ko se meta začne ali nekaj spremeni.")}</p><p class="dim">Iz videa, ne kot današnji podatek: pop culture, Pokémon, trading cards, internet jokes. Približno 25 lansiranj na minuto. Likvidnost tanka. Denar se premika hitro — tega znanega odziva ne ponavljaj, če ga ne rabiš.</p><p class="dim">Pokémon $1.27M MC +10,000 %. Charizard +4,600 %, likvidnost vezana na padajoči Pokémon. Meta Analyst je vprašal Scout, uporabnik je rekel yes ask it. Architect da en odgovor.</p></article>`;
+  }
+
+  function pozivi() {
+    const block = (h, arr) => `<article class="card"><h2>${h}</h2>${arr.map((p)=>`<div class="row"><pre>${esc(p)}</pre></div>`).join("")}</article>`;
+    $("view-poz").innerHTML = block("Pozivi iz videa, dobesedno", S.promptsVideo) + block("ChatGPT, trije vidni primeri", S.chatgptVisible) + block("Slovenski seznam, 25, v duhu videa", S.promptsSl) + `<article class="card"><h2>Scout brief</h2><pre>${esc(S.agents[1].brief)}</pre></article>`;
+  }
+
+  function video() {
+    $("view-video").innerHTML = `<article class="card"><h2>${esc(S.video.title)}</h2><p>${esc(S.video.who)} · ${esc(S.video.url)} · ${esc(S.video.length)}</p><p class="dim">Aleks: nobene besede in nič ne izpusti. Spodaj je celoten kronološki zapis.</p></article>` + S.sections.map((s) => `<article class="card"><h2>${esc(s.t)} ${esc(s.h)}</h2>${s.body.map((p)=>`<p>${esc(p)}</p>`).join("")}</article>`).join("");
+  }
+
+  function pravila() {
+    $("view-prav").innerHTML = `<article class="card"><h2>Pravila in opozorila</h2>${S.rules.map((r)=>`<div class="row">${esc(r)}</div>`).join("")}<p class="dim">Izpeljana metoda: 1 odkritje brez trenches, 2 tveganje, 3 vstop po dipu, 4 izstop 3x–5x / ATH, 5 meja 3–5 poslov na teden. Nič setupov = nič posla.</p></article>`;
+  }
+
+  function render() {
+    const d = data;
+    if (d && d.last_update) {
+      const sec = Math.max(0, Math.round((Date.now() - new Date(d.last_update).getTime()) / 1000));
+      $("age").textContent = "Zadnji pregled pred " + sec + "s · " + (d.gmgn || "");
+    }
+    desk(); runners(); watch(); meta();
+    if ($("view-graf").classList.contains("on")) graf();
+  }
+
+  document.querySelector(".tabs").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-tab]");
+    if (!b) return;
+    document.querySelectorAll(".view").forEach((v) => v.classList.toggle("on", v.id === "view-" + b.dataset.tab));
+    document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x === b));
+    if (b.dataset.tab === "graf") graf();
+  });
+
+  async function load() {
+    try {
+      const res = await fetch(URL + "?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      const json = await res.json();
+      if (!json || json.note !== "PAPER") throw new Error("posnetek");
+      data = json;
+    } catch (_) {
+      if (!data) $("age").textContent = "Ni setupov — to je dobro znak. Posnetka skenerja še ni.";
+    }
+    render();
+  }
+  pozivi(); video(); pravila(); graf();
+  load();
+  setInterval(load, 60000);
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
+})();
+  </script>
+</body>
+</html>
