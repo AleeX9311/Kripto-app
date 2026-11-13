@@ -169,7 +169,7 @@
       "eff_entry": 0.00582265,
       "tokens": 1653.8683586679767,
       "cost_usd": 9.629896598598096,
-      "mark_usd": 9.092968235956537,
+      "mark_usd": 8.922619795013734,
       "peak_price": 0.005783,
       "opened_ts": 1794535575.037329,
       "opened_at": "2026-11-13T03:06:18+01:00",
@@ -305,10 +305,10 @@
         "opened_at": "2026-11-13T03:06:18+01:00",
         "version": 4
       },
-      "last_price": 0.005498,
-      "pnl_pct_gross": -4.631396357328709,
+      "last_price": 0.005395,
+      "pnl_pct_gross": -6.418039895923688,
       "mfe_pct": 0.31222896790978893,
-      "mae_pct": -5.359930615784913
+      "mae_pct": -6.418039895923688
     },
     {
       "symbol": "Dacity",
@@ -320,7 +320,7 @@
       "eff_entry": 0.00221493,
       "tokens": 4320.122689257503,
       "cost_usd": 9.56876934811712,
-      "mark_usd": 9.564751634016112,
+      "mark_usd": 9.551791265948339,
       "peak_price": 0.002246,
       "opened_ts": 1794538141.6357064,
       "opened_at": "2026-11-13T03:49:02+01:00",
@@ -456,8 +456,8 @@
         "opened_at": "2026-11-13T03:49:02+01:00",
         "version": 4
       },
-      "last_price": 0.002214,
-      "pnl_pct_gross": 0.9575923392612706,
+      "last_price": 0.002211,
+      "pnl_pct_gross": 0.8207934336525113,
       "mfe_pct": 2.416780665754681,
       "mae_pct": -3.9671682626539084
     }
@@ -1292,7 +1292,7 @@
     "5qap7okuqkffwwo5daeqdottsblmpdbqtxekcdatpump": 1794560842.5903573
   },
   "stats": {
-    "loops": 1000,
+    "loops": 1001,
     "candidates_seen": 10921,
     "entries": 33,
     "exits": 30,
@@ -1300,7 +1300,7 @@
     "goplus_ok": true,
     "goplus_probe": "ok solana"
   },
-  "last_loop_at": "2026-11-13T05:15:01+01:00",
+  "last_loop_at": "2026-11-13T05:17:25+01:00",
   "notes": "PAPER ONLY — no real orders",
   "agents": {
     "kit": {
@@ -3485,16 +3485,6 @@
   ],
   "activity": [
     {
-      "time": "2026-11-13T04:28:26+01:00",
-      "type": "scan",
-      "text": "REŽIM BNB NEVTRALNO · SOL NEVTRALNO"
-    },
-    {
-      "time": "2026-11-13T04:28:26+01:00",
-      "type": "scan",
-      "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
-    },
-    {
       "time": "2026-11-13T04:30:43+01:00",
       "type": "scan",
       "text": "REŽIM BNB BIK · SOL NEVTRALNO"
@@ -3681,16 +3671,21 @@
     },
     {
       "time": "2026-11-13T05:14:02+01:00",
+      "type": "scan",
+      "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
+    },
+    {
+      "time": "2026-11-13T05:16:13+01:00",
+      "type": "scan",
+      "text": "REŽIM BNB BIK · SOL MEDVED"
+    },
+    {
+      "time": "2026-11-13T05:16:13+01:00",
       "type": "scan",
       "text": "ZAVORA AKTIVNA · novih pozicij danes ni"
     }
   ],
   "equity_history": [
-    {
-      "t": "2026-11-12T11:55:50+01:00",
-      "usd": 97.46,
-      "eur": 87.26
-    },
     {
       "t": "2026-11-12T11:58:00+01:00",
       "usd": 97.46,
@@ -6185,6 +6180,11 @@
       "t": "2026-11-13T05:15:01+01:00",
       "usd": 94.14,
       "eur": 85.08
+    },
+    {
+      "t": "2026-11-13T05:17:25+01:00",
+      "usd": 93.96,
+      "eur": 84.92
     }
   ],
   "universe": {
@@ -7482,7 +7482,7 @@
     "max_drawdown": -0.0369382310691565,
     "sharpe_daily": null,
     "sortino_daily": null,
-    "exposure": 0.30675534557245004,
+    "exposure": 0.30735379183020456,
     "breakdown": {
       "bsc|?": {
         "n": 3,
@@ -7529,7 +7529,7 @@
       "note": "ni napoved",
       "since": "2026-11-12T04:09:18+01:00",
       "since_ts": 1794452958.0615335,
-      "checked_at": "2026-11-13T05:14:13+01:00"
+      "checked_at": "2026-11-13T05:16:27+01:00"
     },
     {
       "symbol": "UODF",
@@ -7539,21 +7539,24 @@
       "url": "https://dexscreener.com/solana/4eu125a9ruqavmsnwaufc5ghedb3jt3bs3keb6emiuu5",
       "price": 4.705916510963525e-06,
       "action": "watch",
-      "kind": "ni_svec",
+      "kind": "nevtralno",
       "label": "Čaka na potrditev",
-      "score": 0,
+      "score": 45,
       "reasons": [
-        "ni dovolj 15m sveč"
+        "stran od podpore",
+        "višje dno",
+        "zeleni volumen večji",
+        "padec 100% od vrha"
       ],
-      "swing_low": null,
-      "ema20": null,
+      "swing_low": 2.721924846965186e-06,
+      "ema20": 0.0026748462946374436,
       "confirm_price": null,
       "support_low": 2.721924846965186e-06,
-      "support_high": 2.721924846965186e-06,
+      "support_high": 3.214543598294044e-06,
       "note": "ni napoved",
       "since": "2026-11-12T04:32:27+01:00",
       "since_ts": 1794454347.7376783,
-      "checked_at": "2026-11-13T05:14:26+01:00"
+      "checked_at": "2026-11-13T05:16:49+01:00"
     },
     {
       "symbol": "GTA6",
@@ -7563,23 +7566,21 @@
       "url": "https://dexscreener.com/solana/fdamuzyiea7cq1vniqcbhuhpfcmmcjfga6dwqq1hhld2",
       "price": 229.29083796245862,
       "action": "watch",
-      "kind": "nevtralno",
+      "kind": "ni_svec",
       "label": "Čaka na potrditev",
-      "score": 40,
+      "score": 0,
       "reasons": [
-        "blizu podpore",
-        "bikovska divergenca RSI",
-        "zeleni volumen večji"
+        "ni dovolj 15m sveč"
       ],
-      "swing_low": 222.78705667799179,
-      "ema20": 228.13330879095827,
+      "swing_low": null,
+      "ema20": null,
       "confirm_price": null,
-      "support_low": 227.5121500945814,
+      "support_low": 228.73809776116238,
       "support_high": 229.25966467545868,
       "note": "ni napoved",
       "since": "2026-11-13T03:21:04+01:00",
       "since_ts": 1794536464.2239382,
-      "checked_at": "2026-11-13T05:14:50+01:00"
+      "checked_at": "2026-11-13T05:17:02+01:00"
     },
     {
       "symbol": "SHARKBUX",
@@ -7587,7 +7588,7 @@
       "chain": "solana",
       "pair": "GCApLjm8aviTumEXSYPCVMGK6Rer9KG7gUN4L9YKP394",
       "url": "https://dexscreener.com/solana/gcapljm8avitumexsypcvmgk6rer9kg7gun4l9ykp394",
-      "price": 0.0006035317203151617,
+      "price": 0.0006217076060207335,
       "action": "watch",
       "kind": "ni_svec",
       "label": "Čaka na potrditev",
@@ -7598,12 +7599,12 @@
       "swing_low": null,
       "ema20": null,
       "confirm_price": null,
-      "support_low": 1.9686098255428788e-05,
-      "support_high": 1.9686098255428788e-05,
+      "support_low": 0.00040006831650831354,
+      "support_high": 0.00040006831650831354,
       "note": "ni napoved",
       "since": "2026-11-13T03:45:18+01:00",
       "since_ts": 1794537918.0149577,
-      "checked_at": "2026-11-13T05:15:01+01:00"
+      "checked_at": "2026-11-13T05:17:25+01:00"
     }
   ],
   "latest_report": "reports/2026-11-12.json",
