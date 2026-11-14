@@ -2,14 +2,14 @@
   "note": "SIMULACIJA",
   "started": "2026-11-09T20:47:36+01:00",
   "ends": "2026-11-16T20:45:00+01:00",
-  "last_update": "2026-11-14T23:45:56+01:00",
+  "last_update": "2026-11-14T23:50:57+01:00",
   "equity_eur": 81.2,
   "equity_usd": 89.85,
   "pct_vs_eur50": -18.8,
   "trades": 40,
-  "scanned": 10,
-  "scanned_bsc": 7,
-  "scanned_sol": 3,
+  "scanned": 12,
+  "scanned_bsc": 12,
+  "scanned_sol": 0,
   "wins": 7,
   "losses": 33,
   "best": {
@@ -635,67 +635,909 @@
   ],
   "agents": {
     "kit": {
-      "evaluated": 10449,
+      "evaluated": 10461,
       "approved": 1252,
-      "vetoed": 9197,
+      "vetoed": 9209,
       "latest": {
         "vote": "NO",
-        "reason": "nakupi niso skoncentrirani (5m 0.61)",
-        "symbol": "GATO",
-        "time": "2026-11-14T23:45:56+01:00"
+        "reason": "nakupi niso skoncentrirani (5m 0.69)",
+        "symbol": "DOS",
+        "time": "2026-11-14T23:50:57+01:00"
       },
       "label": "KIT"
     },
     "trend": {
-      "evaluated": 10449,
-      "approved": 2017,
-      "vetoed": 8432,
+      "evaluated": 10461,
+      "approved": 2020,
+      "vetoed": 8441,
       "latest": {
         "vote": "NO",
-        "reason": "5m -0.9% ne raste",
-        "symbol": "GATO",
-        "time": "2026-11-14T23:45:56+01:00"
+        "reason": "1h -0.6% ne raste",
+        "symbol": "DOS",
+        "time": "2026-11-14T23:50:57+01:00"
       },
       "label": "TREND"
     },
     "varnost": {
-      "evaluated": 10449,
+      "evaluated": 10461,
       "approved": 2670,
-      "vetoed": 7779,
+      "vetoed": 7791,
       "latest": {
-        "vote": "YES",
-        "reason": "likvidnost OK, GoPlus ni dosegljiv",
-        "symbol": "GATO",
-        "time": "2026-11-14T23:45:56+01:00"
+        "vote": "NO",
+        "reason": "GoPlus zavrača (lp_locked=0%)",
+        "symbol": "DOS",
+        "time": "2026-11-14T23:50:57+01:00"
       },
       "label": "VARNOST"
     },
     "bik_medved": {
-      "evaluated": 10449,
-      "approved": 7631,
-      "vetoed": 2818,
+      "evaluated": 10461,
+      "approved": 7640,
+      "vetoed": 2821,
       "latest": {
-        "vote": "NO",
-        "reason": "5m obrat navzdol (-0.9%)",
-        "symbol": "GATO",
-        "time": "2026-11-14T23:45:56+01:00"
+        "vote": "YES",
+        "reason": "ni pregretja, 5m -0.1%",
+        "symbol": "DOS",
+        "time": "2026-11-14T23:50:57+01:00"
       },
       "label": "BIK/MEDVED"
     },
     "izvajanje": {
-      "evaluated": 10449,
-      "approved": 10425,
+      "evaluated": 10461,
+      "approved": 10437,
       "vetoed": 24,
       "latest": {
         "vote": "YES",
-        "reason": "pumpswap, zdrs ~0.00%, liq $267028",
-        "symbol": "GATO",
-        "time": "2026-11-14T23:45:56+01:00"
+        "reason": "pancakeswap, zdrs ~0.00%, liq $640281",
+        "symbol": "DOS",
+        "time": "2026-11-14T23:50:57+01:00"
       },
       "label": "IZVAJANJE"
     }
   },
   "candidates": [
+    {
+      "time": "2026-11-14T23:50:57+01:00",
+      "symbol": "DOS",
+      "name": "DAPPOS",
+      "url": "https://dexscreener.com/bsc/0xcbeaad783ffd2cea125e9d9b2ec21e639d20fa59",
+      "image": "",
+      "token": "0xB0f09ea9ae0515C3551080D4a745C8115aA30e37",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 0.1454,
+      "liq_usd": 640281.34,
+      "vol24": 4837564.83,
+      "change24": -4.96,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "nakupi niso skoncentrirani (5m 0.69)",
+          "numbers": {
+            "buys_5m": 9,
+            "sells_5m": 13,
+            "txns_1h": 828,
+            "buy_share": 0.4091,
+            "ratio_5m": 0.6923,
+            "avg_buy_usd": 83.1127
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "1h -0.6% ne raste",
+          "numbers": {
+            "ch5": -0.1,
+            "ch1h": -0.61,
+            "vol_5m": 1828.48,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "GoPlus zavrača (lp_locked=0%)",
+          "numbers": {
+            "liq_usd": 640281.34,
+            "mcap_usd": 5288765.0,
+            "age_min": 138864.5324,
+            "scam_flag": "LP neznan",
+            "goplus": "lp_locked=0%"
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m -0.1%",
+          "numbers": {
+            "ch5": -0.1,
+            "ch1h": -0.61,
+            "vol_24h": 4837564.83
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $640281",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 640281.34,
+            "slip": 0.0,
+            "price": 0.1454
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "symbol": "QQQB",
+      "name": "Invesqo QQQ",
+      "url": "https://dexscreener.com/bsc/0x47bc06722295ac316a569eef87ac32faa455f441",
+      "image": "",
+      "token": "0x205812CdBed920aFf76C6580abD681a46D11efc7",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 670.46,
+      "liq_usd": 856707.93,
+      "vol24": 2208500.3,
+      "change24": -0.94,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "nakupi niso skoncentrirani (5m 0.94)",
+          "numbers": {
+            "buys_5m": 15,
+            "sells_5m": 16,
+            "txns_1h": 679,
+            "buy_share": 0.4839,
+            "ratio_5m": 0.9375,
+            "avg_buy_usd": 99.7694
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "5m promet $3093 pod povprečjem",
+          "numbers": {
+            "ch5": -0.07,
+            "ch1h": -0.24,
+            "vol_5m": 3092.85,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "mcap/likv 122.2 previsok",
+          "numbers": {
+            "liq_usd": 856707.93,
+            "mcap_usd": 104663221.0,
+            "age_min": 177613.2657
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m -0.1%",
+          "numbers": {
+            "ch5": -0.07,
+            "ch1h": -0.24,
+            "vol_24h": 2208500.3
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $856708",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 856707.93,
+            "slip": 0.0,
+            "price": 670.46
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "symbol": "BLESS",
+      "name": "Bless Token",
+      "url": "https://dexscreener.com/bsc/0x49986efbeedea3ab962ca95caf86919860ecc9db",
+      "image": "https://cdn.dexscreener.com/cms/images/ce7737bdd2c3334dad1ddb163a3ee53d4b2562a9bc771a733ec52a4e2b34da96?width=800&height=800&quality=95&format=auto",
+      "token": "0x7C8217517ed4711fe2DECCdFefFE8d906b9Ae11F",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 0.008909,
+      "liq_usd": 210788.77,
+      "vol24": 1268748.61,
+      "change24": 6.54,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "nakupi niso skoncentrirani (5m 0.74)",
+          "numbers": {
+            "buys_5m": 26,
+            "sells_5m": 35,
+            "txns_1h": 1128,
+            "buy_share": 0.4262,
+            "ratio_5m": 0.7429,
+            "avg_buy_usd": 48.3426
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "5m -0.5% ne raste",
+          "numbers": {
+            "ch5": -0.49,
+            "ch1h": 3.55,
+            "vol_5m": 2948.9,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "mcap/likv 77.8 previsok",
+          "numbers": {
+            "liq_usd": 210788.77,
+            "mcap_usd": 16408936.0,
+            "age_min": 602788.2324
+          }
+        },
+        "bik_medved": {
+          "vote": "NO",
+          "reason": "5m obrat navzdol (-0.5%)",
+          "numbers": {
+            "ch5": -0.49,
+            "ch1h": 3.55,
+            "vol_24h": 1268748.61
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $210789",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 210788.77,
+            "slip": 0.0,
+            "price": 0.0089
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "symbol": "AIA",
+      "name": "DeAgentAI",
+      "url": "https://dexscreener.com/bsc/0xadedafd06cc16dec264fb02d3f8570e072daee35",
+      "image": "",
+      "token": "0x53EC33Cd4fA46b9ecED9cA3f6dB626C5FfCd55cC",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 0.06893,
+      "liq_usd": 689876.65,
+      "vol24": 3314860.62,
+      "change24": 1.27,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "premalo 5m poslov (16)",
+          "numbers": {
+            "buys_5m": 5,
+            "sells_5m": 11,
+            "txns_1h": 505,
+            "buy_share": 0.3125,
+            "ratio_5m": 0.4545,
+            "avg_buy_usd": 130.3806
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "5m -0.4% ne raste",
+          "numbers": {
+            "ch5": -0.39,
+            "ch1h": 4.22,
+            "vol_5m": 2086.09,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "GoPlus zavrača (lp_locked=0%)",
+          "numbers": {
+            "liq_usd": 689876.65,
+            "mcap_usd": 6858830.0,
+            "age_min": 481966.2878,
+            "scam_flag": "LP neznan",
+            "goplus": "lp_locked=0%"
+          }
+        },
+        "bik_medved": {
+          "vote": "NO",
+          "reason": "5m obrat navzdol (-0.4%)",
+          "numbers": {
+            "ch5": -0.39,
+            "ch1h": 4.22,
+            "vol_24h": 3314860.62
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $689877",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 689876.65,
+            "slip": 0.0,
+            "price": 0.0689
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "symbol": "RIVER",
+      "name": "River",
+      "url": "https://dexscreener.com/bsc/0xb249b6e4ac29301f680963a45fac7d09779ef980",
+      "image": "https://cdn.dexscreener.com/cms/images/c79e2ff3ee6b90692511ba4129f16ceaba28df983110cc34b8ad02b24abd78f6?width=800&height=800&quality=95&format=auto",
+      "token": "0xdA7AD9dea9397cffdDAE2F8a052B82f1484252B3",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 0.6121,
+      "liq_usd": 123734.8,
+      "vol24": 25540.52,
+      "change24": -18.11,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "premalo 5m poslov (4)",
+          "numbers": {
+            "buys_5m": 0,
+            "sells_5m": 4,
+            "txns_1h": 130,
+            "buy_share": 0.0,
+            "ratio_5m": 0.0,
+            "avg_buy_usd": 0.0
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "5m -0.4% ne raste",
+          "numbers": {
+            "ch5": -0.36,
+            "ch1h": -0.93,
+            "vol_5m": 56.28,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "mcap/likv 97.0 previsok",
+          "numbers": {
+            "liq_usd": 123734.8,
+            "mcap_usd": 11998706.0,
+            "age_min": 602762.0211
+          }
+        },
+        "bik_medved": {
+          "vote": "NO",
+          "reason": "24h promet $25541 prešibek",
+          "numbers": {
+            "ch5": -0.36,
+            "ch1h": -0.93,
+            "vol_24h": 25540.52
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.01%, liq $123735",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 123734.8,
+            "slip": 0.0001,
+            "price": 0.6121
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "symbol": "BANANAS31",
+      "name": "Banana For Scale",
+      "url": "https://dexscreener.com/bsc/0x7f51bbf34156ba802deb0e38b7671dc4fa32041d",
+      "image": "https://cdn.dexscreener.com/cms/images/47b45884774b483a69240a8373786a03e8e52ec2b1110043ba4db44c291fbf2b?width=800&height=800&quality=95&format=auto",
+      "token": "0x3d4f0513E8a29669B960f9dBcA61861548A9A760",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 0.00425,
+      "liq_usd": 2708363.25,
+      "vol24": 10362803.11,
+      "change24": 10.87,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "nakupi niso skoncentrirani (5m 1.23)",
+          "numbers": {
+            "buys_5m": 81,
+            "sells_5m": 66,
+            "txns_1h": 2372,
+            "buy_share": 0.551,
+            "ratio_5m": 1.2273,
+            "avg_buy_usd": 134.0811
+          }
+        },
+        "trend": {
+          "vote": "YES",
+          "reason": "momentum 5m +0.7% / 1h +0.5%",
+          "numbers": {
+            "ch5": 0.66,
+            "ch1h": 0.47,
+            "vol_5m": 19709.92,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "GoPlus zavrača (lp_locked=66%)",
+          "numbers": {
+            "liq_usd": 2708363.25,
+            "mcap_usd": 42272574.0,
+            "age_min": 1046270.9107,
+            "scam_flag": "LP neznan",
+            "goplus": "lp_locked=66%"
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m +0.7%",
+          "numbers": {
+            "ch5": 0.66,
+            "ch1h": 0.47,
+            "vol_24h": 10362803.11
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $2708363",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 2708363.25,
+            "slip": 0.0,
+            "price": 0.0043
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:55+01:00",
+      "symbol": "UP",
+      "name": "Unitas",
+      "url": "https://dexscreener.com/bsc/0x6f8cb5850cb131c9027e68399118e035ba1d2182",
+      "image": "",
+      "token": "0x000008D2175F9AEAdDb2430c26f8A6f73c5A0000",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 0.1526,
+      "liq_usd": 247933.11,
+      "vol24": 92099.15,
+      "change24": -23.33,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "premalo 5m poslov (12)",
+          "numbers": {
+            "buys_5m": 9,
+            "sells_5m": 3,
+            "txns_1h": 142,
+            "buy_share": 0.75,
+            "ratio_5m": 3.0,
+            "avg_buy_usd": 18.4367
+          }
+        },
+        "trend": {
+          "vote": "YES",
+          "reason": "momentum 5m +0.4% / 1h -0.5%",
+          "numbers": {
+            "ch5": 0.41,
+            "ch1h": -0.53,
+            "vol_5m": 221.24,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "mcap/likv 133.0 previsok",
+          "numbers": {
+            "liq_usd": 247933.11,
+            "mcap_usd": 32966080.0,
+            "age_min": 354983.094
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m +0.4%",
+          "numbers": {
+            "ch5": 0.41,
+            "ch1h": -0.53,
+            "vol_24h": 92099.15
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $247933",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 247933.11,
+            "slip": 0.0,
+            "price": 0.1526
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:55+01:00",
+      "symbol": "ARK",
+      "name": "ARK",
+      "url": "https://dexscreener.com/bsc/0xcaaf3c41a40103a23eeaa4bba468af3cf5b0e0d8",
+      "image": "https://cdn.dexscreener.com/cms/images/a6c37c1e9ae03800afb8acaeaed362a1b3152495450573615780df143f024c8f?width=800&height=800&quality=95&format=auto",
+      "token": "0xCae117ca6Bc8A341D2E7207F30E180f0e5618B9D",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 6.41,
+      "liq_usd": 58322481.12,
+      "vol24": 5216177.76,
+      "change24": -0.1,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "nakupi niso skoncentrirani (5m 0.92)",
+          "numbers": {
+            "buys_5m": 34,
+            "sells_5m": 37,
+            "txns_1h": 751,
+            "buy_share": 0.4789,
+            "ratio_5m": 0.9189,
+            "avg_buy_usd": 112.9411
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "učenje: 5m pod mejo",
+          "numbers": {
+            "ch5": -0.01,
+            "ch1h": -0.01,
+            "vol_5m": 8018.82,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "GoPlus zavrača (mintable_not_renounced)",
+          "numbers": {
+            "liq_usd": 58322481.12,
+            "mcap_usd": 183336769.0,
+            "age_min": 641494.6331,
+            "scam_flag": "LP neznan",
+            "goplus": "mintable_not_renounced"
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m -0.0%",
+          "numbers": {
+            "ch5": -0.01,
+            "ch1h": -0.01,
+            "vol_24h": 5216177.76
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $58322481",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 58322481.12,
+            "slip": 0.0,
+            "price": 6.41
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:54+01:00",
+      "symbol": "BNCB",
+      "name": "CEA Industries",
+      "url": "https://dexscreener.com/bsc/0x320e8096e5e7a46e43446141a5b15d801fc596f5",
+      "image": "",
+      "token": "0x4902C5ebc598265Ed2212b559B042De8a5Eeec3f",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 3.71,
+      "liq_usd": 2957790.93,
+      "vol24": 1280298.19,
+      "change24": -9.32,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "nakupi niso skoncentrirani (5m 0.56)",
+          "numbers": {
+            "buys_5m": 19,
+            "sells_5m": 34,
+            "txns_1h": 331,
+            "buy_share": 0.3585,
+            "ratio_5m": 0.5588,
+            "avg_buy_usd": 306.7638
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "1h -0.8% ne raste",
+          "numbers": {
+            "ch5": -0.33,
+            "ch1h": -0.78,
+            "vol_5m": 16258.48,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "GoPlus zavrača (lp_locked=0%)",
+          "numbers": {
+            "liq_usd": 2957790.93,
+            "mcap_usd": 29984922.0,
+            "age_min": 88474.0394,
+            "scam_flag": "LP neznan",
+            "goplus": "lp_locked=0%"
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m -0.3%",
+          "numbers": {
+            "ch5": -0.33,
+            "ch1h": -0.78,
+            "vol_24h": 1280298.19
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $2957791",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 2957790.93,
+            "slip": 0.0,
+            "price": 3.71
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:54+01:00",
+      "symbol": "ETH",
+      "name": "Ethereum Token",
+      "url": "https://dexscreener.com/bsc/0xd0e226f674bbf064f54ab47f42473ff80db98cba",
+      "image": "",
+      "token": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "MAJOR",
+      "regime": "BIK",
+      "price": 1752.79,
+      "liq_usd": 11507322.66,
+      "vol24": 19378444.68,
+      "change24": -9.26,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "nakupi niso skoncentrirani (5m 0.40)",
+          "numbers": {
+            "buys_5m": 8,
+            "sells_5m": 20,
+            "txns_1h": 753,
+            "buy_share": 0.2857,
+            "ratio_5m": 0.4,
+            "avg_buy_usd": 3402.3829
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "učenje: 5m pod mejo",
+          "numbers": {
+            "ch5": -0.4,
+            "ch1h": -1.28,
+            "vol_5m": 95266.72,
+            "boost": false,
+            "category": "MAJOR"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "mcap/likv 76.9 previsok",
+          "numbers": {
+            "liq_usd": 11507322.66,
+            "mcap_usd": 885131206.0,
+            "age_min": 1902672.7727
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m -0.4%",
+          "numbers": {
+            "ch5": -0.4,
+            "ch1h": -1.28,
+            "vol_24h": 19378444.68
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $11507323",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 11507322.66,
+            "slip": 0.0,
+            "price": 1752.79
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:54+01:00",
+      "symbol": "ARIA",
+      "name": "ARIA.AI",
+      "url": "https://dexscreener.com/bsc/0xa5dbeaf16fc031eae92175974f8d0a439be4ad17",
+      "image": "",
+      "token": "0x5d3A12c42E5372B2CC3264AB3cdcF660a1555238",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 0.1992,
+      "liq_usd": 1972579.06,
+      "vol24": 19453371.85,
+      "change24": 0.22,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "nakupi niso skoncentrirani (5m 0.78)",
+          "numbers": {
+            "buys_5m": 51,
+            "sells_5m": 65,
+            "txns_1h": 1695,
+            "buy_share": 0.4397,
+            "ratio_5m": 0.7846,
+            "avg_buy_usd": 412.2663
+          }
+        },
+        "trend": {
+          "vote": "YES",
+          "reason": "momentum 5m +0.3% / 1h +0.1%",
+          "numbers": {
+            "ch5": 0.27,
+            "ch1h": 0.11,
+            "vol_5m": 47822.89,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "GoPlus zavrača (lp_locked=0%)",
+          "numbers": {
+            "liq_usd": 1972579.06,
+            "mcap_usd": 36457642.0,
+            "age_min": 651703.8041,
+            "scam_flag": "LP neznan",
+            "goplus": "lp_locked=0%"
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m +0.3%",
+          "numbers": {
+            "ch5": 0.27,
+            "ch1h": 0.11,
+            "vol_24h": 19453371.85
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $1972579",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 1972579.06,
+            "slip": 0.0,
+            "price": 0.1992
+          }
+        }
+      }
+    },
+    {
+      "time": "2026-11-14T23:50:53+01:00",
+      "symbol": "JAGENT",
+      "name": "JAGENT",
+      "url": "https://dexscreener.com/bsc/0xe6efcdef2b720d1eca2b69edb7ef357725680bea",
+      "image": "https://cdn.dexscreener.com/cms/images/WQqsvKBe00FsTnoK?width=800&height=800&quality=95&format=auto",
+      "token": "0x8e6442663A4F8C50b6132c68d42A30E7DFE4Ae15",
+      "chain": "bsc",
+      "decision": "VETO",
+      "category": "ALT",
+      "regime": "BIK",
+      "price": 1.748e-06,
+      "liq_usd": 1871335.9,
+      "vol24": 886700.48,
+      "change24": 15.22,
+      "votes": {
+        "kit": {
+          "vote": "NO",
+          "reason": "premalo 5m poslov (16)",
+          "numbers": {
+            "buys_5m": 0,
+            "sells_5m": 16,
+            "txns_1h": 376,
+            "buy_share": 0.0,
+            "ratio_5m": 0.0,
+            "avg_buy_usd": 0.0
+          }
+        },
+        "trend": {
+          "vote": "NO",
+          "reason": "5m promet $55 pod povprečjem",
+          "numbers": {
+            "ch5": -0.01,
+            "ch1h": 0.4,
+            "vol_5m": 55.14,
+            "boost": false,
+            "category": "ALT"
+          }
+        },
+        "varnost": {
+          "vote": "NO",
+          "reason": "GoPlus zavrača (mintable_not_renounced)",
+          "numbers": {
+            "liq_usd": 1871335.9,
+            "mcap_usd": 3472873.0,
+            "age_min": 25227.6093,
+            "scam_flag": "LP neznan",
+            "goplus": "mintable_not_renounced"
+          }
+        },
+        "bik_medved": {
+          "vote": "YES",
+          "reason": "ni pregretja, 5m -0.0%",
+          "numbers": {
+            "ch5": -0.01,
+            "ch1h": 0.4,
+            "vol_24h": 886700.48
+          }
+        },
+        "izvajanje": {
+          "vote": "YES",
+          "reason": "pancakeswap, zdrs ~0.00%, liq $1871336",
+          "numbers": {
+            "dex": "pancakeswap",
+            "liq_usd": 1871335.9,
+            "slip": 0.0,
+            "price": 0.0
+          }
+        }
+      }
+    },
     {
       "time": "2026-11-14T23:45:56+01:00",
       "symbol": "GATO",
@@ -1965,868 +2807,114 @@
           }
         }
       }
-    },
-    {
-      "time": "2026-11-14T23:38:03+01:00",
-      "symbol": "bill",
-      "name": "bill",
-      "url": "https://dexscreener.com/solana/95ytgfrcbgt1d8ioaqkptxea6qrgj5omgimhnyherxdp",
-      "image": "https://cdn.dexscreener.com/cms/images/3t9GnfxhouIPpUJx?width=800&height=800&quality=95&format=auto",
-      "token": "85RhcSEMy15SNhFLmSArNm7udPKXVagVgsq4YmSopump",
-      "chain": "solana",
-      "decision": "ČAKA",
-      "category": "ALT",
-      "regime": "NEVTRALNO",
-      "price": 0.0003228,
-      "liq_usd": 58721.92,
-      "vol24": 1490966.82,
-      "change24": 444.0,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "učenje: razmerje nakupov pod mejo",
-          "numbers": {
-            "buys_5m": 233,
-            "sells_5m": 143,
-            "txns_1h": 5470,
-            "buy_share": 0.6197,
-            "ratio_5m": 1.6294,
-            "avg_buy_usd": 51.2044
-          }
-        },
-        "trend": {
-          "vote": "YES",
-          "reason": "momentum 5m +2.5% / 1h +97.3%",
-          "numbers": {
-            "ch5": 2.54,
-            "ch1h": 97.27,
-            "vol_5m": 19252.84,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "YES",
-          "reason": "likvidnost $58722, ok solana",
-          "numbers": {
-            "liq_usd": 58721.92,
-            "mcap_usd": 312370.0,
-            "age_min": 168.4981,
-            "scam_flag": "LP neznan",
-            "goplus": "ok solana"
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m +2.5%",
-          "numbers": {
-            "ch5": 2.54,
-            "ch1h": 97.27,
-            "vol_24h": 1490966.82
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "pumpswap, zdrs ~1.02%, liq $58722",
-          "numbers": {
-            "dex": "pumpswap",
-            "liq_usd": 58721.92,
-            "slip": 0.0102,
-            "price": 0.0003
-          }
-        }
-      },
-      "setup": "ni_svec",
-      "setup_label": "Čaka na potrditev",
-      "setup_score": 0,
-      "setup_reasons": [
-        "ni dovolj 15m sveč"
-      ],
-      "setup_note": "ni napoved"
-    },
-    {
-      "time": "2026-11-14T23:38:02+01:00",
-      "symbol": "WETH",
-      "name": "Wrapped Ether (Wormhole)",
-      "url": "https://dexscreener.com/solana/hktfl7iwgkt5qhjywqkcdnzxscoh811k7akrmzjkccef",
-      "image": "",
-      "token": "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "MAJOR",
-      "regime": "NEVTRALNO",
-      "price": 1754.039,
-      "liq_usd": 4579207.05,
-      "vol24": 17076762.84,
-      "change24": -9.14,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "nakupi niso skoncentrirani (5m 0.11)",
-          "numbers": {
-            "buys_5m": 35,
-            "sells_5m": 312,
-            "txns_1h": 3296,
-            "buy_share": 0.1009,
-            "ratio_5m": 0.1122,
-            "avg_buy_usd": 736.3758
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "1h -1.6% ne raste",
-          "numbers": {
-            "ch5": -0.62,
-            "ch1h": -1.57,
-            "vol_5m": 255522.39,
-            "boost": false,
-            "category": "MAJOR"
-          }
-        },
-        "varnost": {
-          "vote": "NO",
-          "reason": "GoPlus zavrača (mintable)",
-          "numbers": {
-            "liq_usd": 4579207.05,
-            "mcap_usd": 152724422.0,
-            "age_min": 2084892.3537,
-            "scam_flag": "LP neznan",
-            "goplus": "mintable"
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m -0.6%",
-          "numbers": {
-            "ch5": -0.62,
-            "ch1h": -1.57,
-            "vol_24h": 17076762.84
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "orca, zdrs ~0.00%, liq $4579207",
-          "numbers": {
-            "dex": "orca",
-            "liq_usd": 4579207.05,
-            "slip": 0.0,
-            "price": 1754.039
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:38:02+01:00",
-      "symbol": "USDG",
-      "name": "Global Dollar",
-      "url": "https://dexscreener.com/solana/9rqdtfwcx2sgxsvkpspqhc38huo3b6hrd3or9jr966ps",
-      "image": "",
-      "token": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "ALT",
-      "regime": "NEVTRALNO",
-      "price": 1.000033,
-      "liq_usd": 18398551.96,
-      "vol24": 3465472.3,
-      "change24": null,
-      "votes": {
-        "kit": {
-          "vote": "YES",
-          "reason": "veliki nakupi, delež 100%, ~$3378/nakup",
-          "numbers": {
-            "buys_5m": 55,
-            "sells_5m": 0,
-            "txns_1h": 619,
-            "buy_share": 1.0,
-            "ratio_5m": 999.0,
-            "avg_buy_usd": 3377.7516
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "učenje: 5m pod mejo",
-          "numbers": {
-            "ch5": 0.0,
-            "ch1h": 0.02,
-            "vol_5m": 185776.34,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "NO",
-          "reason": "prevara: izjemno neravnovesje nakup/prodaja (LP neznan)",
-          "numbers": {
-            "liq_usd": 18398551.96,
-            "mcap_usd": 10750499.0,
-            "age_min": 884161.4204
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m +0.0%",
-          "numbers": {
-            "ch5": 0.0,
-            "ch1h": 0.02,
-            "vol_24h": 3465472.3
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "orca, zdrs ~0.00%, liq $18398552",
-          "numbers": {
-            "dex": "orca",
-            "liq_usd": 18398551.96,
-            "slip": 0.0,
-            "price": 1.0
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:37:45+01:00",
-      "symbol": "cbBTC",
-      "name": "Coinbase Wrapped BTC",
-      "url": "https://dexscreener.com/solana/ceazcxbnlpjwtxzt58qqmfmbtjy8pqlvursxtjygqpbn",
-      "image": "",
-      "token": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
-      "chain": "solana",
-      "decision": "ČAKA",
-      "category": "ALT",
-      "regime": "NEVTRALNO",
-      "price": 64308.15,
-      "liq_usd": 4808546.34,
-      "vol24": 9065907.78,
-      "change24": -6.05,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "nakupi niso skoncentrirani (5m 999.00)",
-          "numbers": {
-            "buys_5m": 28,
-            "sells_5m": 0,
-            "txns_1h": 365,
-            "buy_share": 1.0,
-            "ratio_5m": 999.0,
-            "avg_buy_usd": 836.8664
-          }
-        },
-        "trend": {
-          "vote": "YES",
-          "reason": "momentum 5m +0.2% / 1h -0.3%",
-          "numbers": {
-            "ch5": 0.22,
-            "ch1h": -0.28,
-            "vol_5m": 23432.26,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "YES",
-          "reason": "likvidnost OK, GoPlus ni dosegljiv",
-          "numbers": {
-            "liq_usd": 4808546.34,
-            "mcap_usd": 177512358.0,
-            "age_min": 1061545.1022,
-            "scam_flag": "LP neznan",
-            "goplus": "goplus_code=4029"
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m +0.2%",
-          "numbers": {
-            "ch5": 0.22,
-            "ch1h": -0.28,
-            "vol_24h": 9065907.78
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "orca, zdrs ~0.00%, liq $4808546",
-          "numbers": {
-            "dex": "orca",
-            "liq_usd": 4808546.34,
-            "slip": 0.0,
-            "price": 64308.15
-          }
-        }
-      },
-      "setup": "nevtralno",
-      "setup_label": "Čaka na potrditev",
-      "setup_score": 25,
-      "setup_reasons": [
-        "blizu podpore",
-        "zeleni volumen večji"
-      ],
-      "setup_note": "ni napoved"
-    },
-    {
-      "time": "2026-11-14T23:37:45+01:00",
-      "symbol": "Chunkee",
-      "name": "Chunkee The Manatee",
-      "url": "https://dexscreener.com/solana/31o4hw3nlkd7u4s3n46gls5hkex3kewydw1ys6getus9",
-      "image": "https://cdn.dexscreener.com/cms/images/PA-gq93kWmVG3lbM?width=800&height=800&quality=95&format=auto",
-      "token": "5ZDiuBxCLuAjjxSKiBdumQJ36P7Jd9mh5HFLY94Ppump",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "ALT",
-      "regime": "NEVTRALNO",
-      "price": 0.0006008,
-      "liq_usd": 56581.67,
-      "vol24": 1514405.78,
-      "change24": 1561.0,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "učenje: razmerje nakupov pod mejo",
-          "numbers": {
-            "buys_5m": 68,
-            "sells_5m": 52,
-            "txns_1h": 1695,
-            "buy_share": 0.5667,
-            "ratio_5m": 1.3077,
-            "avg_buy_usd": 29.5423
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "5m -8.7% ne raste",
-          "numbers": {
-            "ch5": -8.74,
-            "ch1h": 10.49,
-            "vol_5m": 3545.08,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "YES",
-          "reason": "likvidnost OK, GoPlus ni dosegljiv",
-          "numbers": {
-            "liq_usd": 56581.67,
-            "mcap_usd": 594861.0,
-            "age_min": 1285.9752,
-            "scam_flag": "LP neznan",
-            "goplus": "goplus_code=4029"
-          }
-        },
-        "bik_medved": {
-          "vote": "NO",
-          "reason": "5m obrat navzdol (-8.7%)",
-          "numbers": {
-            "ch5": -8.74,
-            "ch1h": 10.49,
-            "vol_24h": 1514405.78
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "pumpswap, zdrs ~1.02%, liq $56582",
-          "numbers": {
-            "dex": "pumpswap",
-            "liq_usd": 56581.67,
-            "slip": 0.0102,
-            "price": 0.0006
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:37:44+01:00",
-      "symbol": "BIG",
-      "name": "Big Guy",
-      "url": "https://dexscreener.com/solana/5tecgcpfldbnjvbrpjvk32uayabpra1hgefpeujqqkyk",
-      "image": "https://cdn.dexscreener.com/cms/images/3qi7XlWb884wtJIS?width=800&height=800&quality=95&format=auto",
-      "token": "34DXEU2ttEtBSb1TqGJm7izgvYTTkqKcCoiNWdPDpump",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "MEME",
-      "regime": "NEVTRALNO",
-      "price": 0.001167,
-      "liq_usd": 98763.81,
-      "vol24": 75413.22,
-      "change24": -10.94,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "nakupi niso skoncentrirani (5m 1.00)",
-          "numbers": {
-            "buys_5m": 66,
-            "sells_5m": 66,
-            "txns_1h": 1945,
-            "buy_share": 0.5,
-            "ratio_5m": 1.0,
-            "avg_buy_usd": 0.0714
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "1h -2.5% ne raste",
-          "numbers": {
-            "ch5": 0.79,
-            "ch1h": -2.54,
-            "vol_5m": 9.43,
-            "boost": true,
-            "category": "MEME"
-          }
-        },
-        "varnost": {
-          "vote": "YES",
-          "reason": "likvidnost OK, GoPlus ni dosegljiv",
-          "numbers": {
-            "liq_usd": 98763.81,
-            "mcap_usd": 1108216.0,
-            "age_min": 9025.9138,
-            "scam_flag": "LP neznan",
-            "goplus": "goplus_code=4029"
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m +0.8%",
-          "numbers": {
-            "ch5": 0.79,
-            "ch1h": -2.54,
-            "vol_24h": 75413.22
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "pumpswap, zdrs ~0.01%, liq $98764",
-          "numbers": {
-            "dex": "pumpswap",
-            "liq_usd": 98763.81,
-            "slip": 0.0001,
-            "price": 0.0012
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:37:43+01:00",
-      "symbol": "GTA$",
-      "name": "GTA Dollars",
-      "url": "https://dexscreener.com/solana/bivxozcepwrkukmngbd5qxnwxtgjjlphhb6jxgavbmsy",
-      "image": "https://cdn.dexscreener.com/cms/images/4UHObx2RYm019mYZ?width=800&height=800&quality=95&format=auto",
-      "token": "6Nh9cmDoQvd2FvjNm44VmTwbyiKtxgmM7SCuhREhpump",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "ALT",
-      "regime": "NEVTRALNO",
-      "price": 0.0001764,
-      "liq_usd": 41549.6,
-      "vol24": 2481909.18,
-      "change24": 241.0,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "nakupi niso skoncentrirani (5m 0.88)",
-          "numbers": {
-            "buys_5m": 14,
-            "sells_5m": 16,
-            "txns_1h": 765,
-            "buy_share": 0.4667,
-            "ratio_5m": 0.875,
-            "avg_buy_usd": 80.443
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "1h -24.8% ne raste",
-          "numbers": {
-            "ch5": 4.19,
-            "ch1h": -24.83,
-            "vol_5m": 2413.29,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "NO",
-          "reason": "prevara: volumen/likvidnost > 30x (LP neznan)",
-          "numbers": {
-            "liq_usd": 41549.6,
-            "mcap_usd": 170646.0,
-            "age_min": 658.9305
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m +4.2%",
-          "numbers": {
-            "ch5": 4.19,
-            "ch1h": -24.83,
-            "vol_24h": 2481909.18
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "pumpswap, zdrs ~1.02%, liq $41550",
-          "numbers": {
-            "dex": "pumpswap",
-            "liq_usd": 41549.6,
-            "slip": 0.0102,
-            "price": 0.0002
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:37:43+01:00",
-      "symbol": "SPCX",
-      "name": "SpaceX - Backpack Securities",
-      "url": "https://dexscreener.com/solana/fjuby7jjf9dxj9d3r7chpvcnofw2iqxf7f7p3vqx4jza",
-      "image": "",
-      "token": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "ALT",
-      "regime": "NEVTRALNO",
-      "price": 134.83,
-      "liq_usd": 2799061.89,
-      "vol24": 3358625.97,
-      "change24": -2.55,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "nakupi niso skoncentrirani (5m 1.05)",
-          "numbers": {
-            "buys_5m": 271,
-            "sells_5m": 258,
-            "txns_1h": 6299,
-            "buy_share": 0.5123,
-            "ratio_5m": 1.0504,
-            "avg_buy_usd": 49.1379
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "učenje: 5m pod mejo",
-          "numbers": {
-            "ch5": -0.01,
-            "ch1h": 0.04,
-            "vol_5m": 25993.95,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "YES",
-          "reason": "likvidnost OK, GoPlus ni dosegljiv",
-          "numbers": {
-            "liq_usd": 2799061.89,
-            "mcap_usd": 0.0,
-            "age_min": 223600.5201,
-            "scam_flag": "LP neznan",
-            "goplus": "goplus_code=4029"
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m -0.0%",
-          "numbers": {
-            "ch5": -0.01,
-            "ch1h": 0.04,
-            "vol_24h": 3358625.97
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "raydium, zdrs ~0.00%, liq $2799062",
-          "numbers": {
-            "dex": "raydium",
-            "liq_usd": 2799061.89,
-            "slip": 0.0,
-            "price": 134.83
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:37:43+01:00",
-      "symbol": "mihao",
-      "name": "ni hao cat",
-      "url": "https://dexscreener.com/solana/ho1asg6wgh1ffxdehrk2f4ggt1hoxo9s5jclmdqeyebz",
-      "image": "https://cdn.dexscreener.com/cms/images/CN2GXn9xCwxqB6AH?width=800&height=800&quality=95&format=auto",
-      "token": "4CxjZyMNoF1p6eXHXHv1TWpS2X47CuUmLwtGe18spump",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "MEME",
-      "regime": "NEVTRALNO",
-      "price": 0.01388,
-      "liq_usd": 391086.79,
-      "vol24": 2781363.61,
-      "change24": -14.58,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "nakupi niso skoncentrirani (5m 2.21)",
-          "numbers": {
-            "buys_5m": 106,
-            "sells_5m": 48,
-            "txns_1h": 1680,
-            "buy_share": 0.6883,
-            "ratio_5m": 2.2083,
-            "avg_buy_usd": 144.7334
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "5m -3.8% ne raste",
-          "numbers": {
-            "ch5": -3.8,
-            "ch1h": 4.86,
-            "vol_5m": 22288.94,
-            "boost": false,
-            "category": "MEME"
-          }
-        },
-        "varnost": {
-          "vote": "YES",
-          "reason": "likvidnost $391087, ok solana",
-          "numbers": {
-            "liq_usd": 391086.79,
-            "mcap_usd": 13061168.0,
-            "age_min": 29154.4763,
-            "scam_flag": "LP neznan",
-            "goplus": "ok solana"
-          }
-        },
-        "bik_medved": {
-          "vote": "NO",
-          "reason": "5m obrat navzdol (-3.8%)",
-          "numbers": {
-            "ch5": -3.8,
-            "ch1h": 4.86,
-            "vol_24h": 2781363.61
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "pumpswap, zdrs ~0.00%, liq $391087",
-          "numbers": {
-            "dex": "pumpswap",
-            "liq_usd": 391086.79,
-            "slip": 0.0,
-            "price": 0.0139
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:37:42+01:00",
-      "symbol": "NVDAx",
-      "name": "NVIDIA xStock",
-      "url": "https://dexscreener.com/solana/49imatqtoyabsyaqc8gafvq6aebfvdxsrh44oiatyyw6",
-      "image": "",
-      "token": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
-      "chain": "solana",
-      "decision": "VETO",
-      "category": "ALT",
-      "regime": "NEVTRALNO",
-      "price": 159.57,
-      "liq_usd": 2949392.64,
-      "vol24": 5427054.54,
-      "change24": -1.34,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "nakupi niso skoncentrirani (5m 0.06)",
-          "numbers": {
-            "buys_5m": 3,
-            "sells_5m": 50,
-            "txns_1h": 1274,
-            "buy_share": 0.0566,
-            "ratio_5m": 0.06,
-            "avg_buy_usd": 356.8711
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "5m promet $18914 pod povprečjem",
-          "numbers": {
-            "ch5": -0.21,
-            "ch1h": -0.01,
-            "vol_5m": 18914.17,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "NO",
-          "reason": "GoPlus zavrača (mintable)",
-          "numbers": {
-            "liq_usd": 2949392.64,
-            "mcap_usd": 35089622.0,
-            "age_min": 721251.3157,
-            "scam_flag": "LP neznan",
-            "goplus": "mintable"
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m -0.2%",
-          "numbers": {
-            "ch5": -0.21,
-            "ch1h": -0.01,
-            "vol_24h": 5427054.54
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "raydium, zdrs ~0.00%, liq $2949393",
-          "numbers": {
-            "dex": "raydium",
-            "liq_usd": 2949392.64,
-            "slip": 0.0,
-            "price": 159.57
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:37:41+01:00",
-      "symbol": "NVDAB",
-      "name": "NVIDIA Corp",
-      "url": "https://dexscreener.com/bsc/0xcc2bffaec373a6004bb6ccc8a62cdd66061f7c6a",
-      "image": "",
-      "token": "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436",
-      "chain": "bsc",
-      "decision": "VETO",
-      "category": "ALT",
-      "regime": "BIK",
-      "price": 158.98,
-      "liq_usd": 1102211.63,
-      "vol24": 3913234.01,
-      "change24": -1.64,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "nakupi niso skoncentrirani (5m 0.40)",
-          "numbers": {
-            "buys_5m": 12,
-            "sells_5m": 30,
-            "txns_1h": 834,
-            "buy_share": 0.2857,
-            "ratio_5m": 0.4,
-            "avg_buy_usd": 234.1652
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "5m promet $9835 pod povprečjem",
-          "numbers": {
-            "ch5": -0.24,
-            "ch1h": -0.25,
-            "vol_5m": 9834.94,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "NO",
-          "reason": "mcap/likv 139.9 previsok",
-          "numbers": {
-            "liq_usd": 1102211.63,
-            "mcap_usd": 154181562.0,
-            "age_min": 215721.749
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m -0.2%",
-          "numbers": {
-            "ch5": -0.24,
-            "ch1h": -0.25,
-            "vol_24h": 3913234.01
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "pancakeswap, zdrs ~0.00%, liq $1102212",
-          "numbers": {
-            "dex": "pancakeswap",
-            "liq_usd": 1102211.63,
-            "slip": 0.0,
-            "price": 158.98
-          }
-        }
-      }
-    },
-    {
-      "time": "2026-11-14T23:37:41+01:00",
-      "symbol": "KAVA",
-      "name": "Kava",
-      "url": "https://dexscreener.com/bsc/0x99e1a43e738b026a2cd4359409594debab61b48d",
-      "image": "",
-      "token": "0x9BAFC8d4b487cEBff201721702507a3E2C67ad79",
-      "chain": "bsc",
-      "decision": "VETO",
-      "category": "ALT",
-      "regime": "BIK",
-      "price": 0.0405,
-      "liq_usd": 321175.77,
-      "vol24": 9287376.79,
-      "change24": -40.27,
-      "votes": {
-        "kit": {
-          "vote": "NO",
-          "reason": "premalo 5m poslov (3)",
-          "numbers": {
-            "buys_5m": 1,
-            "sells_5m": 2,
-            "txns_1h": 373,
-            "buy_share": 0.3333,
-            "ratio_5m": 0.5,
-            "avg_buy_usd": 1.0033
-          }
-        },
-        "trend": {
-          "vote": "NO",
-          "reason": "5m promet $3 pod povprečjem",
-          "numbers": {
-            "ch5": 0.0,
-            "ch1h": 2.31,
-            "vol_5m": 3.01,
-            "boost": false,
-            "category": "ALT"
-          }
-        },
-        "varnost": {
-          "vote": "NO",
-          "reason": "mcap/likv 136.6 previsok",
-          "numbers": {
-            "liq_usd": 321175.77,
-            "mcap_usd": 43865271.0,
-            "age_min": 670898.399
-          }
-        },
-        "bik_medved": {
-          "vote": "YES",
-          "reason": "ni pregretja, 5m +0.0%",
-          "numbers": {
-            "ch5": 0.0,
-            "ch1h": 2.31,
-            "vol_24h": 9287376.79
-          }
-        },
-        "izvajanje": {
-          "vote": "YES",
-          "reason": "pancakeswap, zdrs ~0.00%, liq $321176",
-          "numbers": {
-            "dex": "pancakeswap",
-            "liq_usd": 321175.77,
-            "slip": 0.0,
-            "price": 0.0405
-          }
-        }
-      }
     }
   ],
   "activity": [
+    {
+      "time": "2026-11-14T23:50:57+01:00",
+      "type": "scan",
+      "text": "PREGLEDANIH BSC: 12 · SOL: 0"
+    },
+    {
+      "time": "2026-11-14T23:50:57+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "DOS",
+      "text": "VETO VARNOST · DOS · 2/5 · GoPlus zavrača (lp_locked=0%)"
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "QQQB",
+      "text": "VETO VARNOST · QQQB · 2/5 · mcap/likv 122.2 previsok"
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "BLESS",
+      "text": "VETO VARNOST · BLESS · 1/5 · mcap/likv 77.8 previsok"
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "AIA",
+      "text": "VETO VARNOST · AIA · 1/5 · GoPlus zavrača (lp_locked=0%)"
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "RIVER",
+      "text": "VETO VARNOST · RIVER · 1/5 · mcap/likv 97.0 previsok"
+    },
+    {
+      "time": "2026-11-14T23:50:56+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "BANANAS31",
+      "text": "VETO VARNOST · BANANAS31 · 3/5 · GoPlus zavrača (lp_locked=66%)"
+    },
+    {
+      "time": "2026-11-14T23:50:55+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "UP",
+      "text": "VETO VARNOST · UP · 3/5 · mcap/likv 133.0 previsok"
+    },
+    {
+      "time": "2026-11-14T23:50:55+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "ARK",
+      "text": "VETO VARNOST · ARK · 2/5 · GoPlus zavrača (mintable_not_renounced)"
+    },
+    {
+      "time": "2026-11-14T23:50:54+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "BNCB",
+      "text": "VETO VARNOST · BNCB · 2/5 · GoPlus zavrača (lp_locked=0%)"
+    },
+    {
+      "time": "2026-11-14T23:50:54+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "ETH",
+      "text": "VETO VARNOST · ETH · 2/5 · mcap/likv 76.9 previsok"
+    },
+    {
+      "time": "2026-11-14T23:50:54+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "ARIA",
+      "text": "VETO VARNOST · ARIA · 3/5 · GoPlus zavrača (lp_locked=0%)"
+    },
+    {
+      "time": "2026-11-14T23:50:53+01:00",
+      "type": "veto",
+      "agent": "varnost",
+      "symbol": "JAGENT",
+      "text": "VETO VARNOST · JAGENT · 2/5 · GoPlus zavrača (mintable_not_renounced)"
+    },
+    {
+      "time": "2026-11-14T23:47:03+01:00",
+      "type": "scan",
+      "text": "Kos 36 žetonov iz 148"
+    },
+    {
+      "time": "2026-11-14T23:48:37+01:00",
+      "type": "skip",
+      "symbol": "Chunkee",
+      "text": "PRESKOČI Chunkee · pada, ni dna · ni napoved"
+    },
+    {
+      "time": "2026-11-14T23:47:03+01:00",
+      "type": "scan",
+      "text": "REŽIM BNB BIK · SOL VISOKA VOLATILNOST"
+    },
     {
       "time": "2026-11-14T23:45:56+01:00",
       "type": "scan",
@@ -2982,122 +3070,9 @@
       "time": "2026-11-14T23:39:44+01:00",
       "type": "scan",
       "text": "REŽIM BNB NEVTRALNO · SOL NEVTRALNO"
-    },
-    {
-      "time": "2026-11-14T23:38:25+01:00",
-      "type": "scan",
-      "text": "PREGLEDANIH BSC: 10 · SOL: 10"
-    },
-    {
-      "time": "2026-11-14T23:38:03+01:00",
-      "type": "watch",
-      "symbol": "bill",
-      "text": "Čaka na potrditev · bill · Čaka na potrditev · 0 · ni napoved"
-    },
-    {
-      "time": "2026-11-14T23:38:02+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "WETH",
-      "text": "VETO VARNOST · WETH · 2/5 · GoPlus zavrača (mintable)"
-    },
-    {
-      "time": "2026-11-14T23:38:02+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "USDG",
-      "text": "VETO VARNOST · USDG · 3/5 · prevara: izjemno neravnovesje nakup/prodaja (LP neznan)"
-    },
-    {
-      "time": "2026-11-14T23:37:45+01:00",
-      "type": "watch",
-      "symbol": "cbBTC",
-      "text": "Čaka na potrditev · cbBTC · Čaka na potrditev · 25 · ni napoved"
-    },
-    {
-      "time": "2026-11-14T23:37:45+01:00",
-      "type": "veto",
-      "agent": "kit",
-      "symbol": "Chunkee",
-      "text": "VETO KIT · Chunkee · 2/5 · učenje: razmerje nakupov pod mejo"
-    },
-    {
-      "time": "2026-11-14T23:37:44+01:00",
-      "type": "veto",
-      "agent": "kit",
-      "symbol": "BIG",
-      "text": "VETO KIT · BIG · 3/5 · nakupi niso skoncentrirani (5m 1.00)"
-    },
-    {
-      "time": "2026-11-14T23:37:43+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "GTA$",
-      "text": "VETO VARNOST · GTA$ · 2/5 · prevara: volumen/likvidnost > 30x (LP neznan)"
-    },
-    {
-      "time": "2026-11-14T23:37:43+01:00",
-      "type": "veto",
-      "agent": "kit",
-      "symbol": "SPCX",
-      "text": "VETO KIT · SPCX · 3/5 · nakupi niso skoncentrirani (5m 1.05)"
-    },
-    {
-      "time": "2026-11-14T23:37:43+01:00",
-      "type": "veto",
-      "agent": "kit",
-      "symbol": "mihao",
-      "text": "VETO KIT · mihao · 2/5 · nakupi niso skoncentrirani (5m 2.21)"
-    },
-    {
-      "time": "2026-11-14T23:37:42+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "NVDAx",
-      "text": "VETO VARNOST · NVDAx · 2/5 · GoPlus zavrača (mintable)"
-    },
-    {
-      "time": "2026-11-14T23:37:41+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "NVDAB",
-      "text": "VETO VARNOST · NVDAB · 2/5 · mcap/likv 139.9 previsok"
-    },
-    {
-      "time": "2026-11-14T23:37:41+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "KAVA",
-      "text": "VETO VARNOST · KAVA · 2/5 · mcap/likv 136.6 previsok"
-    },
-    {
-      "time": "2026-11-14T23:37:41+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "BTCB",
-      "text": "VETO VARNOST · BTCB · 2/5 · mcap/likv 189.2 previsok"
-    },
-    {
-      "time": "2026-11-14T23:37:41+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "SWJ",
-      "text": "VETO VARNOST · SWJ · 2/5 · prevara: volumen/likvidnost > 30x (LP neznan)"
-    },
-    {
-      "time": "2026-11-14T23:37:41+01:00",
-      "type": "veto",
-      "agent": "varnost",
-      "symbol": "ASTER",
-      "text": "VETO VARNOST · ASTER · 1/5 · mcap/likv 1737.3 previsok"
     }
   ],
   "equity_history": [
-    {
-      "t": "2026-11-14T00:11:18+01:00",
-      "usd": 92.35,
-      "eur": 83.46
-    },
     {
       "t": "2026-11-14T00:12:48+01:00",
       "usd": 92.35,
@@ -5592,6 +5567,11 @@
       "t": "2026-11-14T23:45:56+01:00",
       "usd": 89.85,
       "eur": 81.2
+    },
+    {
+      "t": "2026-11-14T23:50:57+01:00",
+      "usd": 89.85,
+      "eur": 81.2
     }
   ],
   "learning": {
@@ -5747,8 +5727,8 @@
     ]
   },
   "regime": {
-    "bsc": "NEVTRALNO",
-    "solana": "NEVTRALNO"
+    "bsc": "BIK",
+    "solana": "VISOKA VOLATILNOST"
   },
   "brake": false,
   "metrics": {
@@ -5813,16 +5793,14 @@
       "chain": "solana",
       "url": "https://dexscreener.com/solana/fnbgzkb2pgrv3o9eftc2zdrbh4rki8f2euhtszycwco2",
       "label": "Čaka na potrditev",
-      "score": 50,
+      "score": 0,
       "reasons": [
-        "blizu podpore",
-        "višje dno",
-        "padec 62% od vrha"
+        "ni dovolj 15m sveč"
       ],
       "since": "2026-11-14T16:36:30+01:00",
       "price": 0.0006030754017752652,
-      "swing_low": 0.00042332395983198416,
-      "ema20": 0.0008407608024670913,
+      "swing_low": null,
+      "ema20": null,
       "confirm_price": null,
       "support_low": 0.0005266259174139322,
       "support_high": 0.0005266259174139322,
@@ -5838,11 +5816,11 @@
         "ni dovolj 15m sveč"
       ],
       "since": "2026-11-14T20:51:02+01:00",
-      "price": 0.00027155784162843796,
+      "price": 0.00026788943083945796,
       "swing_low": null,
       "ema20": null,
       "confirm_price": null,
-      "support_low": 0.00015102706182634298,
+      "support_low": 0.000124737117631101,
       "support_high": 0.000191139392733906,
       "note": "ni napoved"
     },
@@ -5851,39 +5829,17 @@
       "chain": "solana",
       "url": "https://dexscreener.com/solana/zxtpi4btawx3mgdapoezkmd1hxx8cdecfrqxmwvsclx",
       "label": "Čaka na potrditev",
-      "score": 50,
+      "score": 0,
       "reasons": [
-        "blizu podpore",
-        "višje dno",
-        "padec 25% od vrha"
+        "ni dovolj 15m sveč"
       ],
       "since": "2026-11-14T22:06:05+01:00",
       "price": 0.03809417065201749,
-      "swing_low": 0.03738029917604242,
-      "ema20": 0.039138943940604756,
+      "swing_low": null,
+      "ema20": null,
       "confirm_price": null,
       "support_low": 0.03738029917604242,
-      "support_high": 0.037443755537572204,
-      "note": "ni napoved"
-    },
-    {
-      "symbol": "Chunkee",
-      "chain": "solana",
-      "url": "https://dexscreener.com/solana/31o4hw3nlkd7u4s3n46gls5hkex3kewydw1ys6getus9",
-      "label": "Čaka na potrditev",
-      "score": 50,
-      "reasons": [
-        "blizu podpore",
-        "RSI iz pod 30 nad 40",
-        "padec 67% od vrha"
-      ],
-      "since": "2026-11-14T22:47:36+01:00",
-      "price": 0.0004970259003831567,
-      "swing_low": 0.00029902005842819554,
-      "ema20": 0.0005852083043886181,
-      "confirm_price": null,
-      "support_low": 0.0004027495919397314,
-      "support_high": 0.0004427314803639245,
+      "support_high": 0.03738029917604242,
       "note": "ni napoved"
     },
     {
@@ -5891,18 +5847,19 @@
       "chain": "solana",
       "url": "https://dexscreener.com/solana/49imatqtoyabsyaqc8gafvq6aebfvdxsrh44oiatyyw6",
       "label": "Čaka na potrditev",
-      "score": 30,
+      "score": 40,
       "reasons": [
         "blizu podpore",
-        "višje dno"
+        "višje dno",
+        "zeleni volumen večji"
       ],
       "since": "2026-11-14T23:17:40+01:00",
-      "price": 160.25088566381086,
+      "price": 159.43708164044796,
       "swing_low": 156.10724616004705,
-      "ema20": 160.0262818451423,
+      "ema20": 159.94877670006014,
       "confirm_price": null,
       "support_low": 156.10724616004705,
-      "support_high": 160.00122468980325,
+      "support_high": 159.23562638528836,
       "note": "ni napoved"
     },
     {
@@ -5910,16 +5867,17 @@
       "chain": "solana",
       "url": "https://dexscreener.com/solana/ceazcxbnlpjwtxzt58qqmfmbtjy8pqlvursxtjygqpbn",
       "label": "Čaka na potrditev",
-      "score": 0,
+      "score": 25,
       "reasons": [
-        "ni dovolj 15m sveč"
+        "blizu podpore",
+        "zeleni volumen večji"
       ],
       "since": "2026-11-14T23:38:02+01:00",
-      "price": 63797.37615243066,
-      "swing_low": null,
-      "ema20": null,
+      "price": 63762.798732092655,
+      "swing_low": 63346.483590810036,
+      "ema20": 64809.503889609245,
       "confirm_price": null,
-      "support_low": 63696.40149062045,
+      "support_low": 63346.483590810036,
       "support_high": 63696.40149062045,
       "note": "ni napoved"
     },
