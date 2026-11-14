@@ -2,14 +2,14 @@
   "note": "PAPER",
   "banner": "PAPER · VIRTUALNI DENAR",
   "paper": true,
-  "last_update": "2026-11-14T22:39:50.673029+00:00",
+  "last_update": "2026-11-14T22:43:20.476438+00:00",
   "started": "2026-11-11T19:33:16.341999+00:00",
   "data_source": "LIVE",
-  "balance": 760.03,
-  "equity": 962.57,
+  "balance": 699.23,
+  "equity": 962.75,
   "starting_balance": 1000.0,
-  "pnl_pct": -0.0374,
-  "open_n": 3,
+  "pnl_pct": -0.0373,
+  "open_n": 4,
   "closed_n": 28,
   "nonstop": true,
   "stats": {
@@ -151,7 +151,7 @@
       "size_usd": 83.73471966854157,
       "opened_at": "2026-11-14T16:58:40.221797+00:00",
       "peak_price": 0.0006387,
-      "last_price": 0.000513,
+      "last_price": 0.0005168,
       "trail_armed": false,
       "trail_stop_price": null,
       "hard_stop_price": 0.0006178241353729228,
@@ -173,6 +173,40 @@
       "breakeven": false,
       "setup": "DNO obrat",
       "lane": "dno",
+      "chain": "solana"
+    },
+    {
+      "mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+      "symbol": "PUMP",
+      "pair_address": "2uF4Xh61rDwxnG9woyxsVQP7zuA6kLFpb3NvnRQeoiSd",
+      "dex": "pumpswap",
+      "qty": 20996.59072374894,
+      "fill_price": 0.0028958215,
+      "size_usd": 60.80237884453274,
+      "opened_at": "2026-11-14T22:42:49.445445+00:00",
+      "peak_price": 0.0028958215,
+      "last_price": 0.00288,
+      "trail_armed": false,
+      "trail_stop_price": null,
+      "hard_stop_price": 0.0028958215,
+      "source": "LIVE",
+      "analyst_score": 0.6439,
+      "entry_reasons": [
+        "paper BUY PUMP",
+        "score 0.64",
+        "size $60.80 (6.32% of equity $962.57)",
+        "mid $0.00286 → fill $0.0028958215 (slip 1.00%+fee 0.25%)",
+        "hard stop $0.0027220722 (-6%)",
+        "umik_in_potrditev"
+      ],
+      "original_qty": 20996.59072374894,
+      "original_size_usd": 60.80237884453274,
+      "banked_pnl_usd": 0.0,
+      "tp1_done": false,
+      "tp2_done": false,
+      "breakeven": false,
+      "setup": "umik_in_potrditev",
+      "lane": "glavni",
       "chain": "solana"
     }
   ],
@@ -740,139 +774,6 @@
   ],
   "rejections": [
     {
-      "ts": "2026-11-14T22:28:40.086794+00:00",
-      "kind": "reject_filter",
-      "mint": "78kY1Y4QB81fM9mt2WdW2ZajQFq7K7HgsPZp9xmapump",
-      "symbol": "TOAD",
-      "reasons": [
-        "volumen $16 < $636 za starost",
-        "unikatni kupci 5 < 25"
-      ],
-      "score": null,
-      "lane": "novi_lans",
-      "chain": "solana"
-    },
-    {
-      "ts": "2026-11-14T22:28:55.099610+00:00",
-      "kind": "reject_filter",
-      "mint": "H51Lek1rxL3wNyFS86zTsDYX4CvWWBBSAb9ejCSJpump",
-      "symbol": "Tampons",
-      "reasons": [
-        "volumen $176 < $685 za starost",
-        "unikatni kupci 3 < 25"
-      ],
-      "score": null,
-      "lane": "novi_lans",
-      "chain": "solana"
-    },
-    {
-      "ts": "2026-11-14T22:29:02.257373+00:00",
-      "kind": "reject_filter",
-      "mint": "5JS5qHEwD4FoSoJ6co1NrgBQZfT1N4ySsbJn7pPZpump",
-      "symbol": "TAIL",
-      "reasons": [
-        "volumen $465 < $756 za starost",
-        "unikatni kupci 14 < 25"
-      ],
-      "score": null,
-      "lane": "novi_lans",
-      "chain": "solana"
-    },
-    {
-      "ts": "2026-11-14T22:29:17.513151+00:00",
-      "kind": "reject_filter",
-      "mint": "96pmhPPbem6s8tQ7gRqxijG9Rg1UtVrDFvobDmF3AJo1",
-      "symbol": "CAT",
-      "reasons": [
-        "LP not locked/burned"
-      ],
-      "score": null,
-      "lane": "novi_lans",
-      "chain": "solana"
-    },
-    {
-      "ts": "2026-11-14T22:30:17.880852+00:00",
-      "kind": "reject_timing",
-      "mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
-      "symbol": "PUMP",
-      "reasons": [
-        "5m: umik 3% ni 3%–22 %",
-        "1m: ni višjega minimuma",
-        "nad EMA9 0.00287337",
-        "nad VWAP",
-        "nakupi 57 > prodaje 25",
-        "ni podatka (ustvarjalci)"
-      ],
-      "score": 0.6626,
-      "lane": "glavni",
-      "chain": "solana"
-    },
-    {
-      "ts": "2026-11-14T22:30:18.241204+00:00",
-      "kind": "reject_filter",
-      "mint": "GexThZHgaswpAQ7Fi8QrHFubjPimUNSYhJiAA7XZpump",
-      "symbol": "WASTED",
-      "reasons": [
-        "dev wallet linked to previous rugs (local blacklist BaJxG5X7…)"
-      ],
-      "score": null,
-      "lane": "glavni",
-      "chain": "solana"
-    },
-    {
-      "ts": "2026-11-14T22:30:32.948799+00:00",
-      "kind": "reject_filter",
-      "mint": "0x0f65c0274c367076522a79ce3ea0fc700df2ffff",
-      "symbol": "lingerie",
-      "reasons": [
-        "volumen $0 < $846 za starost",
-        "unikatni kupci 1 < 25"
-      ],
-      "score": null,
-      "lane": "novi_lans",
-      "chain": "bsc"
-    },
-    {
-      "ts": "2026-11-14T22:30:40.248342+00:00",
-      "kind": "reject_filter",
-      "mint": "0xbfdde16cce55e3eac515c7eb15a7b5a75bcaec28",
-      "symbol": "邪教",
-      "reasons": [
-        "volumen $144 < $1,129 za starost",
-        "unikatni kupci 3 < 25"
-      ],
-      "score": null,
-      "lane": "novi_lans",
-      "chain": "bsc"
-    },
-    {
-      "ts": "2026-11-14T22:30:40.521920+00:00",
-      "kind": "reject_filter",
-      "mint": "0x000008d2175f9aeaddb2430c26f8a6f73c5a0000",
-      "symbol": "UP",
-      "reasons": [
-        "ni podatka (prodaja)",
-        "LP ni zaklenjen/zažgan (0%)",
-        "top 10 holders 97.8% > 75%"
-      ],
-      "score": null,
-      "lane": "glavni",
-      "chain": "bsc"
-    },
-    {
-      "ts": "2026-11-14T22:31:40.097186+00:00",
-      "kind": "reject_filter",
-      "mint": "9FzfmDtJDh7bGYzF5WMiuNGJDM71BayyV8WVEMqEpump",
-      "symbol": "RESPECT +",
-      "reasons": [
-        "volumen $2 < $371 za starost",
-        "unikatni kupci 2 < 25"
-      ],
-      "score": null,
-      "lane": "novi_lans",
-      "chain": "solana"
-    },
-    {
       "ts": "2026-11-14T22:31:55.064999+00:00",
       "kind": "reject_filter",
       "mint": "64e5AWJTCZiuizCbk4no3R28ZptN8wJyUuhCYEvgpump",
@@ -1279,217 +1180,139 @@
       "score": 0.3129,
       "lane": "novi_lans",
       "chain": "solana"
+    },
+    {
+      "ts": "2026-11-14T22:40:49.753315+00:00",
+      "kind": "reject_filter",
+      "mint": "6akHw4LmWibB1uGhrr4vUf3FKkiK1NVfXVxucEuqmine",
+      "symbol": "mine",
+      "reasons": [
+        "volumen $73 < $1,383 za starost",
+        "unikatni kupci 1 < 25"
+      ],
+      "score": null,
+      "lane": "novi_lans",
+      "chain": "solana"
+    },
+    {
+      "ts": "2026-11-14T22:41:04.784191+00:00",
+      "kind": "reject_filter",
+      "mint": "9VivhsnX2VQ64JmgdLnTH5a1zXm8sQNKnSfV9fULpump",
+      "symbol": "MGOAT",
+      "reasons": [
+        "volumen $0 < $1,448 za starost",
+        "unikatni kupci 1 < 25"
+      ],
+      "score": null,
+      "lane": "novi_lans",
+      "chain": "solana"
+    },
+    {
+      "ts": "2026-11-14T22:41:19.766973+00:00",
+      "kind": "reject_filter",
+      "mint": "GFvaTfojWZiy4V2qUNk3kSW8V963BKwuGZi9agqTpump",
+      "symbol": "LaMisery",
+      "reasons": [
+        "volumen $19 < $1,523 za starost",
+        "unikatni kupci 1 < 25"
+      ],
+      "score": null,
+      "lane": "novi_lans",
+      "chain": "solana"
+    },
+    {
+      "ts": "2026-11-14T22:41:26.802685+00:00",
+      "kind": "reject_filter",
+      "mint": "HVUGdYeGZV6G1WK7UU8tEAo3CLoBcpBsXWnutciYpump",
+      "symbol": "MCBTC",
+      "reasons": [
+        "volumen $3 < $1,626 za starost",
+        "unikatni kupci 1 < 25"
+      ],
+      "score": null,
+      "lane": "novi_lans",
+      "chain": "solana"
+    },
+    {
+      "ts": "2026-11-14T22:41:41.839928+00:00",
+      "kind": "reject_filter",
+      "mint": "FA9nV32nzrXtKhUQEpPDyAdRUrEbKNtDnWZfq5jGpump",
+      "symbol": "who sold",
+      "reasons": [
+        "volumen $679 < $1,657 za starost",
+        "unikatni kupci 1 < 25"
+      ],
+      "score": null,
+      "lane": "novi_lans",
+      "chain": "solana"
+    },
+    {
+      "ts": "2026-11-14T22:41:56.887323+00:00",
+      "kind": "reject_filter",
+      "mint": "5hzdRnZGeowigXXapy4BnWYnqJcG29AJDHXCtpBJpump",
+      "symbol": "DND",
+      "reasons": [
+        "volumen $88 < $1,724 za starost",
+        "unikatni kupci 1 < 25"
+      ],
+      "score": null,
+      "lane": "novi_lans",
+      "chain": "solana"
+    },
+    {
+      "ts": "2026-11-14T22:41:57.273397+00:00",
+      "kind": "reject_filter",
+      "mint": "GexThZHgaswpAQ7Fi8QrHFubjPimUNSYhJiAA7XZpump",
+      "symbol": "WASTED",
+      "reasons": [
+        "dev wallet linked to previous rugs (local blacklist BaJxG5X7…)"
+      ],
+      "score": null,
+      "lane": "glavni",
+      "chain": "solana"
+    },
+    {
+      "ts": "2026-11-14T22:43:04.606263+00:00",
+      "kind": "reject_filter",
+      "mint": "0x87bcd20f908d4799b5d00cbe266813d42a29d882",
+      "symbol": "FOXXI",
+      "reasons": [
+        "volumen $17 < $1,322 za starost",
+        "unikatni kupci 1 < 25"
+      ],
+      "score": null,
+      "lane": "novi_lans",
+      "chain": "bsc"
+    },
+    {
+      "ts": "2026-11-14T22:43:19.650974+00:00",
+      "kind": "reject_filter",
+      "mint": "0xbd6b08ef9f881170c7d452168fac1816e9c9ffff",
+      "symbol": "GAZZILION$",
+      "reasons": [
+        "volumen $0 < $1,398 za starost",
+        "unikatni kupci 1 < 25"
+      ],
+      "score": null,
+      "lane": "novi_lans",
+      "chain": "bsc"
+    },
+    {
+      "ts": "2026-11-14T22:43:19.918025+00:00",
+      "kind": "reject_filter",
+      "mint": "0x000008d2175f9aeaddb2430c26f8a6f73c5a0000",
+      "symbol": "UP",
+      "reasons": [
+        "ni podatka (prodaja)",
+        "LP ni zaklenjen/zažgan (0%)",
+        "top 10 holders 97.8% > 75%"
+      ],
+      "score": null,
+      "lane": "glavni",
+      "chain": "bsc"
     }
   ],
   "events": [
-    {
-      "ts": "2026-11-14T22:24:50.284246+00:00",
-      "agent": "SCOUT",
-      "level": "ok",
-      "message": "LIVE scan  24 parov  SOL 12 · BNB 12",
-      "mint": "",
-      "symbol": "",
-      "extra": {}
-    },
-    {
-      "ts": "2026-11-14T22:25:04.996815+00:00",
-      "agent": "FILTER",
-      "level": "kill",
-      "message": "Ballfin  NOVI LANS KILL  volumen $83 < $304 za starost; unikatni kupci 16 < 25",
-      "mint": "D97uhxYnDU3gRZ2h3n73ZbgGUT1kkrtjhGhxc5tppump",
-      "symbol": "Ballfin",
-      "extra": {
-        "lane": "novi_lans",
-        "reasons": [
-          "volumen $83 < $304 za starost",
-          "unikatni kupci 16 < 25"
-        ],
-        "chain": "solana"
-      }
-    },
-    {
-      "ts": "2026-11-14T22:25:20.157597+00:00",
-      "agent": "FILTER",
-      "level": "kill",
-      "message": "Tampons  NOVI LANS KILL  unikatni kupci 11 < 25",
-      "mint": "KpAYceUKpvmYWzMR48C7Sv7v9MpfhbtbTpkdLHUpump",
-      "symbol": "Tampons",
-      "extra": {
-        "lane": "novi_lans",
-        "reasons": [
-          "unikatni kupci 11 < 25"
-        ],
-        "chain": "solana"
-      }
-    },
-    {
-      "ts": "2026-11-14T22:25:27.063670+00:00",
-      "agent": "FILTER",
-      "level": "kill",
-      "message": "Tampons  NOVI LANS KILL  unikatni kupci 12 < 25",
-      "mint": "8DuLXhAiQFKXb75QMdAE9Wgr8dh72rpBeG1Vy9dTyweA",
-      "symbol": "Tampons",
-      "extra": {
-        "lane": "novi_lans",
-        "reasons": [
-          "unikatni kupci 12 < 25"
-        ],
-        "chain": "solana"
-      }
-    },
-    {
-      "ts": "2026-11-14T22:25:42.101953+00:00",
-      "agent": "FILTER",
-      "level": "kill",
-      "message": "34%  NOVI LANS KILL  volumen $95 < $503 za starost; unikatni kupci 4 < 25",
-      "mint": "5mjsBR9rADtjbVmD1G9jJV62xuhKWr7V1NxKbZXkpump",
-      "symbol": "34%",
-      "extra": {
-        "lane": "novi_lans",
-        "reasons": [
-          "volumen $95 < $503 za starost",
-          "unikatni kupci 4 < 25"
-        ],
-        "chain": "solana"
-      }
-    },
-    {
-      "ts": "2026-11-14T22:25:57.227428+00:00",
-      "agent": "FILTER",
-      "level": "kill",
-      "message": "Tampons  NOVI LANS KILL  unikatni kupci 13 < 25",
-      "mint": "4rhHSoCPRWc3C22HS4UqhyvhSuCTV4H9heM816EJcr2J",
-      "symbol": "Tampons",
-      "extra": {
-        "lane": "novi_lans",
-        "reasons": [
-          "unikatni kupci 13 < 25"
-        ],
-        "chain": "solana"
-      }
-    },
-    {
-      "ts": "2026-11-14T22:26:04.452266+00:00",
-      "agent": "FILTER",
-      "level": "kill",
-      "message": "Tampons  NOVI LANS KILL  unikatni kupci 10 < 25",
-      "mint": "BBBGtHDxEsyf9tLKc3XX5RbfktJjr4qYm12uMb9zpump",
-      "symbol": "Tampons",
-      "extra": {
-        "lane": "novi_lans",
-        "reasons": [
-          "unikatni kupci 10 < 25"
-        ],
-        "chain": "solana"
-      }
-    },
-    {
-      "ts": "2026-11-14T22:26:26.452834+00:00",
-      "agent": "FILTER",
-      "level": "ok",
-      "message": "J*B  NOVI LANS PASS  (rugcheck)",
-      "mint": "3Kf7Jxy1dB5TH56qFkC6XUW9S3qtMZQJzuUPzbdMpump",
-      "symbol": "J*B",
-      "extra": {
-        "lane": "novi_lans",
-        "chain": "solana"
-      }
-    },
-    {
-      "ts": "2026-11-14T22:26:41.386916+00:00",
-      "agent": "ANALYST",
-      "level": "kill",
-      "message": "J*B  score 0.42  VETO  struktura: vertikalni pump — ne lovim  [liquidity=0.15, turnover=0.55, flow=0.64, structure=0.10, age=0.40, holders=0.87]",
-      "mint": "3Kf7Jxy1dB5TH56qFkC6XUW9S3qtMZQJzuUPzbdMpump",
-      "symbol": "J*B",
-      "extra": {}
-    },
-    {
-      "ts": "2026-11-14T22:27:03.818193+00:00",
-      "agent": "FILTER",
-      "level": "ok",
-      "message": "SEET  NOVI LANS PASS  (rugcheck)",
-      "mint": "AJfKTj4gkMFWFaBdVrcHVrsNGauuGYo3Z2eJCnqZpump",
-      "symbol": "SEET",
-      "extra": {
-        "lane": "novi_lans",
-        "chain": "solana"
-      }
-    },
-    {
-      "ts": "2026-11-14T22:27:18.384027+00:00",
-      "agent": "ANALYST",
-      "level": "kill",
-      "message": "SEET  score 0.31  VETO  struktura: vertikalni pump — ne lovim  [liquidity=0.05, turnover=0.15, flow=0.64, structure=0.10, age=0.40, holders=0.87]",
-      "mint": "AJfKTj4gkMFWFaBdVrcHVrsNGauuGYo3Z2eJCnqZpump",
-      "symbol": "SEET",
-      "extra": {}
-    },
-    {
-      "ts": "2026-11-14T22:27:18.384394+00:00",
-      "agent": "SCOUT",
-      "level": "info",
-      "message": "handed 8 candidate(s) to FILTER (0 glavni, 8 novi lans, 0 dno)",
-      "mint": "",
-      "symbol": "",
-      "extra": {}
-    },
-    {
-      "ts": "2026-11-14T22:27:18.940635+00:00",
-      "agent": "RISK",
-      "level": "warn",
-      "message": "ni podatka (price) for 中国人牛逼, Jacket — holds unmarked",
-      "mint": "",
-      "symbol": "",
-      "extra": {}
-    },
-    {
-      "ts": "2026-11-14T22:27:18.940708+00:00",
-      "agent": "RISK",
-      "level": "trade",
-      "message": "PAPER SELL bill  TRAIL STOP  mid $0.0003568 ≤ trail $0.000364532 (oborožen pri neto +12%)  realized $+31.09 (+53.32%)  mid $0.0003568 → fill $0.00035234892",
-      "mint": "85RhcSEMy15SNhFLmSArNm7udPKXVagVgsq4YmSopump",
-      "symbol": "bill",
-      "extra": {
-        "pnl_usd": 31.09414838844465,
-        "pnl_pct": 0.5332115233466632,
-        "paper": true
-      }
-    },
-    {
-      "ts": "2026-11-14T22:27:18.941037+00:00",
-      "agent": "RISK",
-      "level": "info",
-      "message": "marks  中国人牛逼 -1.24%  Jacket -1.24%  Leonida -24.83%",
-      "mint": "",
-      "symbol": "",
-      "extra": {}
-    },
-    {
-      "ts": "2026-11-14T22:28:03.132772+00:00",
-      "agent": "SCOUT",
-      "level": "ok",
-      "message": "LIVE scan  24 parov  SOL 12 · BNB 12",
-      "mint": "",
-      "symbol": "",
-      "extra": {}
-    },
-    {
-      "ts": "2026-11-14T22:28:17.941205+00:00",
-      "agent": "FILTER",
-      "level": "kill",
-      "message": "PPM  NOVI LANS KILL  volumen $2 < $482 za starost; unikatni kupci 1 < 25",
-      "mint": "B23VE1cGVCPrBbjf1proXL3rXFEb1rpmN8d7e47Apump",
-      "symbol": "PPM",
-      "extra": {
-        "lane": "novi_lans",
-        "reasons": [
-          "volumen $2 < $482 za starost",
-          "unikatni kupci 1 < 25"
-        ],
-        "chain": "solana"
-      }
-    },
     {
       "ts": "2026-11-14T22:28:33.050800+00:00",
       "agent": "FILTER",
@@ -2333,13 +2156,240 @@
       "mint": "",
       "symbol": "",
       "extra": {}
+    },
+    {
+      "ts": "2026-11-14T22:40:42.862220+00:00",
+      "agent": "SCOUT",
+      "level": "ok",
+      "message": "LIVE scan  24 parov  SOL 12 · BNB 12",
+      "mint": "",
+      "symbol": "",
+      "extra": {}
+    },
+    {
+      "ts": "2026-11-14T22:40:49.753261+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "mine  NOVI LANS KILL  volumen $73 < $1,383 za starost; unikatni kupci 1 < 25",
+      "mint": "6akHw4LmWibB1uGhrr4vUf3FKkiK1NVfXVxucEuqmine",
+      "symbol": "mine",
+      "extra": {
+        "lane": "novi_lans",
+        "reasons": [
+          "volumen $73 < $1,383 za starost",
+          "unikatni kupci 1 < 25"
+        ],
+        "chain": "solana"
+      }
+    },
+    {
+      "ts": "2026-11-14T22:41:04.784106+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "MGOAT  NOVI LANS KILL  volumen $0 < $1,448 za starost; unikatni kupci 1 < 25",
+      "mint": "9VivhsnX2VQ64JmgdLnTH5a1zXm8sQNKnSfV9fULpump",
+      "symbol": "MGOAT",
+      "extra": {
+        "lane": "novi_lans",
+        "reasons": [
+          "volumen $0 < $1,448 za starost",
+          "unikatni kupci 1 < 25"
+        ],
+        "chain": "solana"
+      }
+    },
+    {
+      "ts": "2026-11-14T22:41:19.766914+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "LaMisery  NOVI LANS KILL  volumen $19 < $1,523 za starost; unikatni kupci 1 < 25",
+      "mint": "GFvaTfojWZiy4V2qUNk3kSW8V963BKwuGZi9agqTpump",
+      "symbol": "LaMisery",
+      "extra": {
+        "lane": "novi_lans",
+        "reasons": [
+          "volumen $19 < $1,523 za starost",
+          "unikatni kupci 1 < 25"
+        ],
+        "chain": "solana"
+      }
+    },
+    {
+      "ts": "2026-11-14T22:41:26.802628+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "MCBTC  NOVI LANS KILL  volumen $3 < $1,626 za starost; unikatni kupci 1 < 25",
+      "mint": "HVUGdYeGZV6G1WK7UU8tEAo3CLoBcpBsXWnutciYpump",
+      "symbol": "MCBTC",
+      "extra": {
+        "lane": "novi_lans",
+        "reasons": [
+          "volumen $3 < $1,626 za starost",
+          "unikatni kupci 1 < 25"
+        ],
+        "chain": "solana"
+      }
+    },
+    {
+      "ts": "2026-11-14T22:41:41.839865+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "who sold  NOVI LANS KILL  volumen $679 < $1,657 za starost; unikatni kupci 1 < 25",
+      "mint": "FA9nV32nzrXtKhUQEpPDyAdRUrEbKNtDnWZfq5jGpump",
+      "symbol": "who sold",
+      "extra": {
+        "lane": "novi_lans",
+        "reasons": [
+          "volumen $679 < $1,657 za starost",
+          "unikatni kupci 1 < 25"
+        ],
+        "chain": "solana"
+      }
+    },
+    {
+      "ts": "2026-11-14T22:41:56.887267+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "DND  NOVI LANS KILL  volumen $88 < $1,724 za starost; unikatni kupci 1 < 25",
+      "mint": "5hzdRnZGeowigXXapy4BnWYnqJcG29AJDHXCtpBJpump",
+      "symbol": "DND",
+      "extra": {
+        "lane": "novi_lans",
+        "reasons": [
+          "volumen $88 < $1,724 za starost",
+          "unikatni kupci 1 < 25"
+        ],
+        "chain": "solana"
+      }
+    },
+    {
+      "ts": "2026-11-14T22:41:57.273343+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "WASTED  KILL  dev wallet linked to previous rugs (local blacklist BaJxG5X7…)",
+      "mint": "GexThZHgaswpAQ7Fi8QrHFubjPimUNSYhJiAA7XZpump",
+      "symbol": "WASTED",
+      "extra": {
+        "reasons": [
+          "dev wallet linked to previous rugs (local blacklist BaJxG5X7…)"
+        ],
+        "lane": "glavni",
+        "chain": "solana"
+      }
+    },
+    {
+      "ts": "2026-11-14T22:41:58.948272+00:00",
+      "agent": "FILTER",
+      "level": "ok",
+      "message": "PUMP  PASS  (rugcheck)",
+      "mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+      "symbol": "PUMP",
+      "extra": {
+        "lane": "glavni",
+        "chain": "solana"
+      }
+    },
+    {
+      "ts": "2026-11-14T22:42:27.263344+00:00",
+      "agent": "ANALYST",
+      "level": "ok",
+      "message": "PUMP  score 0.64 ≥ 0.55  [liquidity=1.00, turnover=0.15, flow=0.54, structure=0.88, age=0.70, holders=0.60]  struktura: višji minimum in umik pod lokalnim vrhom",
+      "mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+      "symbol": "PUMP",
+      "extra": {}
+    },
+    {
+      "ts": "2026-11-14T22:42:49.445468+00:00",
+      "agent": "EXECUTOR",
+      "level": "trade",
+      "message": "PAPER BUY PUMP  $60.80 (6.32% of $962.57)  fill $0.0028958215  qty 20996.6  stop -6%",
+      "mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+      "symbol": "PUMP",
+      "extra": {
+        "size_usd": 60.80237884453274,
+        "fill": 0.0028958215,
+        "pct_of_equity": 6.316696329555414,
+        "paper": true
+      }
+    },
+    {
+      "ts": "2026-11-14T22:43:04.606209+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "FOXXI  NOVI LANS KILL  volumen $17 < $1,322 za starost; unikatni kupci 1 < 25",
+      "mint": "0x87bcd20f908d4799b5d00cbe266813d42a29d882",
+      "symbol": "FOXXI",
+      "extra": {
+        "lane": "novi_lans",
+        "chain": "bsc",
+        "reasons": [
+          "volumen $17 < $1,322 za starost",
+          "unikatni kupci 1 < 25"
+        ]
+      }
+    },
+    {
+      "ts": "2026-11-14T22:43:19.650919+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "GAZZILION$  NOVI LANS KILL  volumen $0 < $1,398 za starost; unikatni kupci 1 < 25",
+      "mint": "0xbd6b08ef9f881170c7d452168fac1816e9c9ffff",
+      "symbol": "GAZZILION$",
+      "extra": {
+        "lane": "novi_lans",
+        "chain": "bsc",
+        "reasons": [
+          "volumen $0 < $1,398 za starost",
+          "unikatni kupci 1 < 25"
+        ]
+      }
+    },
+    {
+      "ts": "2026-11-14T22:43:19.917970+00:00",
+      "agent": "FILTER",
+      "level": "kill",
+      "message": "UP  GLAVNI KILL  ni podatka (prodaja); LP ni zaklenjen/zažgan (0%); top 10 holders 97.8% > 75%",
+      "mint": "0x000008d2175f9aeaddb2430c26f8a6f73c5a0000",
+      "symbol": "UP",
+      "extra": {
+        "lane": "glavni",
+        "chain": "bsc",
+        "reasons": [
+          "ni podatka (prodaja)",
+          "LP ni zaklenjen/zažgan (0%)",
+          "top 10 holders 97.8% > 75%"
+        ]
+      }
+    },
+    {
+      "ts": "2026-11-14T22:43:19.918235+00:00",
+      "agent": "SCOUT",
+      "level": "info",
+      "message": "handed 11 candidate(s) to FILTER (3 glavni, 8 novi lans, 0 dno)",
+      "mint": "",
+      "symbol": "",
+      "extra": {}
+    },
+    {
+      "ts": "2026-11-14T22:43:20.475178+00:00",
+      "agent": "RISK",
+      "level": "warn",
+      "message": "ni podatka (price) for 中国人牛逼, Jacket — holds unmarked",
+      "mint": "",
+      "symbol": "",
+      "extra": {}
+    },
+    {
+      "ts": "2026-11-14T22:43:20.475255+00:00",
+      "agent": "RISK",
+      "level": "info",
+      "message": "marks  中国人牛逼 -1.24%  Jacket -1.24%  Leonida -16.35%  PUMP -0.55%",
+      "mint": "",
+      "symbol": "",
+      "extra": {}
     }
   ],
   "equity_history": [
-    [
-      "2026-11-14T11:12:55.146029+00:00",
-      976.9929969853872
-    ],
     [
       "2026-11-14T11:15:31.096403+00:00",
       976.9929969853872
@@ -3295,6 +3345,10 @@
     [
       "2026-11-14T22:39:50.672382+00:00",
       962.5661211548565
+    ],
+    [
+      "2026-11-14T22:43:20.475859+00:00",
+      962.7489438351463
     ]
   ],
   "market": {
