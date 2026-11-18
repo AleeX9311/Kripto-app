@@ -1,4 +1,4 @@
-const CACHE = "sklad-shell-1";
+const CACHE = "sklad-shell-2";
 const SHELL = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
