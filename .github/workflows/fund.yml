@@ -1,0 +1,108 @@
+name: Paper fund
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/kick/fund"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: fund-data
+  cancel-in-progress: false
+
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Load book from fund-data
+        run: |
+          set -euo pipefail
+          if git fetch --depth=1 origin fund-data; then
+            git show FETCH_HEAD:state.json > fund/engine/state.json || true
+            echo "Loaded fund-data"
+          else
+            echo "fund-data is missing — a new 1000 EUR paper book"
+          fi
+
+      - name: Paper passes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          publish() {
+            test -f fund/engine/state.json
+            test -f fund/engine/status.json
+            test -f fund/engine/trades.csv
+            test -f fund/engine/incidents.jsonl
+            WT="${RUNNER_TEMP}/fund-wt"
+            if [ ! -e "$WT/.git" ]; then
+              rm -rf "$WT"
+              if git fetch --depth=1 origin fund-data; then
+                git worktree add -B fund-data "$WT" FETCH_HEAD
+              else
+                git worktree add --detach "$WT" HEAD
+                git -C "$WT" switch --orphan fund-data
+                git -C "$WT" rm -rf --cached . >/dev/null 2>&1 || true
+              fi
+            fi
+            cp fund/engine/state.json "$WT/state.json"
+            cp fund/engine/status.json "$WT/status.json"
+            cp fund/engine/trades.csv "$WT/trades.csv"
+            cp fund/engine/incidents.jsonl "$WT/incidents.jsonl"
+            git -C "$WT" add -- state.json status.json trades.csv incidents.jsonl
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                state.json|status.json|trades.csv|incidents.jsonl) ;;
+                *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
+              esac
+            done < <(git -C "$WT" ls-files)
+            if git -C "$WT" diff --cached --quiet; then
+              echo "No snapshot changes"
+              return 0
+            fi
+            git -C "$WT" commit -m "Update paper fund snapshot"
+            git -C "$WT" push origin HEAD:fund-data
+          }
+
+          others=$(gh run list --workflow "Paper fund" --limit 30 --json databaseId,status \
+            --jq "[.[] | select(.databaseId != ${GITHUB_RUN_ID} and (.status==\"in_progress\" or .status==\"queued\" or .status==\"pending\" or .status==\"waiting\" or .status==\"requested\"))] | length" || true)
+          if [ "${others:-0}" -gt 0 ]; then
+            echo "Another Paper fund run is already active or queued (${others}). Leaving it."
+            exit 0
+          fi
+
+          python3 fund/engine/fund.py --minutes 348 --sleep 120 &
+          pid=$!
+          sleep 50
+          publish || echo "publish skipped"
+          while kill -0 "$pid" 2>/dev/null; do
+            sleep 120
+            publish || echo "publish skipped"
+          done
+          set +e
+          wait "$pid"
+          code=$?
+          set -e
+          publish || echo "final publish skipped"
+          if [ "$code" -eq 0 ]; then
+            gh workflow run "Paper fund" --ref main || echo "re-dispatch failed; the */5 cron is the backup"
+          fi
+          exit "$code"

@@ -1,56 +1,10 @@
-/* Service worker: caches shell only. Never caches price/API responses. */
-const CACHE = "kripto-shell-v4";
-const SHELL = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icon-180.png",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./apple-touch-icon.png"
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())
-  );
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-  // Simulation snapshot is always live. Never write it to the Cache API or HTTP cache.
-  if (url.pathname.endsWith("/status.json") || url.pathname.endsWith("status.json")) {
-    event.respondWith(fetch(event.request.url, { cache: "no-store" }));
-    return;
-  }
-  // Never cache cross-origin API / price data
-  if (url.origin !== self.location.origin) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
-  // Network-first for HTML so updates show; cache fallback offline
-  if (event.request.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("/")) {
-    event.respondWith(
-      fetch(event.request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(event.request, copy));
-          return res;
-        })
-        .catch(() => caches.match(event.request).then((r) => r || caches.match("./index.html")))
-    );
-    return;
-  }
-  // Cache-first for static icons/manifest
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+self.addEventListener("install", event => event.waitUntil(self.skipWaiting()));
+self.addEventListener("activate", event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(key => caches.delete(key)));
+    await self.registration.unregister();
+    const clients = await self.clients.matchAll({ type: "window" });
+    clients.forEach(client => client.navigate(client.url));
+  })());
 });

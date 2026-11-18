@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#071018">
+<title>Sklad</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #071018;
+    --ink: #e7eef2;
+    --muted: #93a4b0;
+    --gold: #e6c27a;
+    --cyan: #8fd8d2;
+    --rose: #e7a0a0;
+    --line: rgba(230, 194, 122, 0.28);
+    --card: rgba(14, 28, 40, 0.72);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font: 15px/1.45 "Avenir Next", "Segoe UI", sans-serif;
+    min-height: 100vh;
+    background:
+      radial-gradient(900px 420px at 50% -10%, rgba(143, 216, 210, 0.16), transparent 60%),
+      radial-gradient(700px 380px at 100% 20%, rgba(230, 194, 122, 0.08), transparent 55%),
+      var(--bg);
+  }
+  header {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 10px;
+    background: rgba(7, 16, 24, 0.86);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .brand { font-family: Georgia, "Iowan Old Style", serif; letter-spacing: 0.18em; font-size: 14px; }
+  .paper {
+    border: 1px solid var(--gold); color: var(--gold); border-radius: 999px;
+    padding: 4px 10px; font-size: 11px; letter-spacing: 0.16em;
+  }
+  main { padding: 8px 14px 48px; max-width: 520px; margin: 0 auto; }
+  .equity { padding: 14px 2px 6px; }
+  .equity b { display: block; font-family: Georgia, serif; font-size: 42px; font-weight: 500; letter-spacing: -0.03em; }
+  .sub { color: var(--muted); font-size: 13px; min-height: 1.2em; }
+  .floor { position: relative; height: 250px; margin: 8px 0 12px; }
+  canvas { width: 100%; height: 100%; display: block; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .card h2, .section h2 {
+    margin: 0 0 6px; font-size: 11px; letter-spacing: 0.14em; color: var(--gold);
+    font-weight: 600;
+  }
+  .who { font-family: Georgia, serif; font-size: 16px; }
+  .tldr { color: var(--ink); font-size: 13px; margin-top: 4px; }
+  .section { margin-top: 14px; }
+  .row { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-top: 1px solid rgba(255,255,255,0.05); }
+  .row span { color: var(--muted); }
+  .pill { border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid var(--line); color: var(--gold); }
+  .pill.off { color: var(--rose); border-color: rgba(227,160,160,0.5); }
+  .bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,0.06); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--gold)); }
+  .heart { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 6px; }
+  .heart.on { background: var(--cyan); }
+  @media (prefers-reduced-motion: no-preference) {
+    .heart.on { animation: beat 1.6s ease-out infinite; }
+  }
+  @keyframes beat {
+    0% { box-shadow: 0 0 0 0 rgba(143, 216, 210, 0.65); }
+    100% { box-shadow: 0 0 0 10px rgba(143, 216, 210, 0); }
+  }
+  .curve { width: 100%; height: 140px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  .rules li, .kick li { margin: 6px 0; }
+  .rules, .kick { margin: 0; padding-left: 18px; color: var(--ink); }
+  .muted { color: var(--muted); }
+  .wide { grid-column: 1 / -1; }
+  @media (prefers-reduced-motion: reduce) {
+    .heart.on { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">SKLAD</div>
+  <div class="paper" id="badge">PAPER</div>
+</header>
+<main>
+  <section class="equity">
+    <div class="sub">papirna knjiga</div>
+    <b id="equity">—</b>
+    <div class="sub" id="eqsub">čakam na prvi srčni utrip</div>
+  </section>
+  <div class="floor"><canvas id="floor"></canvas></div>
+  <section class="grid" id="agents"></section>
+
+  <section class="section card">
+    <h2>TVEGANJE</h2>
+    <div class="row"><span>dnevna zavora 3%</span><b id="daily">—</b></div>
+    <div class="bar"><i id="dailybar"></i></div>
+    <div class="row"><span>tedenski izklop 6%</span><b id="weekly">—</b></div>
+    <div class="bar"><i id="weekbar"></i></div>
+    <div class="row"><span>odprto tveganje</span><b id="risk">—</b></div>
+    <div class="row"><span>največji padec</span><b id="dd">—</b></div>
+    <div class="row"><span>stanje</span><b id="gate">—</b></div>
+  </section>
+
+  <section class="section card">
+    <h2>ARENA</h2>
+    <div id="arena" class="muted">Še ni razvrstitve.</div>
+  </section>
+
+  <section class="section card">
+    <h2>KRIVULJA</h2>
+    <canvas class="curve" id="curve"></canvas>
+    <div class="sub" id="curveNote">Brez izmišljene zgodovine.</div>
+  </section>
+
+  <section class="section card">
+    <h2>KOLEDAR</h2>
+    <div id="events" class="muted">Čakam na koledar.</div>
+  </section>
+
+  <section class="section card">
+    <h2>BRIEF</h2>
+    <div id="brief" class="muted">Jutranji in večerni zapis prideta iz živega kroga.</div>
+  </section>
+
+  <section class="section card">
+    <h2>POZICIJE</h2>
+    <div id="positions" class="muted">Ni odprtih poslov.</div>
+  </section>
+
+  <section class="section card">
+    <h2>DNEVNIK</h2>
+    <div class="scroll" id="journal"><div class="muted">Ni zaprtih poslov.</div></div>
+  </section>
+
+  <section class="section" id="cards"></section>
+  <section class="section card">
+    <h2>UČENJE</h2>
+    <div id="learn" class="muted">Različica 1. Agent ne spreminja zavor.</div>
+  </section>
+  <section class="section card">
+    <h2>ZLATA PRAVILA</h2>
+    <ol class="rules" id="golden"></ol>
+  </section>
+  <section class="section card">
+    <h2>PRVIH 7 DNI</h2>
+    <ol class="kick" id="kick"></ol>
+  </section>
+  <section class="section card">
+    <h2>VIRI</h2>
+    <div id="sources" class="muted">Še ni kroga.</div>
+    <div class="sub" id="beat"><i class="heart" id="heart"></i><span id="beattxt">ni utripa</span></div>
+  </section>
+</main>
+<script>
+const money = new Intl.NumberFormat("sl-SI", { style: "currency", currency: "EUR" });
+const pct = new Intl.NumberFormat("sl-SI", { style: "percent", maximumFractionDigits: 1 });
+const GOLDEN = [
+  "Samo papir. Živih naročil, ključev in dvigov ni.",
+  "Velikost je 10% knjige. Stop je izhod, ne formula za velikost.",
+  "Dnevna izguba 3% ustavi nove vstope. Tedenska 6% je izklop.",
+  "Največ pet odprtih poslov.",
+  "Brez svežega vira ni posla. Manjkajoč varnostni podatek je veto.",
+  "Brez vzvoda. Shorti so izklopljeni.",
+  "Učenje ne sme spreminjati velikosti, zavor ali vetojev."
+];
+
+function fillGolden(list) {
+  const root = document.getElementById("golden");
+  root.replaceChildren();
+  (list || GOLDEN).forEach(text => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    root.appendChild(li);
+  });
+}
+fillGolden(GOLDEN);
+
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h) { return this.rect(x, y, w, h); };
+}
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const canvas = document.getElementById("floor");
+const ctx = canvas.getContext("2d");
+let tick = 0;
+const bots = [
+  { name: "Raziskava", color: "#8fd8d2", x: 0.18 },
+  { name: "Tveganje", color: "#e7a0a0", x: 0.40 },
+  { name: "Izvršitev", color: "#e6c27a", x: 0.62 },
+  { name: "Uprava", color: "#f4efe4", x: 0.82 }
+];
+
+function resize() {
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  canvas.width = canvas.clientWidth * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener("resize", resize);
+resize();
+
+function drawBot(x, y, color, phase) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.beginPath();
+  ctx.ellipse(0, 28, 16, 4, 0, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.95;
+  ctx.beginPath();
+  ctx.roundRect(-11, -6, 22, 26, 8);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, -16, 10, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = "#071018";
+  ctx.fillRect(-7, -18, 14, 3);
+  ctx.globalAlpha = 0.35 + 0.15 * Math.sin(phase);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(-6, 2, 12, 3);
+  ctx.restore();
+}
+
+function drawFloor() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "rgba(230,194,122,0.25)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(w / 2, h * 0.62, w * 0.38, h * 0.16, 0, 0, 7);
+  ctx.stroke();
+  const pts = bots.map(b => ({ x: b.x * w, y: h * 0.58 }));
+  ctx.strokeStyle = "rgba(143,216,210,0.25)";
+  for (let i = 0; i < pts.length - 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(pts[i].x, pts[i].y - 20);
+    ctx.quadraticCurveTo((pts[i].x + pts[i + 1].x) / 2, h * 0.22, pts[i + 1].x, pts[i + 1].y - 30);
+    ctx.stroke();
+    if (!reduced) {
+      const t = (tick / 90 + i * 0.2) % 1;
+      const c = (pts[i].x + pts[i + 1].x) / 2, cy = h * 0.22;
+      const x = (1 - t) * (1 - t) * pts[i].x + 2 * (1 - t) * t * c + t * t * pts[i + 1].x;
+      const y = (1 - t) * (1 - t) * (pts[i].y - 20) + 2 * (1 - t) * t * cy + t * t * (pts[i + 1].y - 30);
+      ctx.fillStyle = "#e6c27a";
+      ctx.beginPath();
+      ctx.arc(x, y, 2.4, 0, 7);
+      ctx.fill();
+    }
+  }
+  pts.forEach((p, i) => {
+    const bob = reduced ? 0 : Math.sin(tick / 28 + i) * 3;
+    drawBot(p.x, p.y + bob, bots[i].color, tick / 20 + i);
+    ctx.fillStyle = "#93a4b0";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(bots[i].name, p.x, p.y + 46);
+  });
+  if (!reduced) {
+    tick++;
+    requestAnimationFrame(drawFloor);
+  }
+}
+drawFloor();
+
+function setText(id, text) { document.getElementById(id).textContent = text; }
+
+function render(data) {
+  if (!data) return;
+  setText("badge", "PAPER");
+  setText("equity", money.format(data.equity_eur));
+  const pnl = data.pnl_eur || 0;
+  setText("eqsub", (pnl >= 0 ? "+" : "") + money.format(pnl) + " od 1.000 € · " + (data.phase || ""));
+  setText("daily", pct.format(data.daily_pnl || 0));
+  setText("weekly", pct.format(data.weekly_pnl || 0));
+  document.getElementById("dailybar").style.width = Math.min(100, Math.abs(data.daily_pnl || 0) / 0.03 * 100) + "%";
+  document.getElementById("weekbar").style.width = Math.min(100, Math.abs(data.weekly_pnl || 0) / 0.06 * 100) + "%";
+  setText("risk", money.format(data.open_risk_eur || 0));
+  setText("dd", pct.format(data.max_drawdown || 0));
+  const gate = data.kill ? "IZKLOP" : (data.entries_blocked || "vstopi so odprti");
+  const gateEl = document.getElementById("gate");
+  gateEl.textContent = gate;
+  gateEl.className = data.kill || data.entries_blocked ? "pill off" : "pill";
+
+  const agents = document.getElementById("agents");
+  agents.replaceChildren();
+  (data.agents || []).forEach(agent => {
+    const card = document.createElement("article");
+    card.className = "card";
+    const h = document.createElement("div");
+    h.className = "who";
+    h.textContent = agent.name;
+    const p = document.createElement("div");
+    p.className = "tldr";
+    p.textContent = agent.tldr;
+    card.append(h, p);
+    agents.appendChild(card);
+  });
+
+  const arena = document.getElementById("arena");
+  arena.replaceChildren();
+  (data.arena || []).forEach(row => {
+    const line = document.createElement("div");
+    line.className = "row";
+    const left = document.createElement("span");
+    left.textContent = row.id + " · " + row.role;
+    const right = document.createElement("b");
+    right.textContent = row.n ? (row.expectancy_r + " R · n=" + row.n) : "še ni poslov";
+    line.append(left, right);
+    arena.appendChild(line);
+  });
+
+  const hist = data.equity_history || [];
+  const curve = document.getElementById("curve");
+  const c = curve.getContext("2d");
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  curve.width = curve.clientWidth * dpr;
+  curve.height = curve.clientHeight * dpr;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, curve.clientWidth, curve.clientHeight);
+  if (hist.length) {
+    const vals = hist.map(p => p.equity);
+    const min = Math.min(...vals), max = Math.max(...vals, min + 1);
+    c.beginPath();
+    vals.forEach((v, i) => {
+      const x = (i / Math.max(1, vals.length - 1)) * curve.clientWidth;
+      const y = 10 + (1 - (v - min) / (max - min)) * (curve.clientHeight - 20);
+      i ? c.lineTo(x, y) : c.moveTo(x, y);
+    });
+    c.strokeStyle = "#e6c27a";
+    c.lineWidth = 1.6;
+    c.stroke();
+    document.getElementById("curveNote").textContent = hist.length + " meritev iz objavljenega stanja";
+  }
+
+  const events = document.getElementById("events");
+  events.replaceChildren();
+  if (!data.calendar_ok) {
+    events.textContent = "Koledar ni dosegljiv. Novih vstopov ni.";
+  } else if (!(data.events || []).length) {
+    events.textContent = "Ta teden v koledarju ni CPI ali FOMC.";
+  } else {
+    data.events.forEach(event => {
+      const line = document.createElement("div");
+      line.className = "row";
+      const a = document.createElement("span");
+      a.textContent = event.title;
+      const b = document.createElement("b");
+      b.textContent = event.active ? "v oknu" : new Date(event.at).toLocaleString("sl-SI", { timeZone: "Europe/Ljubljana" });
+      line.append(a, b);
+      events.appendChild(line);
+    });
+  }
+
+  const brief = data.brief || {};
+  document.getElementById("brief").textContent =
+    (brief.phase ? brief.phase + ". " : "") +
+    "Režim: " + (data.regime || "—") + ". " +
+    (brief.blocked ? "Blokada: " + brief.blocked + ". " : "") +
+    (brief.note || "") +
+    (typeof brief.baseline_btc_120h === "number" ? " BTC 120 ur: " + pct.format(brief.baseline_btc_120h) + "." : "");
+
+  const pos = document.getElementById("positions");
+  pos.replaceChildren();
+  if (!(data.positions || []).length) {
+    pos.textContent = "Ni odprtih poslov.";
+    pos.className = "muted";
+  } else {
+    pos.className = "";
+    data.positions.forEach(p => {
+      const line = document.createElement("div");
+      line.className = "row";
+      const a = document.createElement("span");
+      a.textContent = p.market + " · " + p.strategy;
+      const b = document.createElement("b");
+      b.textContent = money.format(p.size_eur);
+      line.append(a, b);
+      pos.appendChild(line);
+    });
+  }
+
+  const journal = document.getElementById("journal");
+  journal.replaceChildren();
+  if (!(data.closed || []).length) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.textContent = "Ni zaprtih poslov.";
+    journal.appendChild(empty);
+  } else {
+    const table = document.createElement("table");
+    const head = document.createElement("tr");
+    ["trg", "strategija", "R", "izhod"].forEach(name => {
+      const th = document.createElement("th");
+      th.textContent = name;
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+    data.closed.slice(0, 12).forEach(trade => {
+      const tr = document.createElement("tr");
+      [trade.market, trade.strategy, trade.result_r, trade.reason_exit].forEach(value => {
+        const td = document.createElement("td");
+        td.textContent = value == null ? "—" : String(value);
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+    journal.appendChild(table);
+  }
+
+  const cards = document.getElementById("cards");
+  cards.replaceChildren();
+  (data.cards || []).forEach(card => {
+    const el = document.createElement("article");
+    el.className = "card";
+    el.style.marginTop = "8px";
+    const h = document.createElement("h2");
+    h.textContent = card.name;
+    const p = document.createElement("div");
+    p.textContent = card.text;
+    el.append(h, p);
+    cards.appendChild(el);
+  });
+
+  const learn = data.learning || {};
+  document.getElementById("learn").textContent =
+    "Različica " + (learn.version || 1) + ". Zaprtih poslov: " + (learn.closed || 0) + ". " + (learn.guard || "");
+  fillGolden(data.golden);
+
+  const kick = document.getElementById("kick");
+  kick.replaceChildren();
+  (data.kickoff || []).forEach(item => {
+    const li = document.createElement("li");
+    li.textContent = item.item + (item.done ? " — narejeno" : " — odprto");
+    kick.appendChild(li);
+  });
+
+  const sources = document.getElementById("sources");
+  const interesting = (data.sources || []).filter(s => ["EURUSDT", "BTCUSDT", "hyperliquid", "calendar", "gecko-solana", "gecko-bsc"].includes(s.name));
+  sources.textContent = interesting.map(s => s.name + " " + s.status + "/" + s.rows).join(" · ") || "ni virov";
+  const fresh = data.heartbeat && data.heartbeat.ok;
+  document.getElementById("heart").className = fresh ? "heart on" : "heart";
+  document.getElementById("beattxt").textContent = data.updated ? data.updated + " UTC" : "ni utripa";
+}
+
+async function load() {
+  const urls = [
+    "status.json",
+    "https://raw.githubusercontent.com/AleeX9311/Kripto-app/fund-data/status.json",
+    "https://raw.githubusercontent.com/AleeX9311/kripto-app/fund-data/status.json"
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data && data.note === "PAPER" && typeof data.equity_eur === "number") {
+        render(data);
+        return;
+      }
+    } catch (err) { /* next source */ }
+  }
+}
+load();
+setInterval(load, 60000);
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
