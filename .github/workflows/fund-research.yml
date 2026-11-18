@@ -1,0 +1,59 @@
+name: Fund night research
+
+on:
+  schedule:
+    # 22:00 UTC is 23:00 in Ljubljana during winter, the start of night research.
+    - cron: "0 22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fund-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Load the previous research cache note
+        run: |
+          set -euo pipefail
+          if git fetch --depth=1 origin fund-data; then
+            git show FETCH_HEAD:backtests.json > fund/backtests/latest.json || true
+          fi
+
+      - name: Run the night research
+        run: python3 fund/bot/research.py
+
+      - name: Publish the research snapshot
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test -f fund/backtests/latest.json
+          WT="${RUNNER_TEMP}/fund-wt"
+          rm -rf "$WT"
+          if git fetch --depth=1 origin fund-data; then
+            git worktree add -B fund-data "$WT" FETCH_HEAD
+          else
+            git worktree add --detach "$WT" HEAD
+            git -C "$WT" switch --orphan fund-data
+            git -C "$WT" rm -rf --cached . >/dev/null 2>&1 || true
+          fi
+          cp fund/backtests/latest.json "$WT/backtests.json"
+          git -C "$WT" add -- backtests.json
+          if git -C "$WT" diff --cached --quiet; then
+            echo "No research changes"
+            exit 0
+          fi
+          git -C "$WT" commit -m "Night research snapshot"
+          git -C "$WT" push origin HEAD:fund-data

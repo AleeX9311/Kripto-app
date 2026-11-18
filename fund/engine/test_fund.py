@@ -58,11 +58,14 @@ def _books(now, symbols=None):
     return {symbol: bars for symbol in symbols}
 
 
-def test_size_is_ten_percent_not_stop_risk():
+def test_size_comes_from_the_stop():
     assert fund.START_EUR == 1000
-    assert fund.POSITION_PCT == 0.10
-    assert fund.position_eur(1000) == 100
-    assert fund.position_eur(1000) == fund.position_eur(1000)
+    assert fund.RISK_PCT == 0.01
+    # 2% stop on a 1000 book risks 10 EUR, so the position is 500.
+    assert fund.position_eur(1000, 100, 98) == 500
+    # A 0.5% stop would want 2000, and the 1x cap keeps it at 1000.
+    assert fund.position_eur(1000, 100, 99.5) == 1000
+    assert fund.position_eur(1000, 100, 98, risk_pct=0.005) == 250
 
 
 def test_drawdown_includes_the_curve():
@@ -121,20 +124,19 @@ def test_stale_or_missing_feed_blocks_entries():
     assert "koledar" in status["entries_blocked"]
 
 
-def test_entry_is_ten_percent_and_stops_at_five():
+def test_entry_risks_one_percent_and_needs_a_backtest():
     now = _now()
     state = fund.new_state(now)
+    blocked = fund.run_once(state, now, Fake(_books(now)))
+    assert blocked["positions"] == []
+    assert "backtest" in blocked["entries_blocked"]
+    state = fund.new_state(now)
+    state["research"] = {"passed": ["trend"], "expected_r": {"trend": 0.1}}
     status = fund.run_once(state, now, Fake(_books(now)))
     assert len(status["positions"]) == 1
-    assert status["positions"][0]["size_eur"] == 100
+    assert status["positions"][0]["size_eur"] > 100
+    assert state["positions"][0]["risk_eur"] <= 10.01
     assert status["note"] == "PAPER"
-    assert state["cash_eur"] == 900
-    state["positions"] = state["positions"] * 5
-    # unique markets so the sixth is a new symbol; cap is what we assert next pass
-    for i, pos in enumerate(state["positions"]):
-        pos["market"] = f"M{i}"
-    status = fund.run_once(state, now, Fake(_books(now)))
-    assert len(status["positions"]) == 5
 
 
 def test_daily_brake_blocks_without_flattening():
@@ -148,11 +150,11 @@ def test_daily_brake_blocks_without_flattening():
     assert status["kill"] is False
 
 
-def test_weekly_kill_flattens_once():
+def test_kill_switch_keeps_the_stop():
     now = _now()
     state = fund.new_state(now)
-    state["cash_eur"] = 800
-    state["week_start_equity"] = 1000
+    state["cash_eur"] = 700
+    state["peak_equity"] = 1000
     state["positions"] = [
         {
             "trade_id": "T1",
@@ -161,29 +163,28 @@ def test_weekly_kill_flattens_once():
             "entry": 100,
             "stop": 95,
             "stop_init": 95,
-            "qty": 1,
-            "size_eur": 100,
-            "cost_eur": 100,
-            "risk_eur": 5,
+            "qty": 0.1,
+            "size_eur": 10,
+            "cost_eur": 10,
+            "risk_eur": 0.5,
             "fx": 1.1,
             "entry_time": fund.iso(now),
             "regime": "trend",
-            "funding": None,
+            "funding": "",
             "costs_eur": 0.1,
             "partial": False,
             "mfe_r": 0,
             "mae_r": 0,
+            "reason_in": "test",
             "notes": "PAPER",
             "kind": "cex",
         }
     ]
     status = fund.run_once(state, now, Fake(_books(now)))
     assert status["kill"] is True
-    assert status["positions"] == []
-    assert any(trade["reason_exit"] == "tedenski izklop" for trade in status["closed"])
-    incidents = len(state["incidents"])
-    fund.run_once(state, now, Fake(_books(now)))
-    assert len(state["incidents"]) == incidents
+    assert status["positions"]
+    assert status["positions"][0]["stop"] <= status["positions"][0]["entry"]
+    assert status["entries_blocked"].startswith("izklop")
 
 
 def test_event_window_cuts_and_blocks():
@@ -217,9 +218,9 @@ def test_event_window_cuts_and_blocks():
     status = fund.run_once(state, now, Fake(_books(now), events=[event]))
     assert status["event_window"] is True
     assert status["positions"]
-    assert status["positions"][0]["size_eur"] == 50
-    assert any(trade["reason_exit"] == "rez dogodka" for trade in status["closed"])
+    assert status["positions"][0]["size_eur"] == 100
     assert status["entries_blocked"] == "okno CPI/FOMC"
+    assert state.get("half_day") == fund.utc_day(now)
 
 
 def test_champion_stays_provisional_under_twenty():
@@ -263,7 +264,7 @@ def test_stop_and_time_exit():
     bars[-1] = fund.Bar(bars[-1].t, 99, 99.5, 97.5, 99, 10)
     books = {symbol: bars for symbol in fund.UNIVERSE}
     fund.run_once(state, now, Fake(books, cal=200))
-    assert any(trade["reason_exit"] == "stop" for trade in state["closed"])
+    assert any(trade["reason_out"] == "stop" for trade in state["closed"])
 
 
 def test_trades_csv_columns():
@@ -294,26 +295,7 @@ def test_trades_csv_columns():
     folder = Path("/tmp/fund-test-out")
     fund.save_outputs(state, {"note": "PAPER"}, folder)
     header = (folder / "trades.csv").read_text().splitlines()[0]
-    for column in (
-        "trade_id",
-        "strategy",
-        "mode",
-        "market",
-        "side",
-        "entry_time",
-        "exit_time",
-        "entry",
-        "stop",
-        "size",
-        "r_multiple",
-        "result_r",
-        "reason_exit",
-        "regime",
-        "costs",
-        "slippage",
-        "funding",
-        "notes",
-    ):
+    for column in fund.TRADE_FIELDS:
         assert column in header.split(",")
 
 

@@ -1,8 +1,9 @@
 """Paper-only fund. No exchange keys, no live orders, no withdrawals.
 
-Capital is 1000 EUR. Each trade takes 10% of the book. The stop decides
-the exit, not the size. A 3% day loss blocks new entries. A 6% week loss
-is the kill switch. At most five positions are open.
+Capital is 1000 EUR. Risk per trade is at most 1% of the account.
+Size = account × risk / distance to the stop, capped at 1x. A 3% UTC-day
+loss blocks new entries. A 15% drop from the equity high is the kill
+switch: stops stay, new entries stop, and the fund waits.
 """
 
 from __future__ import annotations
@@ -11,8 +12,10 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -21,14 +24,15 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent
 START_EUR = 1000.0
-POSITION_PCT = 0.10
-MAX_POSITIONS = 5
+RISK_PCT = 0.01
 DAILY_LOSS = 0.03
-WEEKLY_LOSS = 0.06
+KILL_DD = 0.15
+LEVERAGE_CAP = 1.0
 SLIPPAGE_LIMIT = 0.025
 CEX_SLIPPAGE = 0.0005
-FEE = 0.001
+FEE = 0.001  # 0.10% per side when the fee tier is unknown (spot)
 FAIL_BUCKET = 8
 MIN_AGE_H = 48.0
 MIN_MC = 1_000_000.0
@@ -45,7 +49,31 @@ VISION = "https://data-api.binance.vision"
 BINANCE = "https://api.binance.com"
 UA = {"User-Agent": "kripto-fund/1", "Accept": "application/json"}
 
-PROTECTED = ("position_pct", "daily_loss", "weekly_loss", "max_positions", "vetoes")
+PROTECTED = ("risk_pct", "position_pct", "daily_loss", "kill_dd", "weekly_loss", "leverage", "vetoes")
+TRADE_FIELDS = [
+    "trade_id",
+    "strategy",
+    "mode",
+    "market",
+    "side",
+    "entry_time",
+    "entry_price",
+    "stop",
+    "target",
+    "exit_time",
+    "exit_price",
+    "fees",
+    "funding",
+    "slippage",
+    "pnl",
+    "r_multiple",
+    "reason_in",
+    "reason_out",
+    "regime",
+    "backtest_expected_r",
+    "notes",
+]
+ALERT_KINDS = ("kill", "missing_stop", "failed_order", "exchange", "daily")
 
 STRATEGIES = (
     "trend",
@@ -90,16 +118,15 @@ STRATEGY_CARDS = [
 ]
 
 GOLDEN = [
-    "Samo papir. Živih naročil, ključev in dvigov ni.",
-    "Velikost je 10% knjige. Stop je izhod, ne formula za velikost.",
-    "Dnevna izguba 3% ustavi nove vstope. Tedenska 6% je izklop.",
-    "Največ pet odprtih poslov. Celotne knjige ne stavimo.",
-    "Brez svežega vira ni posla. Manjkajoč varnostni podatek je veto.",
-    "Brez vzvoda. Shorti so izklopljeni.",
-    "Fib in Elliott nista pravili za vstop.",
-    "Kelly šele po 100 poslih s pozitivnim pričakovanjem. Tega praga še ni.",
-    "Učenje ne sme spreminjati velikosti, zavor, izklopa ali vetojev.",
-    "CPI in FOMC: 30 minut prej in potem ni vstopov, odprto tveganje se prepolovi.",
+    "Brez stopa ni posla.",
+    "Brez backtesta s polnimi stroški ni bota.",
+    "Brez 30 ujemajočih se papirnih poslov in pisnega 'go live' ni pravega denarja.",
+    "Tveganje na posel je največ 1% računa. Velikost = račun × tveganje / razdalja do stopa.",
+    "Dnevna izguba 3% ustavi nove vstope do naslednjega UTC dne.",
+    "Izklop je −15% od vrha knjige. Stopi ostanejo. Čakamo na Aleksa.",
+    "Vzvod je 1x. Shorti so izklopljeni. Marta in širjenja stopa ni.",
+    "CPI in FOMC: 30 minut prej in potem ni vstopov, potem do konca dneva polovična velikost.",
+    "Manjkajoč podatek je veto. Številk ne ugibamo.",
 ]
 
 
@@ -163,11 +190,19 @@ def bars_fresh(bars: list[Bar], now: datetime, interval_ms: int = 3_600_000) -> 
     return 0 <= age_ms <= interval_ms * 2
 
 
-def position_eur(equity: float) -> float:
-    """Ten percent of the book. The stop distance is not an input."""
-    if equity <= 0:
+def utc_day(now: datetime) -> str:
+    return now.astimezone(timezone.utc).strftime("%Y-%m-%d")
+
+
+def position_eur(equity: float, entry: float, stop: float, risk_pct: float = RISK_PCT) -> float:
+    """Section 8: size = account × risk fraction / distance to the stop, capped at 1x."""
+    if equity <= 0 or entry <= 0 or stop <= 0 or stop >= entry or risk_pct <= 0:
         return 0.0
-    return round(equity * POSITION_PCT, 2)
+    distance = (entry - stop) / entry
+    if distance <= 0:
+        return 0.0
+    size = equity * min(risk_pct, RISK_PCT) / distance
+    return round(min(size, equity * LEVERAGE_CAP), 2)
 
 
 def max_drawdown(curve: list[float]) -> float:
@@ -404,8 +439,8 @@ def consider_change(state: dict, proposal: dict) -> dict:
     if touched:
         refusal["reason"] = "zavrnjeno: velikost, zavore in vetoji se ne spreminjajo"
         return refusal
-    if closed < 100:
-        refusal["reason"] = f"zavrnjeno: {closed}/100 zaprtih poslov"
+    if closed < 30:
+        refusal["reason"] = f"zavrnjeno: {closed}/30 zaprtih poslov"
         return refusal
     changes = (state.get("learning") or {}).get("changes") or []
     version = (state.get("learning") or {}).get("version", 1)
@@ -421,11 +456,17 @@ def new_state(now: datetime) -> dict:
         "version": 1,
         "note": "PAPER",
         "cash_eur": START_EUR,
-        "day_key": lj_day(now),
+        "day_key": utc_day(now),
         "day_start_equity": START_EUR,
         "week_key": lj_week(now),
         "week_start_equity": START_EUR,
+        "peak_equity": START_EUR,
         "kill": False,
+        "alerts": [],
+        "champion_id": None,
+        "champion_since": None,
+        "challenger_id": None,
+        "challenger_since": None,
         "positions": [],
         "closed": [],
         "equity_history": [{"t": iso(now), "equity": START_EUR}],
@@ -449,7 +490,8 @@ def _close_position(state: dict, pos: dict, exit_px: float, now: datetime, reaso
     state["cash_eur"] = round(state["cash_eur"] + exit_eur - fee - slip_eur, 4)
     risk = pos.get("risk_eur") or 0
     result = None if risk <= 0 else pnl / risk
-    gross_r = r_result(pos["entry"], pos["stop_init"], exit_px)
+    fees = round(pos.get("costs_eur", 0) + fee + slip_eur, 4)
+    expected = (state.get("research") or {}).get("expected_r", {}).get(pos["strategy"])
     state["closed"].append(
         {
             "trade_id": pos["trade_id"],
@@ -458,17 +500,20 @@ def _close_position(state: dict, pos: dict, exit_px: float, now: datetime, reaso
             "market": pos["market"],
             "side": "long",
             "entry_time": pos["entry_time"],
-            "exit_time": iso(now),
-            "entry": pos["entry"],
+            "entry_price": pos["entry"],
             "stop": pos["stop"],
-            "size": pos["size_eur"],
-            "r_multiple": None if gross_r is None else round(gross_r, 4),
-            "result_r": None if result is None else round(result, 4),
-            "reason_exit": reason,
-            "regime": pos.get("regime", ""),
-            "costs": round(pos.get("costs_eur", 0) + fee + slip_eur, 4),
+            "target": pos.get("target"),
+            "exit_time": iso(now),
+            "exit_price": round(exit_px, 8),
+            "fees": fees,
+            "funding": pos.get("funding") if pos.get("funding") is not None else "",
             "slippage": round(slip, 5),
-            "funding": pos.get("funding"),
+            "pnl": round(pnl, 4),
+            "r_multiple": None if result is None else round(result, 4),
+            "reason_in": pos.get("reason_in") or "",
+            "reason_out": reason,
+            "regime": pos.get("regime", ""),
+            "backtest_expected_r": "" if expected is None else expected,
             "notes": pos.get("notes", "PAPER"),
         }
     )
@@ -574,25 +619,34 @@ def _cut_half(state: dict, prices: dict[str, float], now: datetime, event_id: st
     state.setdefault("event_cuts", []).append(event_id)
 
 
+def risk_today(state: dict, now: datetime) -> float:
+    """Half size for the rest of the UTC day after an event window has closed."""
+    if state.get("half_day") == utc_day(now):
+        return RISK_PCT / 2
+    return RISK_PCT
+
+
 def _open(state: dict, signal: Signal, now: datetime, fx: float, regime: str, funding: Optional[float], equity: float) -> Optional[str]:
-    size = position_eur(equity)
-    if size <= 0 or state["cash_eur"] < size:
-        return "premalo gotovine"
     if any(p["market"] == signal.symbol for p in state["positions"]):
         return "trg je že odprt"
-    if len(state["positions"]) >= MAX_POSITIONS:
-        return "pet poslov je že odprtih"
     if not stop_ok(signal.entry, signal.stop):
         return "stop ni veljaven"
     slip = CEX_SLIPPAGE
     if slip > SLIPPAGE_LIMIT:
+        alert(state, now, "failed_order", f"{signal.symbol}: zdrs {slip:.2%} čez mejo")
         return "zdrs čez mejo"
     if signal.kind == "meme" and tx_fails(f"{signal.symbol}|{iso(now)[:13]}"):
-        _incident(state, now, "failed_tx", f"{signal.symbol} papirna transakcija pade v 8% koš")
+        alert(state, now, "failed_order", f"{signal.symbol} papirna transakcija pade v 8% koš")
         return "transakcija pade"
     fill = signal.entry * (1 + FEE + slip)
+    size = position_eur(equity, fill, signal.stop, risk_today(state, now))
+    if size <= 0 or state["cash_eur"] < size:
+        return "premalo gotovine"
     qty = (size * fx) / fill
     risk = size * abs(fill - signal.stop) / fill
+    if equity > 0 and risk / equity > RISK_PCT + 1e-6:
+        return "tveganje bi preseglo 1%"
+    target = fill + 2 * (fill - signal.stop)
     state["cash_eur"] = round(state["cash_eur"] - size, 4)
     state["positions"].append(
         {
@@ -603,6 +657,7 @@ def _open(state: dict, signal: Signal, now: datetime, fx: float, regime: str, fu
             "entry": round(fill, 8),
             "stop": round(signal.stop, 8),
             "stop_init": round(signal.stop, 8),
+            "target": round(target, 8),
             "qty": qty,
             "size_eur": size,
             "cost_eur": size,
@@ -610,16 +665,157 @@ def _open(state: dict, signal: Signal, now: datetime, fx: float, regime: str, fu
             "fx": fx,
             "entry_time": iso(now),
             "regime": regime,
-            "funding": funding,
+            "funding": funding if funding is not None else "",
             "costs_eur": round(size * FEE, 4),
             "partial": False,
             "mfe_r": 0.0,
             "mae_r": 0.0,
+            "reason_in": signal.reason,
             "notes": "PAPER. " + signal.reason,
             "kind": signal.kind,
         }
     )
     return None
+
+
+def alert(state: dict, now: datetime, kind: str, detail: str) -> None:
+    _incident(state, now, kind, detail)
+    state.setdefault("alerts", []).append({"t": iso(now), "kind": kind, "detail": detail})
+    state["alerts"] = state["alerts"][-40:]
+    if kind in ("kill", "missing_stop", "failed_order", "exchange"):
+        send_telegram(f"SKLAD PAPER\n{kind}\n{detail}")
+
+
+def send_telegram(text: str) -> bool:
+    """Optional. Sends only when both secrets exist. Never used for anything but alerts and the daily note."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    if not token or not chat:
+        return False
+    body = urllib.parse.urlencode({"chat_id": chat, "text": text[:3500]}).encode()
+    try:
+        urllib.request.urlopen(
+            urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=body),
+            timeout=15,
+        )
+        return True
+    except Exception:
+        return False
+
+
+def gap_risk_eur(state: dict, prices: dict[str, float]) -> float:
+    total = 0.0
+    for pos in state["positions"]:
+        price = prices.get(pos["market"]) or pos["entry"]
+        if price <= pos["stop"] or pos["fx"] <= 0:
+            total += pos.get("risk_eur", 0)
+            continue
+        total += pos["qty"] * max(0.0, price - pos["stop"]) / pos["fx"]
+    return total
+
+
+def _trim_gap(state: dict, prices: dict[str, float], now: datetime) -> None:
+    """Cut size when a gap through the stops would break the daily loss limit."""
+    day_start = state.get("day_start_equity") or 0
+    if day_start <= 0:
+        return
+    floor = day_start * (1 - DAILY_LOSS)
+    equity = _equity(state, prices)
+    if equity - gap_risk_eur(state, prices) >= floor:
+        return
+    ordered = sorted(state["positions"], key=lambda pos: pos.get("risk_eur", 0), reverse=True)
+    for pos in ordered:
+        price = prices.get(pos["market"])
+        if not price:
+            continue
+        equity = _equity(state, prices)
+        excess = floor - (equity - gap_risk_eur(state, prices))
+        if excess <= 0:
+            break
+        part = dict(pos)
+        frac = min(1.0, max(0.25, excess / max(pos.get("risk_eur", excess), 1e-9)))
+        frac = min(1.0, frac)
+        part["qty"] = pos["qty"] * frac
+        part["cost_eur"] = pos["cost_eur"] * frac
+        part["size_eur"] = pos["size_eur"] * frac
+        part["risk_eur"] = pos["risk_eur"] * frac
+        _close_position(state, part, price, now, "rez pred dogodkom", CEX_SLIPPAGE)
+        if frac >= 0.999:
+            state["positions"] = [p for p in state["positions"] if p is not pos]
+        else:
+            pos["qty"] *= 1 - frac
+            pos["cost_eur"] = round(pos["cost_eur"] * (1 - frac), 4)
+            pos["size_eur"] = round(pos["size_eur"] * (1 - frac), 2)
+            pos["risk_eur"] = round(pos["risk_eur"] * (1 - frac), 4)
+
+
+def paper_pnl(state: dict, strategy: str, since: datetime) -> float:
+    total = 0.0
+    for trade in state.get("closed") or []:
+        if trade.get("strategy") != strategy:
+            continue
+        try:
+            exited = datetime.fromisoformat(str(trade.get("exit_time")).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if exited >= since:
+            total += float(trade.get("pnl") or 0)
+    return total
+
+
+def active_champion(state: dict, now: datetime) -> tuple[Optional[str], str]:
+    research = state.get("research") or {}
+    passed = [name for name in (research.get("passed") or []) if name in STRATEGIES]
+    champ = state.get("champion_id")
+    if champ not in passed:
+        if not passed:
+            return None, "ni strategije, ki bi prestala backtest s polnimi stroški"
+        state["champion_id"] = passed[0]
+        state["champion_since"] = iso(now)
+        state["challenger_id"] = passed[1] if len(passed) > 1 else None
+        state["challenger_since"] = iso(now) if len(passed) > 1 else None
+        return passed[0], "prvi prvak po backtestu"
+    challenger = next((name for name in passed if name != champ), None)
+    if challenger and state.get("challenger_id") != challenger:
+        state["challenger_id"] = challenger
+        state["challenger_since"] = iso(now)
+    since_raw = state.get("challenger_since")
+    if challenger and since_raw:
+        since = datetime.fromisoformat(since_raw.replace("Z", "+00:00"))
+        if now - since >= timedelta(days=14):
+            if paper_pnl(state, challenger, since) > paper_pnl(state, champ, since):
+                state["champion_id"] = challenger
+                state["champion_since"] = iso(now)
+                state["challenger_id"] = champ
+                state["challenger_since"] = iso(now)
+                return challenger, "izzivalec je na papirju boljši dva tedna"
+    return champ, "prvak ostane, dokler izzivalec dva tedna ne zmaga na papirju"
+
+
+def _daily_report(state: dict, now: datetime, equity: float, daily: float, blocked: str) -> dict:
+    lesson = "danes ni zaprtega posla"
+    todays = [trade for trade in state.get("closed") or [] if str(trade.get("exit_time", "")).startswith(utc_day(now))]
+    if todays:
+        worst = min(todays, key=lambda trade: float(trade.get("pnl") or 0))
+        lesson = f"najslabši {worst.get('market')} izstop {worst.get('reason_out')} P&L {worst.get('pnl')} EUR"
+    local = now.astimezone(LJ)
+    report = {
+        "date": local.strftime("%Y-%m-%d"),
+        "pnl_eur": round(equity - START_EUR, 2),
+        "day_pnl": round(daily, 4),
+        "trades": len(todays),
+        "alerts": [item["detail"] for item in (state.get("alerts") or [])[-5:]],
+        "lesson": lesson,
+        "tonight": "nočni backtest ob 23:00" if local.hour >= 20 else "večerni cikel še ni na vrsti",
+        "blocked": blocked,
+    }
+    if os.environ.get("FUND_RUNTIME") and local.hour >= 20 and state.get("report_day") != report["date"]:
+        state["report_day"] = report["date"]
+        send_telegram(
+            "SKLAD PAPER dnevno\n"
+            f"P&L {report['pnl_eur']} EUR, dan {report['day_pnl']}, posli {report['trades']}\n{lesson}"
+        )
+    return report
 
 
 def phase_name(now: datetime) -> str:
@@ -634,15 +830,16 @@ def phase_name(now: datetime) -> str:
 
 
 def kickoff(status: dict) -> list[dict]:
-    sources_ok = bool(status["sources"]) and all(s["status"] == 200 for s in status["sources"] if s["name"] in ("EURUSDT", "BTCUSDT"))
+    research = status.get("research") or {}
+    files = research.get("files") or {}
     return [
-        {"day": 1, "item": "Papirna knjiga 1000 EUR je odprta", "done": True},
-        {"day": 2, "item": "BTC sveče in tečaj EUR sta sveža", "done": sources_ok and status["fresh"]},
-        {"day": 3, "item": "Koledar CPI/FOMC je dosegljiv", "done": status["calendar_ok"]},
-        {"day": 4, "item": "Srčni utrip je objavljen", "done": bool(status.get("updated"))},
-        {"day": 5, "item": "Dnevnik ima stolpce iz naloge", "done": True},
-        {"day": 6, "item": "Prvi papirni posel", "done": bool(status["positions"] or status["closed"])},
-        {"day": 7, "item": "Tedenski pregled učenja", "done": False},
+        {"day": 1, "item": "Mandat in mape so napisane. Borzni ključi in Telegram še niso, papir teče brez njiju.", "done": False},
+        {"day": 2, "item": "4 leta sveč, preverjanje, sources.md, calendar.md", "done": bool(research.get("history_ok")) and bool(files.get("calendar"))},
+        {"day": 3, "item": "20+ idej in prvi hitri mrežni testi", "done": bool(research.get("ideas_ok")) and bool(research.get("fast_ran"))},
+        {"day": 4, "item": "Polni backtest, walk-forward, kartice strategij", "done": bool(research.get("walk_forward")) and bool(files.get("cards"))},
+        {"day": 5, "item": "Papirni bot in preizkus izklopa", "done": status.get("note") == "PAPER" and bool(research.get("kill_drill"))},
+        {"day": 6, "item": "Papirni posel in nočni cikel", "done": bool(status.get("closed")) and bool(research.get("generated"))},
+        {"day": 7, "item": "Prvi tedenski pregled", "done": bool(research.get("weekly_review"))},
     ]
 
 
@@ -654,11 +851,14 @@ def build_status(state: dict, now: datetime, extra: dict) -> dict:
     week_start = state["week_start_equity"] or equity
     daily = equity / day_start - 1 if day_start else 0
     weekly = equity / week_start - 1 if week_start else 0
-    name, why = champion_of(state["closed"])
+    peak = max(float(state.get("peak_equity") or equity), equity)
+    from_peak = equity / peak - 1 if peak else 0
+    name = state.get("champion_id")
+    why = extra.get("why") or ""
     grouped: dict[str, list[float]] = {}
     for trade in state["closed"]:
-        if trade.get("result_r") is not None:
-            grouped.setdefault(trade["strategy"], []).append(float(trade["result_r"]))
+        if trade.get("r_multiple") not in (None, ""):
+            grouped.setdefault(trade["strategy"], []).append(float(trade["r_multiple"]))
     arena = []
     for strategy in STRATEGIES:
         vals = grouped.get(strategy, [])
@@ -681,7 +881,6 @@ def build_status(state: dict, now: datetime, extra: dict) -> dict:
         "note": "PAPER",
         "banner": "PAPER · VIRTUALNI DENAR",
         "capital_eur": START_EUR,
-        "position_pct": POSITION_PCT,
         "equity_eur": round(equity, 2),
         "cash_eur": round(state["cash_eur"], 2),
         "pnl_eur": round(equity - START_EUR, 2),
@@ -689,9 +888,12 @@ def build_status(state: dict, now: datetime, extra: dict) -> dict:
         "max_drawdown": round(max_drawdown(curve), 4),
         "daily_pnl": round(daily, 4),
         "weekly_pnl": round(weekly, 4),
+        "drawdown_from_peak": round(from_peak, 4),
+        "peak_equity": round(peak, 2),
+        "risk_pct": RISK_PCT,
         "daily_brake": daily <= -DAILY_LOSS,
-        "kill": bool(state["kill"]) or weekly <= -WEEKLY_LOSS,
-        "max_positions": MAX_POSITIONS,
+        "kill": bool(state.get("kill")) or from_peak <= -KILL_DD,
+        "half_size": state.get("half_day") == utc_day(now),
         "open_risk_eur": round(open_risk, 2),
         "positions": [
             {
@@ -722,14 +924,26 @@ def build_status(state: dict, now: datetime, extra: dict) -> dict:
             "version": state["learning"]["version"],
             "changes": state["learning"]["changes"],
             "closed": len(state["closed"]),
-            "guard": "Sprememba šele po 100 poslih, ena na cikel. Vetoji in zavore se ne tičejo.",
+            "guard": "Sodba šele po 30 poslih. Ena sprememba na cikel. Tveganje, izklop in vetoji se ne spreminjajo.",
         },
+        "research": state.get("research") or {},
+        "report": extra.get("report") or {},
+        "alerts": list(reversed((state.get("alerts") or [])[-12:])),
+        "reconcile": {
+            "ok": all(p.get("stop") and p["stop"] <= p["entry"] for p in state["positions"]) and state["cash_eur"] >= -0.01,
+            "note": "Papir nima borznega računa. Ujemata se denar in stop vsakega posla.",
+        },
+        "telegram": bool(os.environ.get("TELEGRAM_BOT_TOKEN", "").strip() and os.environ.get("TELEGRAM_CHAT_ID", "").strip()),
         "equity_history": state["equity_history"][-240:],
         "agents": extra.get("agents") or [],
         "brief": extra.get("brief") or {},
         "cards": STRATEGY_CARDS,
         "golden": GOLDEN,
-        "heartbeat": {"t": iso(now), "ok": bool(extra.get("fresh"))},
+        "heartbeat": {
+            "t": iso(now),
+            "ok": bool(extra.get("fresh")) and all(p.get("stop") and p["stop"] <= p["entry"] for p in state["positions"]),
+            "feed_minutes": 2,
+        },
         "updated": iso(now),
         "fx_eurusdt": extra.get("fx"),
         "entries_blocked": extra.get("blocked") or "",
@@ -763,23 +977,22 @@ def run_once(state: dict, now: datetime, feed: "Feed") -> dict:
         if meme.get("price"):
             prices[meme["symbol"]] = meme["price"]
 
-    if state.get("day_key") != lj_day(now):
-        state["day_key"] = lj_day(now)
+    if state.get("day_key") != utc_day(now):
+        state["day_key"] = utc_day(now)
         state["day_start_equity"] = _equity(state, prices)
     if state.get("week_key") != lj_week(now):
         state["week_key"] = lj_week(now)
         state["week_start_equity"] = _equity(state, prices)
-        state["kill"] = False
 
     equity = _equity(state, prices)
-    weekly = equity / state["week_start_equity"] - 1 if state["week_start_equity"] else 0
+    peak = max(float(state.get("peak_equity") or equity), equity)
+    state["peak_equity"] = round(peak, 4)
+    from_peak = equity / peak - 1 if peak else 0
     daily = equity / state["day_start_equity"] - 1 if state["day_start_equity"] else 0
-    if weekly <= -WEEKLY_LOSS and not state.get("kill"):
+    if from_peak <= -KILL_DD and not state.get("kill"):
         state["kill"] = True
-        _flatten(state, prices, now, "tedenski izklop")
-        _incident(state, now, "kill", "tedenski izklop, knjiga je sploščena")
-        equity = _equity(state, prices)
-    elif weekly <= -WEEKLY_LOSS:
+        alert(state, now, "kill", "izklop: −15% od vrha. Stopi ostanejo. Novih vstopov ni.")
+    elif from_peak <= -KILL_DD:
         state["kill"] = True
     btc = books.get("BTCUSDT") or []
     regime = "ni podatka"
@@ -795,9 +1008,13 @@ def run_once(state: dict, now: datetime, feed: "Feed") -> dict:
     window = in_event_window(now, events) if calendar_ok else []
     if window:
         seen = set(state.get("event_cuts") or [])
-        _cut_half(state, prices, now, window[0]["id"])
+        _trim_gap(state, prices, now)
+        state.setdefault("event_cuts", []).append(window[0]["id"])
+        state["half_day"] = utc_day(now)
         if window[0]["id"] not in seen:
             _incident(state, now, "event", f"okno preživetja: {window[0]['title']}")
+    elif any(event["at"].date() == now.date() and now > event["at"] + timedelta(minutes=30) for event in events):
+        state["half_day"] = utc_day(now)
 
     ideas = []
     signals: list[Signal] = []
@@ -821,7 +1038,13 @@ def run_once(state: dict, now: datetime, feed: "Feed") -> dict:
         signals.append(cross)
         ideas.append({"market": cross.symbol, "strategy": cross.strategy, "reason": cross.reason})
 
-    name, why = champion_of(state["closed"])
+    name, why = active_champion(state, now)
+    missing_stop = [pos["market"] for pos in state["positions"] if not pos.get("stop") or pos["stop"] > pos["entry"]]
+    if missing_stop:
+        alert(state, now, "missing_stop", "manjka stop: " + ", ".join(missing_stop))
+    exchange_down = fresh_symbols == 0 and any(src["name"] in MAJORS and src["status"] != 200 for src in sources)
+    if exchange_down:
+        alert(state, now, "exchange", "sveče večjih kovancev niso prišle")
     blocked = ""
     if not fx or fx <= 0:
         blocked = "ni tečaja EUR"
@@ -831,15 +1054,19 @@ def run_once(state: dict, now: datetime, feed: "Feed") -> dict:
         blocked = "koledar ni dosegljiv"
     elif window:
         blocked = "okno CPI/FOMC"
-    elif state.get("kill") or weekly <= -WEEKLY_LOSS:
-        blocked = "tedenski izklop"
+    elif state.get("kill"):
+        blocked = "izklop −15% od vrha"
     elif daily <= -DAILY_LOSS:
         blocked = "dnevna zavora 3%"
+    elif missing_stop:
+        blocked = "manjka stop"
+    elif not name:
+        blocked = "ni backtesta s polnimi stroški"
     else:
         chosen = [s for s in signals if s.strategy == name]
         opened = 0
         for signal in chosen:
-            if opened or len(state["positions"]) >= MAX_POSITIONS:
+            if opened:
                 break
             equity = _equity(state, prices)
             err = _open(state, signal, now, fx, regime, funding.get(signal.symbol.replace("USDT", "")), equity)
@@ -862,7 +1089,9 @@ def run_once(state: dict, now: datetime, feed: "Feed") -> dict:
     state["equity_history"].append({"t": iso(now), "equity": round(equity, 2)})
     state["equity_history"] = state["equity_history"][-500:]
     fresh = fresh_symbols >= len(MAJORS) and bool(fx)
-    agents = _agents(equity, ideas, fresh, daily, weekly, why, blocked, name)
+    weekly = equity / state["week_start_equity"] - 1 if state.get("week_start_equity") else 0
+    agents = _agents(equity, ideas, fresh, daily, weekly, why, blocked, name or "")
+    report = _daily_report(state, now, equity, daily, blocked)
     brief = {
         "phase": phase_name(now),
         "regime": regime,
@@ -895,6 +1124,8 @@ def run_once(state: dict, now: datetime, feed: "Feed") -> dict:
             "sources": sources,
             "agents": agents,
             "brief": brief,
+            "why": why,
+            "report": report,
             "fx": fx,
             "blocked": blocked,
             "meme_checked": meme_checked[:8],
@@ -1166,29 +1397,32 @@ def save_outputs(state: dict, status: dict, folder: Path) -> None:
     incidents = folder / "incidents.jsonl"
     incidents.write_text("".join(json.dumps(item) + "\n" for item in state.get("incidents") or []))
     with (folder / "trades.csv").open("w", newline="") as handle:
-        fields = [
-            "trade_id",
-            "strategy",
-            "mode",
-            "market",
-            "side",
-            "entry_time",
-            "exit_time",
-            "entry",
-            "stop",
-            "size",
-            "r_multiple",
-            "result_r",
-            "reason_exit",
-            "regime",
-            "costs",
-            "slippage",
-            "funding",
-            "notes",
-        ]
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer = csv.DictWriter(handle, fieldnames=TRADE_FIELDS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(state.get("closed") or [])
+
+
+def load_research(state: dict) -> None:
+    path = ROOT / "backtests" / "latest.json"
+    if not path.exists():
+        return
+    try:
+        blob = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return
+    state["research"] = {
+        "passed": blob.get("passed") or [],
+        "expected_r": blob.get("expected_r") or {},
+        "generated": blob.get("generated"),
+        "history_ok": blob.get("history_ok"),
+        "ideas_ok": blob.get("ideas_ok"),
+        "fast_ran": blob.get("fast_ran"),
+        "walk_forward": blob.get("walk_forward"),
+        "kill_drill": blob.get("kill_drill"),
+        "weekly_review": blob.get("weekly_review"),
+        "files": blob.get("files") or {},
+        "summary": blob.get("summary") or [],
+    }
 
 
 def main() -> None:
@@ -1197,11 +1431,13 @@ def main() -> None:
     parser.add_argument("--sleep", type=float, default=120)
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
+    os.environ["FUND_RUNTIME"] = "1"
     folder = HERE
     deadline = time.time() + max(args.minutes, 0) * 60
     while True:
         now = datetime.now(timezone.utc)
         state = load_state(folder / "state.json", now)
+        load_research(state)
         try:
             status = run_once(state, now, NetworkFeed())
         except Exception as exc:

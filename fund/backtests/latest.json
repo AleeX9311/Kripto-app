@@ -1,0 +1,193 @@
+{
+  "generated": "2026-11-18T19:51:39Z",
+  "history_ok": true,
+  "ideas_ok": true,
+  "fast_ran": true,
+  "walk_forward": true,
+  "kill_drill": true,
+  "weekly_review": false,
+  "files": {
+    "playbook": true,
+    "calendar": true,
+    "cards": true,
+    "live_keys": false
+  },
+  "passed": [],
+  "expected_r": {
+    "trend": -0.1241,
+    "mean_reversion": -0.4363
+  },
+  "summary": [
+    {
+      "id": "trend",
+      "params": [
+        10,
+        40
+      ],
+      "oos_return": -0.4515,
+      "oos_maxdd": -0.5378,
+      "oos_trades": 430,
+      "oos_sharpe": -0.066,
+      "deflated_sharpe": 0.0,
+      "buyhold_sharpe": 0.004,
+      "buyhold_return": 0.3434,
+      "random_sharpe": -0.143,
+      "windows": 15,
+      "trials": 9,
+      "markets": [
+        {
+          "symbol": "BTCUSDT",
+          "pnl": -629.31,
+          "trades": 639,
+          "maxdd": -0.6293
+        },
+        {
+          "symbol": "ETHUSDT",
+          "pnl": -783.9,
+          "trades": 695,
+          "maxdd": -0.7889
+        },
+        {
+          "symbol": "SOLUSDT",
+          "pnl": -534.03,
+          "trades": 702,
+          "maxdd": -0.534
+        },
+        {
+          "symbol": "BNBUSDT",
+          "pnl": -855.3,
+          "trades": 703,
+          "maxdd": -0.8573
+        }
+      ],
+      "pass": false,
+      "expected_r": -0.1241,
+      "robust": {
+        "nearby_profitable": false,
+        "double_cost_pnl": -1587.81,
+        "monte_carlo": {
+          "p05": -53.344,
+          "median": -53.344
+        },
+        "regimes": {
+          "bull": -259.53,
+          "bear": -51.48,
+          "chop": -234.61,
+          "n": {
+            "bull": 197,
+            "bear": 92,
+            "chop": 338
+          }
+        },
+        "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+      }
+    },
+    {
+      "id": "mean_reversion",
+      "params": [
+        40,
+        1.0
+      ],
+      "oos_return": -0.9112,
+      "oos_maxdd": -0.9122,
+      "oos_trades": 542,
+      "oos_sharpe": -0.273,
+      "deflated_sharpe": 0.0,
+      "buyhold_sharpe": 0.004,
+      "buyhold_return": 0.3434,
+      "random_sharpe": -0.134,
+      "windows": 15,
+      "trials": 4,
+      "markets": [
+        {
+          "symbol": "BTCUSDT",
+          "pnl": -983.81,
+          "trades": 977,
+          "maxdd": -0.9838
+        },
+        {
+          "symbol": "ETHUSDT",
+          "pnl": -982.4,
+          "trades": 1319,
+          "maxdd": -0.9828
+        },
+        {
+          "symbol": "SOLUSDT",
+          "pnl": -996.08,
+          "trades": 1677,
+          "maxdd": -0.9961
+        },
+        {
+          "symbol": "BNBUSDT",
+          "pnl": -975.1,
+          "trades": 1065,
+          "maxdd": -0.9762
+        }
+      ],
+      "pass": false,
+      "expected_r": -0.4363,
+      "robust": {
+        "nearby_profitable": null,
+        "double_cost_pnl": -2449.31,
+        "monte_carlo": {
+          "p05": -236.469,
+          "median": -236.469
+        },
+        "regimes": {
+          "bull": -191.57,
+          "bear": -302.31,
+          "chop": -340.72,
+          "n": {
+            "bull": 170,
+            "bear": 321,
+            "chop": 455
+          }
+        },
+        "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+      }
+    }
+  ],
+  "integrity": [
+    {
+      "symbol": "BTCUSDT",
+      "bars": 42787,
+      "gaps": 0,
+      "dupes": 0,
+      "zero_volume": 1,
+      "years": 4.88
+    },
+    {
+      "symbol": "ETHUSDT",
+      "bars": 42787,
+      "gaps": 0,
+      "dupes": 0,
+      "zero_volume": 1,
+      "years": 4.88
+    },
+    {
+      "symbol": "SOLUSDT",
+      "bars": 42787,
+      "gaps": 0,
+      "dupes": 0,
+      "zero_volume": 1,
+      "years": 4.88
+    },
+    {
+      "symbol": "BNBUSDT",
+      "bars": 42787,
+      "gaps": 0,
+      "dupes": 0,
+      "zero_volume": 1,
+      "years": 4.88
+    }
+  ],
+  "standards": {
+    "history": "4+ years from 2022-01-01",
+    "fees": "0.10% per side",
+    "slippage": "0.05% per side",
+    "funding": "spot, funding is data only",
+    "trades": "50+ out of sample",
+    "walk_forward": "12m tune, 3m test",
+    "pass_bar": "profitable after costs, drawdown inside 15%, beats buy-and-hold and random, deflated Sharpe > 0.5"
+  }
+}

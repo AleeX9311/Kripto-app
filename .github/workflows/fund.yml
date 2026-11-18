@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 350
     env:
       GH_TOKEN: ${{ github.token }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v7
@@ -35,6 +37,7 @@ jobs:
           set -euo pipefail
           if git fetch --depth=1 origin fund-data; then
             git show FETCH_HEAD:state.json > fund/engine/state.json || true
+            git show FETCH_HEAD:backtests.json > fund/backtests/latest.json || true
             echo "Loaded fund-data"
           else
             echo "fund-data is missing — a new 1000 EUR paper book"
@@ -70,7 +73,7 @@ jobs:
             while IFS= read -r f; do
               [ -z "$f" ] && continue
               case "$f" in
-                state.json|status.json|trades.csv|incidents.jsonl) ;;
+                state.json|status.json|trades.csv|incidents.jsonl|backtests.json) ;;
                 *) echo "Refusing to publish unexpected file: $f"; exit 1 ;;
               esac
             done < <(git -C "$WT" ls-files)
