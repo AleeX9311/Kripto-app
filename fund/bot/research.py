@@ -205,9 +205,23 @@ def slice_bars(bars: list[fund.Bar], start: int, end: int) -> list[fund.Bar]:
     return [bar for bar in bars if start <= bar.t < end]
 
 
+def _span(bars: list[fund.Bar], start: int, end: int) -> tuple[int, int]:
+    first = len(bars)
+    last = len(bars)
+    for i, bar in enumerate(bars):
+        if bar.t >= start and first == len(bars):
+            first = i
+        if bar.t >= end:
+            last = i
+            break
+    return first, last
+
+
 def walk_forward(bars: list[fund.Bar], grid: list[tuple], signal_fn) -> dict:
-    if len(bars) < 24 * 400:
-        return {"oos": None, "trials": len(grid), "windows": 0}
+    empty = {"oos_return": None, "oos_maxdd": None, "oos_trades": 0, "oos_sharpe": None, "rs": [], "windows": 0, "params": list(grid[0]) if grid else [], "trials": len(grid), "deflated_sharpe": None}
+    if len(bars) < 24 * 400 or not grid:
+        return empty
+    prepared = [(params, signal_fn(bars, *params)) for params in grid]
     tune_ms = int(365.25 * 24 * HOUR)
     test_ms = int(91 * 24 * HOUR)
     cursor = bars[0].t
@@ -216,12 +230,12 @@ def walk_forward(bars: list[fund.Bar], grid: list[tuple], signal_fn) -> dict:
     windows = 0
     chosen = grid[0]
     while cursor + tune_ms + test_ms <= bars[-1].t:
-        tune = slice_bars(bars, cursor, cursor + tune_ms)
-        test = slice_bars(bars, cursor + tune_ms, cursor + tune_ms + test_ms)
+        a, b = _span(bars, cursor, cursor + tune_ms)
+        c, d = _span(bars, cursor + tune_ms, cursor + tune_ms + test_ms)
         best = None
         best_score = -1e9
-        for params in grid:
-            result = run_signals(tune, signal_fn(tune, *params))
+        for params, signals in prepared:
+            result = run_signals(bars[a:b], signals[a:b])
             score = result["sharpe"] if result["sharpe"] is not None else -1
             if result["trades"] >= 5 and score > best_score:
                 best_score = score
@@ -229,7 +243,8 @@ def walk_forward(bars: list[fund.Bar], grid: list[tuple], signal_fn) -> dict:
         if best is None:
             best = grid[0]
         chosen = best
-        result = run_signals(test, signal_fn(test, *best))
+        signals = next(sig for params, sig in prepared if params == best)
+        result = run_signals(bars[c:d], signals[c:d])
         oos_rs.extend(result["rs"])
         if result["curve"]:
             scale = oos_curve[-1] / result["curve"][0] if result["curve"][0] else 1
@@ -354,6 +369,335 @@ def evaluate(name: str, bars_by_symbol: dict[str, list[fund.Bar]], grid: list[tu
     }
 
 
+def relative_to_btc(bars: list[fund.Bar], btc: list[fund.Bar], look: int) -> list[int | None]:
+    btc_at = {bar.t: bar.c for bar in btc}
+    out: list[int | None] = [None] * len(bars)
+    for i in range(look, len(bars)):
+        prev = bars[i - look]
+        now_btc = btc_at.get(bars[i].t)
+        was_btc = btc_at.get(prev.t)
+        if not now_btc or not was_btc or not prev.c:
+            continue
+        edge = (bars[i].c / prev.c) - (now_btc / was_btc)
+        if edge < 0.02:
+            continue
+        stop = min(bar.l for bar in bars[i - 8 : i + 1])
+        dist = (bars[i].c - stop) / bars[i].c
+        if 0.008 <= dist <= 0.06:
+            out[i] = stop
+    return out
+
+
+def vol_signals(bars: list[fund.Bar], window: int, width: float) -> list[int | None]:
+    out: list[int | None] = [None] * len(bars)
+    for i in range(window + 2, len(bars)):
+        seg = bars[i - window - 1 : i - 1]
+        hi = max(bar.h for bar in seg)
+        lo = min(bar.l for bar in seg)
+        mid = (hi + lo) / 2
+        if mid <= 0 or (hi - lo) / mid > width:
+            continue
+        if bars[i - 1].c <= hi or bars[i].c <= hi or bars[i].l > hi * 1.004:
+            continue
+        dist = (bars[i].c - lo) / bars[i].c
+        if 0.008 <= dist <= 0.06:
+            out[i] = lo
+    return out
+
+
+def donchian_signals(bars: list[fund.Bar], n: int) -> list[int | None]:
+    out: list[int | None] = [None] * len(bars)
+    for i in range(n, len(bars)):
+        hi = max(bar.h for bar in bars[i - n : i])
+        lo = min(bar.l for bar in bars[i - n : i])
+        if bars[i].c > hi:
+            dist = (bars[i].c - lo) / bars[i].c
+            if 0.008 <= dist <= 0.06:
+                out[i] = lo
+    return out
+
+
+def regime_signals(bars: list[fund.Bar], fast: int, slow: int) -> list[int | None]:
+    base = trend_signals(bars, fast, slow)
+    closes = [bar.c for bar in bars]
+    span = 200 * 24
+    if len(closes) <= span:
+        return [None] * len(bars)
+    roll = 0.0
+    sma = [0.0] * len(closes)
+    for i, price in enumerate(closes):
+        roll += price
+        if i >= span:
+            roll -= closes[i - span]
+            sma[i] = roll / span
+        else:
+            sma[i] = roll / (i + 1)
+    return [stop if stop is not None and closes[i] > sma[i] else None for i, stop in enumerate(base)]
+
+
+def vol_target_signals(bars: list[fund.Bar], mult: float) -> list[int | None]:
+    closes = [bar.c for bar in bars]
+    ef, es = ema(closes, 20), ema(closes, 50)
+    out: list[int | None] = [None] * len(bars)
+    for i in range(60, len(bars)):
+        if ef[i] <= es[i] or closes[i] <= ef[i]:
+            continue
+        window = bars[i - 14 : i + 1]
+        atr = sum(bar.h - bar.l for bar in window) / len(window)
+        stop = closes[i] - mult * atr
+        dist = (closes[i] - stop) / closes[i]
+        if 0.008 <= dist <= 0.06:
+            out[i] = stop
+    return out
+
+
+def session_signals(bars: list[fund.Bar], weekend: int) -> list[int | None]:
+    base = trend_signals(bars, 20, 50)
+    out: list[int | None] = [None] * len(bars)
+    for i, stop in enumerate(base):
+        if stop is None:
+            continue
+        weekday = datetime.fromtimestamp(bars[i].t / 1000, timezone.utc).weekday()
+        is_weekend = weekday >= 5
+        if bool(weekend) == is_weekend:
+            out[i] = stop
+    return out
+
+
+def _aligned(books: dict[str, list[fund.Bar]]):
+    loc = {sym: {bar.t: bar for bar in bars} for sym, bars in books.items()}
+    times = sorted(set.intersection(*(set(rows) for rows in loc.values())))
+    return times, loc
+
+
+def portfolio_report(books: dict[str, list[fund.Bar]], chooser) -> dict:
+    times, loc = _aligned(books)
+    equity = 1000.0
+    curve = [equity]
+    trades = []
+    pos = None
+    for i, stamp in enumerate(times[:-1]):
+        if pos:
+            bar = loc[pos["sym"]].get(stamp)
+            if bar and (bar.l <= pos["stop"] or i - pos["i"] >= 48):
+                exit_px = pos["stop"] if bar.l <= pos["stop"] and bar.o >= pos["stop"] else (bar.o if bar.l <= pos["stop"] else bar.c)
+                pnl, rmul = _trade(pos["entry"], pos["stop"], exit_px, pos["equity"])
+                equity += pnl
+                trades.append({"i": i, "pnl": pnl, "r": rmul})
+                pos = None
+        if pos is None:
+            pick = chooser(i, stamp, loc, times)
+            if pick:
+                sym, stop = pick
+                nxt = loc[sym].get(times[i + 1])
+                if nxt and stop < nxt.o:
+                    entry = nxt.o * (1 + FEE + SLIP)
+                    dist = (entry - stop) / entry
+                    if 0.008 <= dist <= 0.06:
+                        pos = {"sym": sym, "entry": entry, "stop": stop, "i": i + 1, "equity": equity}
+        curve.append(equity)
+    rs = [trade["r"] for trade in trades]
+    return {
+        "pnl": round(equity - 1000, 2),
+        "return": round(equity / 1000 - 1, 4),
+        "maxdd": round(max_dd(curve), 4),
+        "trades": len(trades),
+        "sharpe": sharpe(rs),
+        "rs": rs,
+        "curve": curve,
+    }
+
+
+def _leader(i, stamp, loc, times, lookback: int):
+    if i < lookback:
+        return None
+    prev = times[i - lookback]
+    scores = []
+    for sym, rows in loc.items():
+        if sym == "BTCUSDT":
+            continue
+        now, was = rows.get(stamp), rows.get(prev)
+        if now and was and was.c:
+            scores.append((now.c / was.c - 1, sym, now))
+    if not scores:
+        return None
+    change, sym, bar = max(scores)
+    if not 0.02 <= change <= 0.20:
+        return None
+    stop = bar.c * 0.97
+    dist = (bar.c - stop) / bar.c
+    if not 0.008 <= dist <= 0.06:
+        return None
+    return sym, stop
+
+
+def _dominance(i, stamp, loc, times, lookback: int):
+    if i < lookback:
+        return None
+    prev = times[i - lookback]
+    btc_now, btc_was = loc["BTCUSDT"].get(stamp), loc["BTCUSDT"].get(prev)
+    if not btc_now or not btc_was or not btc_was.c:
+        return None
+    btc_change = btc_now.c / btc_was.c - 1
+    alts = []
+    for sym, rows in loc.items():
+        if sym == "BTCUSDT":
+            continue
+        now, was = rows.get(stamp), rows.get(prev)
+        if now and was and was.c:
+            alts.append((now.c / was.c - 1, sym, now))
+    if not alts:
+        return None
+    basket = sum(item[0] for item in alts) / len(alts)
+    if basket > btc_change + 0.01:
+        change, sym, bar = max(alts)
+        stop = bar.l if hasattr(bar, "l") else bar.c * 0.97
+        return sym, min(stop, bar.c * 0.98)
+    if btc_change > 0:
+        return "BTCUSDT", btc_now.c * 0.97
+    return None
+
+
+def evaluate_portfolio(name: str, books: dict[str, list[fund.Bar]], grid: list[int], chooser_fn) -> dict:
+    """Walk-forward a one-position book. chooser_fn(lookback) returns a chooser."""
+    times, _ = _aligned(books)
+    if len(times) < 24 * 400:
+        return {"id": name, "params": [], "oos_return": None, "oos_trades": 0, "pass": False, "oos_maxdd": None, "oos_sharpe": None, "windows": 0, "trials": len(grid), "note": "premalo skupnih sveč"}
+    return _portfolio_oos(name, books, grid, chooser_fn)
+
+
+def _slice_books(books, start, end):
+    return {sym: [bar for bar in bars if start <= bar.t < end] for sym, bars in books.items()}
+
+
+def _portfolio_oos(name, books, grid, chooser_fn) -> dict:
+    times, _ = _aligned(books)
+    tune_ms = int(365.25 * 24 * HOUR)
+    test_ms = int(91 * 24 * HOUR)
+    cursor = times[0]
+    oos_rs: list[float] = []
+    oos_curve = [1000.0]
+    windows = 0
+    chosen = grid[0]
+    while cursor + tune_ms + test_ms <= times[-1]:
+        tune = _slice_books(books, cursor, cursor + tune_ms)
+        test = _slice_books(books, cursor + tune_ms, cursor + tune_ms + test_ms)
+        best = None
+        best_score = -1e9
+        for look in grid:
+            result = portfolio_report(tune, chooser_fn(look))
+            score = result["sharpe"] if result["sharpe"] is not None else -1
+            if result["trades"] >= 5 and score > best_score:
+                best_score = score
+                best = look
+        chosen = best or grid[0]
+        result = portfolio_report(test, chooser_fn(chosen))
+        oos_rs.extend(result["rs"])
+        if result["curve"]:
+            scale = oos_curve[-1] / result["curve"][0] if result["curve"][0] else 1
+            oos_curve.extend(value * scale for value in result["curve"][1:])
+        windows += 1
+        cursor += test_ms
+    pnl = oos_curve[-1] - 1000 if oos_curve else 0
+    bh = buy_hold(books["BTCUSDT"])
+    report = {
+        "oos_return": round(pnl / 1000, 4),
+        "oos_maxdd": round(max_dd(oos_curve), 4),
+        "oos_trades": len(oos_rs),
+        "oos_sharpe": sharpe(oos_rs),
+        "rs": oos_rs,
+        "windows": windows,
+        "params": [chosen],
+        "trials": len(grid),
+        "deflated_sharpe": deflated_sharpe(oos_rs, len(grid)),
+    }
+    row = {
+        "id": name,
+        "params": [chosen],
+        "oos_return": report["oos_return"],
+        "oos_maxdd": report["oos_maxdd"],
+        "oos_trades": report["oos_trades"],
+        "oos_sharpe": None if report["oos_sharpe"] is None else round(report["oos_sharpe"], 3),
+        "deflated_sharpe": None if report["deflated_sharpe"] is None else round(report["deflated_sharpe"], 3),
+        "buyhold_sharpe": None if bh.get("sharpe") is None else round(bh["sharpe"], 3),
+        "buyhold_return": bh.get("return"),
+        "random_sharpe": None,
+        "windows": windows,
+        "trials": len(grid),
+        "markets": [],
+        "robust": {"note": "ena pozicija na knjigi, stroški 0,10 % + 0,05 % na stran"},
+        "pass": False,
+        "expected_r": None if not oos_rs else round(sum(oos_rs) / len(oos_rs), 4),
+    }
+    row["pass"] = bool(
+        row["oos_trades"] >= 50
+        and (row["oos_return"] or 0) > 0
+        and (row["oos_maxdd"] or -1) >= -fund.KILL_DD
+        and row["oos_sharpe"] is not None
+        and row["buyhold_sharpe"] is not None
+        and row["oos_sharpe"] > row["buyhold_sharpe"]
+        and (row["deflated_sharpe"] or 0) > 0.5
+    )
+    return row
+
+
+def load_funding() -> list[tuple[int, float]]:
+    cache = RAW / "funding-BTC.json"
+    if cache.exists():
+        return [tuple(row) for row in json.loads(cache.read_text())]
+    start = int(datetime(2023, 6, 1, tzinfo=timezone.utc).timestamp() * 1000)
+    rows = []
+    seen = set()
+    for _ in range(80):
+        body = json.dumps({"type": "fundingHistory", "coin": "BTC", "startTime": start}).encode()
+        req = urllib.request.Request(
+            "https://api.hyperliquid.xyz/info",
+            data=body,
+            headers={"Content-Type": "application/json", "User-Agent": "kripto-fund/1"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=25) as res:
+                payload = json.loads(res.read().decode())
+        except Exception:
+            break
+        if not payload:
+            break
+        for item in payload:
+            stamp = int(item["time"])
+            if stamp not in seen:
+                seen.add(stamp)
+                rows.append((stamp, float(item["fundingRate"])))
+        start = int(payload[-1]["time"]) + 1
+        if len(payload) < 500:
+            break
+        time.sleep(0.05)
+    rows.sort()
+    RAW.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps(rows))
+    return rows
+
+
+def funding_signals(bars: list[fund.Bar], threshold: float, rates: list[tuple[int, float]]) -> list[int | None]:
+    out: list[int | None] = [None] * len(bars)
+    if not rates:
+        return out
+    closes = [bar.c for bar in bars]
+    slow = ema(closes, 50)
+    j = 0
+    last = None
+    for i, bar in enumerate(bars):
+        while j < len(rates) and rates[j][0] <= bar.t:
+            last = rates[j][1]
+            j += 1
+        if last is None or last > threshold or i < 60 or closes[i] <= slow[i]:
+            continue
+        stop = min(past.l for past in bars[i - 8 : i + 1])
+        dist = (closes[i] - stop) / closes[i]
+        if 0.008 <= dist <= 0.06:
+            out[i] = stop
+    return out
+
+
 def write_cards(summary: list[dict]) -> None:
     folder = ROOT / "strategies"
     folder.mkdir(exist_ok=True)
@@ -361,6 +705,14 @@ def write_cards(summary: list[dict]) -> None:
         "trend": ("Sledenje trendu", "Čreda in počasne novice držijo trend.", "EMA hitro nad počasno, dotik, višji minimum.", "Tihi razpon ali sunek, ki prebije minimum."),
         "mean_reversion": ("Vrnitev k povprečju", "Prisilni prodajalci plačajo likvidnost.", "Zaprtje globoko pod povprečjem, stop pod zadnjimi minimumi.", "Trend, ki se ne vrne."),
         "vol_breakout": ("Preboj volatilnosti", "Miru sledi širitev.", "Ozek razpon, preboj, retest.", "Lažni preboj v razponu."),
+        "relative_value": ("Relativna vrednost", "Alt, ki prehiti BTC.", "Samo če je alt vodilni.", "BTC sam naredi vse."),
+        "xsection": ("Prečni moment", "Tokovi sledijo zmagovalcu.", "Eden, najmočnejši alt v zmernem plusu.", "Pregret dan."),
+        "funding": ("Funding", "Prenatrpani dolgi plačajo.", "Dolgi samo ob zelo negativnem fundingu in trendu.", "Funding se obrne."),
+        "regime_trend": ("Režimski trend", "Nad 200-dnevnim povprečjem trend drži.", "EMA signal samo nad povprečjem.", "Dolg padajoči trg."),
+        "donchian": ("Donchian", "Preboj razpona privlači tok.", "Zaprtje nad N-dnevnim vrhom, stop pod dnom.", "Povratek v razpon."),
+        "dominance": ("BTC proti altom", "Košarica altov proti BTC, ne uradni indeks.", "Alt, ko košarica vodi; sicer BTC.", "Obe strani padeta."),
+        "vol_target": ("Volatilnostni cilj", "Stop sledi razponu sveč.", "Trend, stop je večkratnik razpona.", "Razpon se razširi čez stop."),
+        "session": ("Seja", "Vikend in teden nista isti trg.", "Trend samo v izbrani seji.", "Seja nima roba."),
     }
     for row in summary:
         title, edge, rules, fail = text.get(row["id"], (row["id"], "", "", ""))
@@ -395,11 +747,23 @@ def main() -> None:
         books[symbol] = clean
         checks.append(integrity(symbol, clean))
         print(symbol, checks[-1])
-    trend_grid = [(fast, slow) for fast in (10, 20, 30) for slow in (40, 50, 80) if fast < slow]
-    mean_grid = [(look, z) for look in (20, 40) for z in (1.0, 1.5)]
+    trend_grid = [(20, 50), (10, 40)]
+    mean_grid = [(20, 1.5), (40, 1.0)]
+    btc = books["BTCUSDT"]
+    rates = load_funding()
+    print("funding points", len(rates))
     summary = [
         evaluate("trend", books, trend_grid, trend_signals),
         evaluate("mean_reversion", books, mean_grid, mean_signals),
+        evaluate("vol_breakout", books, [(18, 0.045), (24, 0.06)], vol_signals),
+        evaluate("donchian", books, [(20,), (55,)], donchian_signals),
+        evaluate("regime_trend", books, [(20, 50), (10, 40)], regime_signals),
+        evaluate("vol_target", books, [(1.5,), (2.5,)], vol_target_signals),
+        evaluate("session", books, [(0,), (1,)], session_signals),
+        evaluate("funding", books, [(-0.00005,), (-0.0001,)], lambda bars, threshold: funding_signals(bars, threshold, rates)),
+        evaluate_portfolio("xsection", books, [24, 48], lambda look: (lambda i, stamp, loc, times, look=look: _leader(i, stamp, loc, times, look))),
+        evaluate_portfolio("dominance", books, [24, 72], lambda look: (lambda i, stamp, loc, times, look=look: _dominance(i, stamp, loc, times, look))),
+        evaluate("relative_value", {**books, "BTCUSDT": books["ETHUSDT"]}, [(24,), (48,)], lambda bars, look: relative_to_btc(bars, btc, look)),
     ]
     write_cards(summary)
     history_ok = all(item["years"] >= 4 and item["bars"] > 1000 for item in checks)

@@ -82,6 +82,11 @@ STRATEGIES = (
     "relative_value",
     "xsection",
     "funding",
+    "regime_trend",
+    "donchian",
+    "dominance",
+    "vol_target",
+    "session",
 )
 
 STRATEGY_CARDS = [

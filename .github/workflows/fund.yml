@@ -2,7 +2,7 @@ name: Paper fund
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -20,7 +20,7 @@ concurrency:
 jobs:
   pass:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -85,27 +85,11 @@ jobs:
             git -C "$WT" push origin HEAD:fund-data
           }
 
-          others=$(gh run list --workflow "Paper fund" --limit 30 --json databaseId,status \
-            --jq "[.[] | select(.databaseId != ${GITHUB_RUN_ID} and (.status==\"in_progress\" or .status==\"queued\" or .status==\"pending\" or .status==\"waiting\" or .status==\"requested\"))] | length" || true)
+          others=$(gh run list --workflow "Paper fund" --limit 20 --json databaseId,status \
+            --jq "[.[] | select(.databaseId != ${GITHUB_RUN_ID} and .status==\"in_progress\")] | length" || true)
           if [ "${others:-0}" -gt 0 ]; then
-            echo "Another Paper fund run is already active or queued (${others}). Leaving it."
+            echo "Another Paper fund pass is already running. This one stops."
             exit 0
           fi
-
-          python3 fund/engine/fund.py --minutes 348 --sleep 120 &
-          pid=$!
-          sleep 50
-          publish || echo "publish skipped"
-          while kill -0 "$pid" 2>/dev/null; do
-            sleep 120
-            publish || echo "publish skipped"
-          done
-          set +e
-          wait "$pid"
-          code=$?
-          set -e
-          publish || echo "final publish skipped"
-          if [ "$code" -eq 0 ]; then
-            gh workflow run "Paper fund" --ref main || echo "re-dispatch failed; the */5 cron is the backup"
-          fi
-          exit "$code"
+          python3 fund/engine/fund.py --once
+          publish
