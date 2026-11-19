@@ -2,7 +2,7 @@
   "version": 1,
   "note": "PAPER",
   "cash_eur": 1000.0,
-  "day_key": "2026-11-18",
+  "day_key": "2026-11-19",
   "day_start_equity": 1000.0,
   "week_key": "2026-W47",
   "week_start_equity": 1000.0,
@@ -392,6 +392,10 @@
     },
     {
       "t": "2026-11-18T22:41:39Z",
+      "equity": 1000.0
+    },
+    {
+      "t": "2026-11-19T01:19:01Z",
       "equity": 1000.0
     }
   ],
@@ -805,5 +809,156 @@
     "changes": []
   },
   "created": "2026-11-18T19:17:10Z",
-  "meme_cursor": 380
+  "meme_cursor": 384,
+  "research": {
+    "passed": [],
+    "expected_r": {
+      "trend": -0.1241,
+      "mean_reversion": -0.4363
+    },
+    "generated": "2026-11-18T22:43:30Z",
+    "history_ok": true,
+    "ideas_ok": true,
+    "fast_ran": true,
+    "walk_forward": true,
+    "kill_drill": true,
+    "weekly_review": false,
+    "files": {
+      "playbook": true,
+      "calendar": true,
+      "cards": true,
+      "live_keys": false
+    },
+    "summary": [
+      {
+        "id": "trend",
+        "params": [
+          10,
+          40
+        ],
+        "oos_return": -0.4515,
+        "oos_maxdd": -0.5378,
+        "oos_trades": 430,
+        "oos_sharpe": -0.066,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3401,
+        "random_sharpe": -0.143,
+        "windows": 15,
+        "trials": 9,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -629.31,
+            "trades": 639,
+            "maxdd": -0.6293
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -783.9,
+            "trades": 695,
+            "maxdd": -0.7889
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -534.03,
+            "trades": 702,
+            "maxdd": -0.534
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -855.3,
+            "trades": 703,
+            "maxdd": -0.8573
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.1241,
+        "robust": {
+          "nearby_profitable": false,
+          "double_cost_pnl": -1587.81,
+          "monte_carlo": {
+            "p05": -53.344,
+            "median": -53.344
+          },
+          "regimes": {
+            "bull": -259.53,
+            "bear": -51.48,
+            "chop": -234.61,
+            "n": {
+              "bull": 197,
+              "bear": 92,
+              "chop": 338
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "mean_reversion",
+        "params": [
+          40,
+          1.0
+        ],
+        "oos_return": -0.9112,
+        "oos_maxdd": -0.9122,
+        "oos_trades": 542,
+        "oos_sharpe": -0.273,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3401,
+        "random_sharpe": -0.134,
+        "windows": 15,
+        "trials": 4,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -983.81,
+            "trades": 977,
+            "maxdd": -0.9838
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -982.4,
+            "trades": 1319,
+            "maxdd": -0.9828
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -996.08,
+            "trades": 1677,
+            "maxdd": -0.9961
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -975.1,
+            "trades": 1065,
+            "maxdd": -0.9762
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.4363,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -2449.31,
+          "monte_carlo": {
+            "p05": -236.469,
+            "median": -236.469
+          },
+          "regimes": {
+            "bull": -191.57,
+            "bear": -302.31,
+            "chop": -340.72,
+            "n": {
+              "bull": 170,
+              "bear": 321,
+              "chop": 455
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      }
+    ]
+  },
+  "peak_equity": 1000.0
 }

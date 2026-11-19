@@ -2,7 +2,6 @@
   "note": "PAPER",
   "banner": "PAPER \u00b7 VIRTUALNI DENAR",
   "capital_eur": 1000.0,
-  "position_pct": 0.1,
   "equity_eur": 1000.0,
   "cash_eur": 1000.0,
   "pnl_eur": 0.0,
@@ -10,16 +9,19 @@
   "max_drawdown": 0.0,
   "daily_pnl": 0.0,
   "weekly_pnl": 0.0,
+  "drawdown_from_peak": 0.0,
+  "peak_equity": 1000.0,
+  "risk_pct": 0.01,
   "daily_brake": false,
   "kill": false,
-  "max_positions": 5,
+  "half_size": false,
   "open_risk_eur": 0,
   "positions": [],
   "closed": [],
   "arena": [
     {
       "id": "trend",
-      "role": "prvak",
+      "role": "izzivalec",
       "n": 0,
       "expectancy_r": null,
       "profit_factor": null
@@ -61,19 +63,25 @@
     }
   ],
   "champion": {
-    "id": "trend",
-    "why": "za\u010dasni prvak, premalo zaprtih poslov"
+    "id": null,
+    "why": "ni strategije, ki bi prestala backtest s polnimi stro\u0161ki"
   },
   "ideas": [
     {
-      "market": "ETHUSDT",
+      "market": "XRPUSDT",
       "strategy": "mean_reversion",
       "reason": "pod 20-sve\u010dnim povpre\u010djem, brez zloma"
     }
   ],
-  "events": [],
+  "events": [
+    {
+      "title": "FOMC Meeting Minutes",
+      "at": "2026-11-18T19:00:00Z",
+      "active": false
+    }
+  ],
   "event_window": false,
-  "calendar_ok": false,
+  "calendar_ok": true,
   "fresh": true,
   "phase": "no\u010dna raziskava",
   "regime": "razpon",
@@ -82,91 +90,91 @@
       "name": "EURUSDT",
       "status": 200,
       "rows": 1,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "hyperliquid",
       "status": 200,
       "rows": 235,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "BTCUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "ETHUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "SOLUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "BNBUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "XRPUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "ADAUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "AVAXUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "LINKUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "DOGEUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "TONUSDT",
       "status": 200,
       "rows": 120,
-      "ts": "2026-11-18T22:41:39Z"
+      "ts": "2026-11-19T01:19:01Z"
     },
     {
       "name": "gecko-solana",
       "status": 200,
       "rows": 20,
-      "ts": "2026-11-18T22:41:47Z"
+      "ts": "2026-11-19T01:19:07Z"
     },
     {
       "name": "gecko-bsc",
       "status": 200,
       "rows": 20,
-      "ts": "2026-11-18T22:41:47Z"
+      "ts": "2026-11-19T01:19:07Z"
     },
     {
       "name": "calendar",
-      "status": 429,
-      "rows": 0,
-      "ts": "2026-11-18T22:41:39Z"
+      "status": 200,
+      "rows": 1,
+      "ts": "2026-11-19T01:19:01Z"
     }
   ],
   "incidents": [
@@ -275,8 +283,174 @@
     "version": 1,
     "changes": [],
     "closed": 0,
-    "guard": "Sprememba \u0161ele po 100 poslih, ena na cikel. Vetoji in zavore se ne ti\u010dejo."
+    "guard": "Sodba \u0161ele po 30 poslih. Ena sprememba na cikel. Tveganje, izklop in vetoji se ne spreminjajo."
   },
+  "research": {
+    "passed": [],
+    "expected_r": {
+      "trend": -0.1241,
+      "mean_reversion": -0.4363
+    },
+    "generated": "2026-11-18T22:43:30Z",
+    "history_ok": true,
+    "ideas_ok": true,
+    "fast_ran": true,
+    "walk_forward": true,
+    "kill_drill": true,
+    "weekly_review": false,
+    "files": {
+      "playbook": true,
+      "calendar": true,
+      "cards": true,
+      "live_keys": false
+    },
+    "summary": [
+      {
+        "id": "trend",
+        "params": [
+          10,
+          40
+        ],
+        "oos_return": -0.4515,
+        "oos_maxdd": -0.5378,
+        "oos_trades": 430,
+        "oos_sharpe": -0.066,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3401,
+        "random_sharpe": -0.143,
+        "windows": 15,
+        "trials": 9,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -629.31,
+            "trades": 639,
+            "maxdd": -0.6293
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -783.9,
+            "trades": 695,
+            "maxdd": -0.7889
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -534.03,
+            "trades": 702,
+            "maxdd": -0.534
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -855.3,
+            "trades": 703,
+            "maxdd": -0.8573
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.1241,
+        "robust": {
+          "nearby_profitable": false,
+          "double_cost_pnl": -1587.81,
+          "monte_carlo": {
+            "p05": -53.344,
+            "median": -53.344
+          },
+          "regimes": {
+            "bull": -259.53,
+            "bear": -51.48,
+            "chop": -234.61,
+            "n": {
+              "bull": 197,
+              "bear": 92,
+              "chop": 338
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "mean_reversion",
+        "params": [
+          40,
+          1.0
+        ],
+        "oos_return": -0.9112,
+        "oos_maxdd": -0.9122,
+        "oos_trades": 542,
+        "oos_sharpe": -0.273,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3401,
+        "random_sharpe": -0.134,
+        "windows": 15,
+        "trials": 4,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -983.81,
+            "trades": 977,
+            "maxdd": -0.9838
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -982.4,
+            "trades": 1319,
+            "maxdd": -0.9828
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -996.08,
+            "trades": 1677,
+            "maxdd": -0.9961
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -975.1,
+            "trades": 1065,
+            "maxdd": -0.9762
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.4363,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -2449.31,
+          "monte_carlo": {
+            "p05": -236.469,
+            "median": -236.469
+          },
+          "regimes": {
+            "bull": -191.57,
+            "bear": -302.31,
+            "chop": -340.72,
+            "n": {
+              "bull": 170,
+              "bear": 321,
+              "chop": 455
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      }
+    ]
+  },
+  "report": {
+    "date": "2026-11-19",
+    "pnl_eur": 0.0,
+    "day_pnl": 0.0,
+    "trades": 0,
+    "alerts": [],
+    "lesson": "danes ni zaprtega posla",
+    "tonight": "ve\u010derni cikel \u0161e ni na vrsti",
+    "blocked": "ni backtesta s polnimi stro\u0161ki"
+  },
+  "alerts": [],
+  "reconcile": {
+    "ok": true,
+    "note": "Papir nima borznega ra\u010duna. Ujemata se denar in stop vsakega posla."
+  },
+  "telegram": false,
   "equity_history": [
     {
       "t": "2026-11-18T19:17:10Z",
@@ -661,13 +835,17 @@
     {
       "t": "2026-11-18T22:41:39Z",
       "equity": 1000.0
+    },
+    {
+      "t": "2026-11-19T01:19:01Z",
+      "equity": 1000.0
     }
   ],
   "agents": [
     {
       "id": "uprava",
       "name": "Uprava",
-      "tldr": "Knjiga 1.000,00 \u20ac. za\u010dasni prvak, premalo zaprtih poslov."
+      "tldr": "Knjiga 1.000,00 \u20ac. ni strategije, ki bi prestala backtest s polnimi stro\u0161ki."
     },
     {
       "id": "raziskava",
@@ -677,7 +855,7 @@
     {
       "id": "tveganje",
       "name": "Tveganje",
-      "tldr": "Dan 0,0 %, teden 0,0 %. koledar ni dosegljiv"
+      "tldr": "Dan 0,0 %, teden 0,0 %. ni backtesta s polnimi stro\u0161ki"
     },
     {
       "id": "izvrsitev",
@@ -689,9 +867,9 @@
     "phase": "no\u010dna raziskava",
     "regime": "razpon",
     "open_risk_eur": 0,
-    "blocked": "koledar ni dosegljiv",
+    "blocked": "ni backtesta s polnimi stro\u0161ki",
     "note": "PAPER. \u0160tevilke so iz tega kroga, ne iz vzorca.",
-    "baseline_btc_120h": -0.0848
+    "baseline_btc_120h": -0.0693
   },
   "cards": [
     {
@@ -726,59 +904,59 @@
     }
   ],
   "golden": [
-    "Samo papir. \u017divih naro\u010dil, klju\u010dev in dvigov ni.",
-    "Velikost je 10% knjige. Stop je izhod, ne formula za velikost.",
-    "Dnevna izguba 3% ustavi nove vstope. Tedenska 6% je izklop.",
-    "Najve\u010d pet odprtih poslov. Celotne knjige ne stavimo.",
-    "Brez sve\u017eega vira ni posla. Manjkajo\u010d varnostni podatek je veto.",
-    "Brez vzvoda. Shorti so izklopljeni.",
-    "Fib in Elliott nista pravili za vstop.",
-    "Kelly \u0161ele po 100 poslih s pozitivnim pri\u010dakovanjem. Tega praga \u0161e ni.",
-    "U\u010denje ne sme spreminjati velikosti, zavor, izklopa ali vetojev.",
-    "CPI in FOMC: 30 minut prej in potem ni vstopov, odprto tveganje se prepolovi."
+    "Brez stopa ni posla.",
+    "Brez backtesta s polnimi stro\u0161ki ni bota.",
+    "Brez 30 ujemajo\u010dih se papirnih poslov in pisnega 'go live' ni pravega denarja.",
+    "Tveganje na posel je najve\u010d 1% ra\u010duna. Velikost = ra\u010dun \u00d7 tveganje / razdalja do stopa.",
+    "Dnevna izguba 3% ustavi nove vstope do naslednjega UTC dne.",
+    "Izklop je \u221215% od vrha knjige. Stopi ostanejo. \u010cakamo na Aleksa.",
+    "Vzvod je 1x. Shorti so izklopljeni. Marta in \u0161irjenja stopa ni.",
+    "CPI in FOMC: 30 minut prej in potem ni vstopov, potem do konca dneva polovi\u010dna velikost.",
+    "Manjkajo\u010d podatek je veto. \u0160tevilk ne ugibamo."
   ],
   "heartbeat": {
-    "t": "2026-11-18T22:41:39Z",
-    "ok": true
+    "t": "2026-11-19T01:19:01Z",
+    "ok": true,
+    "feed_minutes": 2
   },
-  "updated": "2026-11-18T22:41:39Z",
-  "fx_eurusdt": 1.0986,
-  "entries_blocked": "koledar ni dosegljiv",
+  "updated": "2026-11-19T01:19:01Z",
+  "fx_eurusdt": 1.0984,
+  "entries_blocked": "ni backtesta s polnimi stro\u0161ki",
   "meme_checked": [],
   "kickoff": [
     {
       "day": 1,
-      "item": "Papirna knjiga 1000 EUR je odprta",
-      "done": true
+      "item": "Mandat in mape so napisane. Borzni klju\u010di in Telegram \u0161e niso, papir te\u010de brez njiju.",
+      "done": false
     },
     {
       "day": 2,
-      "item": "BTC sve\u010de in te\u010daj EUR sta sve\u017ea",
+      "item": "4 leta sve\u010d, preverjanje, sources.md, calendar.md",
       "done": true
     },
     {
       "day": 3,
-      "item": "Koledar CPI/FOMC je dosegljiv",
-      "done": false
+      "item": "20+ idej in prvi hitri mre\u017eni testi",
+      "done": true
     },
     {
       "day": 4,
-      "item": "Sr\u010dni utrip je objavljen",
+      "item": "Polni backtest, walk-forward, kartice strategij",
       "done": true
     },
     {
       "day": 5,
-      "item": "Dnevnik ima stolpce iz naloge",
+      "item": "Papirni bot in preizkus izklopa",
       "done": true
     },
     {
       "day": 6,
-      "item": "Prvi papirni posel",
+      "item": "Papirni posel in no\u010dni cikel",
       "done": false
     },
     {
       "day": 7,
-      "item": "Tedenski pregled u\u010denja",
+      "item": "Prvi tedenski pregled",
       "done": false
     }
   ]
