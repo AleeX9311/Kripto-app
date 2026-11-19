@@ -11,10 +11,6 @@
   "closed": [],
   "equity_history": [
     {
-      "t": "2026-11-18T22:26:40Z",
-      "equity": 1000.0
-    },
-    {
       "t": "2026-11-18T22:28:49Z",
       "equity": 1000.0
     },
@@ -2009,6 +2005,10 @@
     {
       "t": "2026-11-19T22:33:16Z",
       "equity": 1000.0
+    },
+    {
+      "t": "2026-11-19T23:28:18Z",
+      "equity": 1000.0
     }
   ],
   "incidents": [
@@ -2421,14 +2421,23 @@
     "changes": []
   },
   "created": "2026-11-18T19:17:10Z",
-  "meme_cursor": 2348,
+  "meme_cursor": 2352,
   "research": {
     "passed": [],
     "expected_r": {
-      "trend": -0.1241,
-      "mean_reversion": -0.4363
+      "trend": -0.1153,
+      "mean_reversion": -0.4145,
+      "vol_breakout": -0.1559,
+      "donchian": 0.0011,
+      "regime_trend": -0.1854,
+      "vol_target": -0.0962,
+      "session": -0.1555,
+      "funding": -0.4118,
+      "xsection": -0.0602,
+      "dominance": -0.1058,
+      "relative_value": -0.2333
     },
-    "generated": "2026-11-18T22:43:30Z",
+    "generated": "2026-11-19T22:41:54Z",
     "history_ok": true,
     "ideas_ok": true,
     "fast_ran": true,
@@ -2448,16 +2457,16 @@
           10,
           40
         ],
-        "oos_return": -0.4515,
-        "oos_maxdd": -0.5378,
-        "oos_trades": 430,
-        "oos_sharpe": -0.066,
+        "oos_return": -0.4687,
+        "oos_maxdd": -0.55,
+        "oos_trades": 485,
+        "oos_sharpe": -0.063,
         "deflated_sharpe": 0.0,
         "buyhold_sharpe": 0.004,
-        "buyhold_return": 0.3401,
-        "random_sharpe": -0.143,
+        "buyhold_return": 0.3351,
+        "random_sharpe": -0.14,
         "windows": 15,
-        "trials": 9,
+        "trials": 2,
         "markets": [
           {
             "symbol": "BTCUSDT",
@@ -2467,31 +2476,31 @@
           },
           {
             "symbol": "ETHUSDT",
-            "pnl": -783.9,
-            "trades": 695,
-            "maxdd": -0.7889
+            "pnl": -786.34,
+            "trades": 696,
+            "maxdd": -0.7912
           },
           {
             "symbol": "SOLUSDT",
-            "pnl": -534.03,
-            "trades": 702,
-            "maxdd": -0.534
+            "pnl": -534.14,
+            "trades": 704,
+            "maxdd": -0.5341
           },
           {
             "symbol": "BNBUSDT",
-            "pnl": -855.3,
-            "trades": 703,
+            "pnl": -856.94,
+            "trades": 704,
             "maxdd": -0.8573
           }
         ],
         "pass": false,
-        "expected_r": -0.1241,
+        "expected_r": -0.1153,
         "robust": {
           "nearby_profitable": false,
           "double_cost_pnl": -1587.81,
           "monte_carlo": {
-            "p05": -53.344,
-            "median": -53.344
+            "p05": -55.909,
+            "median": -55.909
           },
           "regimes": {
             "bull": -259.53,
@@ -2512,22 +2521,22 @@
           40,
           1.0
         ],
-        "oos_return": -0.9112,
-        "oos_maxdd": -0.9122,
-        "oos_trades": 542,
-        "oos_sharpe": -0.273,
+        "oos_return": -0.8718,
+        "oos_maxdd": -0.8719,
+        "oos_trades": 484,
+        "oos_sharpe": -0.259,
         "deflated_sharpe": 0.0,
         "buyhold_sharpe": 0.004,
-        "buyhold_return": 0.3401,
-        "random_sharpe": -0.134,
+        "buyhold_return": 0.3351,
+        "random_sharpe": -0.146,
         "windows": 15,
-        "trials": 4,
+        "trials": 2,
         "markets": [
           {
             "symbol": "BTCUSDT",
-            "pnl": -983.81,
-            "trades": 977,
-            "maxdd": -0.9838
+            "pnl": -984.19,
+            "trades": 979,
+            "maxdd": -0.9842
           },
           {
             "symbol": "ETHUSDT",
@@ -2543,28 +2552,512 @@
           },
           {
             "symbol": "BNBUSDT",
-            "pnl": -975.1,
-            "trades": 1065,
+            "pnl": -975.4,
+            "trades": 1066,
             "maxdd": -0.9762
           }
         ],
         "pass": false,
-        "expected_r": -0.4363,
+        "expected_r": -0.4145,
         "robust": {
           "nearby_profitable": null,
-          "double_cost_pnl": -2449.31,
+          "double_cost_pnl": -2452.69,
           "monte_carlo": {
-            "p05": -236.469,
-            "median": -236.469
+            "p05": -200.599,
+            "median": -200.599
           },
           "regimes": {
             "bull": -191.57,
-            "bear": -302.31,
+            "bear": -302.69,
             "chop": -340.72,
             "n": {
               "bull": 170,
-              "bear": 321,
+              "bear": 323,
               "chop": 455
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "vol_breakout",
+        "params": [
+          24,
+          0.06
+        ],
+        "oos_return": -0.3898,
+        "oos_maxdd": -0.4641,
+        "oos_trades": 305,
+        "oos_sharpe": -0.139,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3351,
+        "random_sharpe": -0.115,
+        "windows": 15,
+        "trials": 2,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -370.95,
+            "trades": 349,
+            "maxdd": -0.4301
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -371.47,
+            "trades": 299,
+            "maxdd": -0.4165
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -30.78,
+            "trades": 206,
+            "maxdd": -0.1199
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -292.36,
+            "trades": 355,
+            "maxdd": -0.3101
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.1559,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -894.45,
+          "monte_carlo": {
+            "p05": -47.538,
+            "median": -47.538
+          },
+          "regimes": {
+            "bull": -228.48,
+            "bear": 62.97,
+            "chop": -163.28,
+            "n": {
+              "bull": 99,
+              "bear": 45,
+              "chop": 201
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "donchian",
+        "params": [
+          20
+        ],
+        "oos_return": -0.0263,
+        "oos_maxdd": -0.2114,
+        "oos_trades": 284,
+        "oos_sharpe": 0.001,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3351,
+        "random_sharpe": -0.119,
+        "windows": 15,
+        "trials": 2,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -469.71,
+            "trades": 516,
+            "maxdd": -0.4697
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -404.35,
+            "trades": 476,
+            "maxdd": -0.4486
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -147.21,
+            "trades": 400,
+            "maxdd": -0.2783
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -414.49,
+            "trades": 519,
+            "maxdd": -0.4818
+          }
+        ],
+        "pass": false,
+        "expected_r": 0.0011,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -1243.71,
+          "monte_carlo": {
+            "p05": 0.32,
+            "median": 0.32
+          },
+          "regimes": {
+            "bull": -287.15,
+            "bear": -16.27,
+            "chop": -111.76,
+            "n": {
+              "bull": 141,
+              "bear": 72,
+              "chop": 295
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "regime_trend",
+        "params": [
+          20,
+          50
+        ],
+        "oos_return": -0.4906,
+        "oos_maxdd": -0.5496,
+        "oos_trades": 335,
+        "oos_sharpe": -0.099,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3351,
+        "random_sharpe": -0.156,
+        "windows": 15,
+        "trials": 2,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -592.67,
+            "trades": 349,
+            "maxdd": -0.5927
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -503.06,
+            "trades": 321,
+            "maxdd": -0.5031
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -366.06,
+            "trades": 311,
+            "maxdd": -0.4497
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -742.97,
+            "trades": 390,
+            "maxdd": -0.7459
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.1854,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -1116.17,
+          "monte_carlo": {
+            "p05": -62.124,
+            "median": -62.124
+          },
+          "regimes": {
+            "bull": -290.88,
+            "bear": 30.72,
+            "chop": -308.78,
+            "n": {
+              "bull": 165,
+              "bear": 10,
+              "chop": 172
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "vol_target",
+        "params": [
+          2.5
+        ],
+        "oos_return": -0.4654,
+        "oos_maxdd": -0.6283,
+        "oos_trades": 535,
+        "oos_sharpe": -0.047,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3351,
+        "random_sharpe": -0.132,
+        "windows": 15,
+        "trials": 2,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -663.62,
+            "trades": 676,
+            "maxdd": -0.6766
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -608.92,
+            "trades": 658,
+            "maxdd": -0.6089
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -133.59,
+            "trades": 626,
+            "maxdd": -0.3943
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -774.21,
+            "trades": 682,
+            "maxdd": -0.7763
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.0962,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -1677.62,
+          "monte_carlo": {
+            "p05": -51.475,
+            "median": -51.475
+          },
+          "regimes": {
+            "bull": -321.49,
+            "bear": -141.25,
+            "chop": -161.4,
+            "n": {
+              "bull": 219,
+              "bear": 95,
+              "chop": 354
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "session",
+        "params": [
+          1
+        ],
+        "oos_return": -0.3179,
+        "oos_maxdd": -0.3601,
+        "oos_trades": 222,
+        "oos_sharpe": -0.085,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3351,
+        "random_sharpe": -0.141,
+        "windows": 15,
+        "trials": 2,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -267.35,
+            "trades": 166,
+            "maxdd": -0.2905
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -476.69,
+            "trades": 205,
+            "maxdd": -0.4767
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -285.74,
+            "trades": 223,
+            "maxdd": -0.2986
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -617.47,
+            "trades": 231,
+            "maxdd": -0.6181
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.1555,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -516.35,
+          "monte_carlo": {
+            "p05": -34.53,
+            "median": -34.53
+          },
+          "regimes": {
+            "bull": -201.29,
+            "bear": -54.55,
+            "chop": 24.08,
+            "n": {
+              "bull": 65,
+              "bear": 28,
+              "chop": 70
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "funding",
+        "params": [
+          -5e-05
+        ],
+        "oos_return": -0.0368,
+        "oos_maxdd": -0.037,
+        "oos_trades": 9,
+        "oos_sharpe": -0.466,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3351,
+        "random_sharpe": -0.116,
+        "windows": 15,
+        "trials": 2,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -36.76,
+            "trades": 9,
+            "maxdd": -0.037
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -45.73,
+            "trades": 9,
+            "maxdd": -0.0468
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -5.32,
+            "trades": 9,
+            "maxdd": -0.019
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -9.69,
+            "trades": 8,
+            "maxdd": -0.0398
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.4118,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -50.26,
+          "monte_carlo": null,
+          "regimes": {
+            "bull": -4.5,
+            "bear": -32.15,
+            "chop": -0.11,
+            "n": {
+              "bull": 1,
+              "bear": 4,
+              "chop": 4
+            }
+          },
+          "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
+        }
+      },
+      {
+        "id": "xsection",
+        "params": [
+          24
+        ],
+        "oos_return": -0.3628,
+        "oos_maxdd": -0.4651,
+        "oos_trades": 631,
+        "oos_sharpe": -0.04,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3351,
+        "random_sharpe": null,
+        "windows": 15,
+        "trials": 2,
+        "markets": [],
+        "pass": false,
+        "expected_r": -0.0602,
+        "robust": {
+          "note": "ena pozicija na knjigi, stro\u0161ki 0,10 % + 0,05 % na stran"
+        }
+      },
+      {
+        "id": "dominance",
+        "params": [
+          24
+        ],
+        "oos_return": -0.5912,
+        "oos_maxdd": -0.6316,
+        "oos_trades": 769,
+        "oos_sharpe": -0.072,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.004,
+        "buyhold_return": 0.3351,
+        "random_sharpe": null,
+        "windows": 15,
+        "trials": 2,
+        "markets": [],
+        "pass": false,
+        "expected_r": -0.1058,
+        "robust": {
+          "note": "ena pozicija na knjigi, stro\u0161ki 0,10 % + 0,05 % na stran"
+        }
+      },
+      {
+        "id": "relative_value",
+        "params": [
+          24
+        ],
+        "oos_return": -0.4469,
+        "oos_maxdd": -0.4715,
+        "oos_trades": 243,
+        "oos_sharpe": -0.159,
+        "deflated_sharpe": 0.0,
+        "buyhold_sharpe": 0.001,
+        "buyhold_return": -0.5262,
+        "random_sharpe": -0.143,
+        "windows": 15,
+        "trials": 2,
+        "markets": [
+          {
+            "symbol": "BTCUSDT",
+            "pnl": -491.63,
+            "trades": 324,
+            "maxdd": -0.493
+          },
+          {
+            "symbol": "ETHUSDT",
+            "pnl": -491.63,
+            "trades": 324,
+            "maxdd": -0.493
+          },
+          {
+            "symbol": "SOLUSDT",
+            "pnl": -557.4,
+            "trades": 563,
+            "maxdd": -0.5933
+          },
+          {
+            "symbol": "BNBUSDT",
+            "pnl": -583.99,
+            "trades": 393,
+            "maxdd": -0.6011
+          }
+        ],
+        "pass": false,
+        "expected_r": -0.2333,
+        "robust": {
+          "nearby_profitable": null,
+          "double_cost_pnl": -977.63,
+          "monte_carlo": {
+            "p05": -56.697,
+            "median": -56.697
+          },
+          "regimes": {
+            "bull": -0.48,
+            "bear": -386.01,
+            "chop": -69.21,
+            "n": {
+              "bull": 120,
+              "bear": 108,
+              "chop": 88
             }
           },
           "note": "stres z dvojnimi stro\u0161ki je v robustnosti spodaj"
