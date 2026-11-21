@@ -239,6 +239,8 @@ function tips() {
     out.push({ title: "50/30/20", text: "Potrebe " + Math.round(needs / incomeOf(key) * 100) + " %, želje " + Math.round(Math.max(0, all - needs) / incomeOf(key) * 100) + " %, ostanek " + Math.round(rest / incomeOf(key) * 100) + " % prihodkov tega meseca." });
     out.push({ title: "Stopnja varčevanja", text: rest >= 0 ? "Ostane " + euro.format(rest) + "." : "Čez prihodke za " + euro.format(-rest) + "." });
   }
+  const interest = state.entries.filter(i => inMonth(i, key) && i.type === "expense" && /obresti/i.test(i.note || "")).reduce((s, i) => s + i.amount, 0);
+  if (interest > 0) out.push({ title: "Prekoračitev", text: "Obresti dovoljenega limita ta mesec: " + euro.format(interest) + (state.account && state.account.rate ? ". Mera na izpisku " + state.account.rate + "." : ".") });
   const coffee = state.entries.filter(i => i.type === "expense" && /kava/i.test((i.note || "") + " " + cat(i.categoryId).name));
   if (coffee.length) {
     const sum = coffee.reduce((s, i) => s + i.amount, 0);
@@ -286,6 +288,7 @@ function homeHtml(key) {
         <div class="orb ${face}"></div>
       </div>
     </article>
+    ${accountCard()}
     <div class="chips">
       <div class="chip"><span class="muted">Prihodki</span><b>${euro.format(income)}</b></div>
       <div class="chip"><span class="muted">Stroški</span><b>${euro.format(spent)}</b></div>
@@ -302,6 +305,18 @@ function homeHtml(key) {
     <article class="card"><div class="row"><b>Zadnje transakcije</b></div>
       ${recent.length ? recent.map(txHtml).join("") : `<p class="muted">Še ni vnosov.</p>`}
     </article>`;
+}
+function accountCard() {
+  const account = state.account;
+  if (!account) return "";
+  const mark = account.check && account.check.ok ? "✓ Zbirnik se ujema." : "⚠ " + ((account.check && account.check.message) || "Zbirnik ni preverjen.");
+  return `<article class="card"><b>Račun</b><p class="muted">Izpisek ${account.statementNo || "—"} · ${account.statementDate || ""} · ${account.period || ""}</p>
+    <div class="row"><span>Začetno</span><b>${account.opening == null ? "—" : euro.format(account.opening)}</b></div>
+    <div class="row"><span>Breme / Dobro</span><b>${euro.format(account.debit || 0)} / ${euro.format(account.credit || 0)}</b></div>
+    <div class="row"><span>Končno stanje</span><b>${account.closing == null ? "—" : euro.format(account.closing)}</b></div>
+    <div class="row"><span>Prekoračitev</span><b>${account.overdraft == null ? "—" : euro.format(account.overdraft)}${account.rate ? " · " + account.rate : ""}</b></div>
+    ${account.interest ? `<div class="row"><span>Obresti ta mesec</span><b>${euro.format(account.interest)}</b></div>` : ""}
+    <p class="muted">${mark}</p></article>`;
 }
 function budgetRow(item, key) {
   const limit = Number(state.budgets[item.id] || 0);
@@ -328,9 +343,10 @@ function glyph(name) {
 }
 function txHtml(item) {
   const sign = item.type === "income" ? "+" : "−";
+  const label = item.type === "transfer" ? "Prenos" : item.type === "income" && !item.categoryId ? "Prihodek" : cat(item.categoryId).name;
   return `<div class="tx ${openTx === item.id ? "open" : ""}" data-tx="${item.id}">
     <div class="tx-actions"><button class="edit" data-edit="${item.id}" type="button">Uredi</button><button class="del" data-del="${item.id}" type="button">Izbriši</button></div>
-    <div class="tx-main"><span>${cat(item.categoryId).name}<br><small class="muted">${item.at} · ${item.method === "cash" ? "gotovina" : "kartica"}</small></span><b>${sign}${euro.format(item.amount)}</b></div>
+    <div class="tx-main"><span>${label}<br><small class="muted">${item.at} · ${item.method === "cash" ? "gotovina" : "kartica"}</small></span><b>${sign}${euro.format(item.amount)}</b></div>
   </div>`;
 }
 function spendHtml(key) {
@@ -571,6 +587,11 @@ function openSettings() {
   sheet = { kind: "settings", name: state.name, amount: String(state.incomeMonthly || "").replace(".", ","), pin: "" };
   renderSheet();
 }
+function sheetClose() {
+  sheet = null;
+  const host = document.getElementById("sheet");
+  if (host) host.innerHTML = "";
+}
 function renderSheet() {
   const host = document.getElementById("sheet");
   if (!sheet || !unlocked || !state.onboarded) { host.innerHTML = ""; return; }
@@ -602,10 +623,14 @@ function renderSheet() {
   } else if (sheet.kind === "import") {
     const headers = sheet.headers.map((name, index) => `<option value="${index}">${name || "Stolpec " + (index + 1)}</option>`).join("");
     const choose = (field) => `<select data-map="${field}" class="sel"><option value="-1">—</option>${headers}</select>`;
-    const rows = (sheet.preview || []).slice(0, 6).map(tx => `<div class="row"><span>${tx.date} · ${tx.categoryName || "brez"}<br><small class="muted">${tx.desc.slice(0, 42)}</small></span><b>${tx.amount.toFixed(2).replace(".", ",")} €</b></div>`).join("");
+    const rows = (sheet.preview || []).slice(0, 6).map(tx => {
+      const label = tx.type === "transfer" ? "Prenos" : tx.type === "income" && !tx.categoryName ? "Prihodek" : (tx.categoryName || "brez");
+      return `<div class="row"><span>${tx.date} · ${label}<br><small class="muted">${tx.desc.slice(0, 42)}</small></span><b>${tx.amount.toFixed(2).replace(".", ",")} €</b></div>`;
+    }).join("");
     const subs = (sheet.subs || []).map((sub, index) => `<label class="muted"><input type="checkbox" data-subpick="${index}" checked> ${sub.name} · ${sub.amount.toFixed(2).replace(".", ",")} € / ${sub.period === "year" ? "leto" : "mesec"}</label>`).join("<br>");
     body = `<b>Uvoz izpiska</b><p class="muted">${sheet.encoding} · ${sheet.delimiter}${sheet.sure ? "" : " · preveri stolpce"}</p>
       ${sheet.sure ? "" : `<div class="row"><span>Datum</span>${choose("date")}</div><div class="row"><span>Opis</span>${choose("desc")}</div><div class="row"><span>Znesek</span>${choose("amount")}</div><div class="row"><span>V breme</span>${choose("debit")}</div><div class="row"><span>V dobro</span>${choose("credit")}</div><button class="mini" id="remap" type="button">Osveži predogled</button>`}
+      ${sheet.check ? `<p class="muted">${sheet.check.ok ? "✓ " : "⚠ "}${sheet.check.message}</p>` : ""}
       ${rows || `<p class="muted">Ni prebranih vrstic.</p>`}
       ${subs ? `<p><b>Predlog naročnin</b><br>${subs}</p>` : ""}
       <button class="go" id="importGo" type="button">Uvozi ${(sheet.preview || []).length} vrstic</button>`;
@@ -615,8 +640,8 @@ function renderSheet() {
       <button class="go" id="saveSheet" type="button">Shrani</button>
       <button class="mini" id="csv" type="button">CSV</button> <button class="mini" id="jsonOut" type="button">JSON izvoz</button>
       <input id="jsonIn" type="file" accept="application/json">
-      <p class="muted">Izpisek Bankanet, NLB ali drug CSV/Excel. Bere se samo na telefonu.</p>
-      <input id="bankIn" type="file" accept=".csv,.txt,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">`;
+      <p class="muted">Izpisek OTP banka (Bankanet) PDF, CSV ali Excel. Bere se samo na telefonu.</p>
+      <input id="bankIn" type="file" accept=".pdf,.csv,.txt,.xlsx,.xls,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">`;
   }
   host.innerHTML = `<div class="sheet"><div class="panel"><button class="mini" id="closeSheet" type="button">Zapri</button>${body}</div></div>`;
   if (document.getElementById("keys")) keypad(() => sheet.amount, v => { sheet.amount = v; });
@@ -714,25 +739,74 @@ function showUndo() {
     toast.innerHTML = ""; paint();
   };
 }
+function ensureCategory(name) {
+  if (!name) return "";
+  const found = state.categories.find(item => slug(item.name) === slug(name));
+  if (found) return found.id;
+  const created = { id: uid(), name };
+  state.categories.push(created);
+  return created.id;
+}
 function exportCSV() {
   const lines = [["datum", "tip", "kategorija", "znesek", "opomba", "nacin"]];
   state.entries.forEach(item => lines.push([item.at, item.type, cat(item.categoryId).name, String(item.amount).replace(".", ","), item.note || "", item.method || "card"]));
   download(lines.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(";")).join("\n"), "varcevanje.csv", "text/csv");
 }
 function exportJSON() { download(JSON.stringify(state, null, 2), "varcevanje.json", "application/json"); }
+let pdfjsPromise = null;
+function loadPdfJs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.min.mjs").then(lib => {
+      lib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs";
+      return lib;
+    });
+  }
+  return pdfjsPromise;
+}
+async function pdfItems(buffer) {
+  const pdfjs = await loadPdfJs();
+  const doc = await pdfjs.getDocument({ data: buffer }).promise;
+  const items = [];
+  for (let pageNo = 1; pageNo <= doc.numPages; pageNo++) {
+    const page = await doc.getPage(pageNo);
+    const content = await page.getTextContent();
+    content.items.forEach(item => {
+      if (!item.str || !String(item.str).trim()) return;
+      items.push({ str: item.str, x: item.transform[4], y: item.transform[5] + (pageNo - 1) * 10000 });
+    });
+  }
+  return items;
+}
 async function readBank(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
   try {
-    const parsed = await VarcujImport.parseBuffer(await file.arrayBuffer());
-    const remembered = (state.importMaps || {})[parsed.signature];
-    showImport(parsed, remembered || parsed.mapping, remembered ? true : parsed.sure);
+    const buffer = await file.arrayBuffer();
+    if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+      showImport({ statement: VarcujImport.parseStatement(await pdfItems(buffer)) }, null, true);
+    } else {
+      const parsed = await VarcujImport.parseBuffer(buffer);
+      const remembered = (state.importMaps || {})[parsed.signature];
+      showImport(parsed, remembered || parsed.mapping, remembered ? true : parsed.sure);
+    }
   } catch (err) {
     document.getElementById("toast").textContent = err.message || "Izpiska ni bilo mogoče prebrati.";
   }
   event.target.value = "";
 }
 function showImport(parsed, mapping, sure) {
+  if (parsed.statement) {
+    const statement = parsed.statement;
+    const preview = (statement.preview || []).map(tx => {
+      const folded = VarcujImport.norm(tx.desc);
+      const known = (state.learned || []).find(rule => folded.includes(VarcujImport.norm(rule.merchant)));
+      const categoryName = known ? cat(known.categoryId).name : (tx.categoryName || "");
+      return Object.assign({}, tx, { categoryId: known ? known.categoryId : "", categoryName });
+    });
+    sheet = { kind: "import", statement: true, headers: [], body: [], mapping: {}, sure: true, encoding: "pdf", delimiter: "pdf", signature: "otp-bankanet-pdf", preview, subs: statement.subs || [], account: statement.account, check: statement.check };
+    renderSheet();
+    return;
+  }
   const preview = VarcujImport.preview(parsed.body || sheet.body, mapping).map(tx => {
     const categoryId = VarcujImport.categorize(tx.desc, state.learned, state.categories);
     return Object.assign({}, tx, { categoryId, categoryName: categoryId ? cat(categoryId).name : "brez" });
@@ -762,7 +836,8 @@ function commitImport() {
     const key = VarcujImport.fingerprint(tx);
     if (existing.has(key)) { skipped++; return; }
     existing.add(key);
-    state.entries.push({ id: uid(), type: tx.type, categoryId: tx.categoryId || "", amount: tx.abs, note: tx.desc, at: tx.date, method: "card", merchant: tx.desc, importKey: key });
+    const categoryId = tx.categoryName && tx.categoryName !== "brez" ? ensureCategory(tx.categoryName) : (tx.categoryId || "");
+    state.entries.push({ id: uid(), type: tx.type || "expense", categoryId, amount: tx.abs, note: tx.desc, at: tx.date, method: "card", merchant: tx.desc, importKey: key });
     added++;
   });
   document.querySelectorAll("[data-subpick]").forEach(box => {
@@ -772,7 +847,8 @@ function commitImport() {
     state.subs.push({ id: uid(), name: sub.name, amount: sub.amount, period: sub.period, next: sub.next, unused: false });
   });
   state.importMaps = state.importMaps || {};
-  state.importMaps[sheet.signature] = sheet.mapping;
+  if (!sheet.statement) state.importMaps[sheet.signature] = sheet.mapping;
+  if (sheet.account) state.account = sheet.account;
   save();
   const note = "Uvoženih " + added + ", preskočenih " + skipped + ".";
   sheet = null;

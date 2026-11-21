@@ -272,5 +272,140 @@
     const table = tableFromText(decoded.text);
     return Object.assign({ encoding: decoded.encoding, delimiter: table.delimiter }, analyze(table.rows));
   }
-  return { parseBuffer, preview, categorize, fingerprint, suggestRecurring, guess, parseDate, parseMoney, norm };
+  function clusterLines(items) {
+    const sorted = items.filter(item => item && String(item.str || "").trim()).slice().sort((a, b) => b.y - a.y || a.x - b.x);
+    const lines = [];
+    sorted.forEach(item => {
+      const last = lines[lines.length - 1];
+      if (last && Math.abs(last.y - item.y) <= 2.5) last.items.push(item);
+      else lines.push({ y: item.y, items: [item] });
+    });
+    lines.forEach(line => {
+      line.items.sort((a, b) => a.x - b.x);
+      line.text = line.items.map(item => item.str).join(" ").replace(/\s+/g, " ").trim();
+    });
+    return lines;
+  }
+  function columnOf(x, cols) {
+    const entries = Object.entries(cols).filter((pair) => pair[1] != null).sort((a, b) => a[1] - b[1]);
+    if (!entries.length) return "";
+    for (let i = 0; i < entries.length; i++) {
+      const edge = entries[i + 1] ? (entries[i][1] + entries[i + 1][1]) / 2 : Infinity;
+      if (x < edge) return entries[i][0];
+    }
+    return entries[entries.length - 1][0];
+  }
+  function classifyStatement(desc) {
+    const folded = norm(desc);
+    if (/placa/.test(folded)) return { type: "income", category: "" };
+    if (/dvigrezerva|prenosnavarcevanje/.test(folded)) return { type: "transfer", category: "" };
+    if (/coinbase|bitfinity|crypto|bitcoin/.test(folded)) return { type: "expense", category: "Kripto" };
+    if (/provizija|obresti/.test(folded)) return { type: "expense", category: "Banka (provizije, obresti)" };
+    if (/asfinag|vinjeta|cestnin/.test(folded)) return { type: "expense", category: "Cestnine" };
+    if (/mol|petrol|shell|omv/.test(folded)) return { type: "expense", category: "Gorivo" };
+    if (/applecom|googleplay|itunes/.test(folded)) return { type: "expense", category: "Naročnine" };
+    return null;
+  }
+  function headerColumns(line) {
+    const pick = (re) => {
+      const hits = line.items.filter(item => re.test(norm(item.str)));
+      return hits.length ? Math.min(...hits.map(item => item.x)) : null;
+    };
+    return {
+      date: pick(/datum/),
+      id: pick(/idtransakcije|^id$/),
+      account: pick(/placnik|prejemnik/),
+      breme: pick(/^breme$|vbreme/),
+      dobro: pick(/^dobro$|vdobro/),
+      stanje: pick(/stanje/),
+      opis: pick(/opis/)
+    };
+  }
+  function parseStatement(items) {
+    const lines = clusterLines(items);
+    const blob = lines.map(line => line.text).join("\n");
+    const header = lines.find(line => /breme/i.test(line.text) && /dobro/i.test(line.text) && /opis/i.test(line.text) && /datum/i.test(line.text));
+    if (!header) throw new Error("V PDF ni tabele prometa (Datum, Breme, Dobro, Opis).");
+    const cols = headerColumns(header);
+    const summaryLabel = lines.find(line => /zacetno/i.test(norm(line.text)) && /koncno/i.test(norm(line.text)));
+    const moneyOn = (line) => !!(line && line.items.some(item => parseMoney(item.str) != null && /\d/.test(item.str)));
+    const summaryLine = !summaryLabel ? null : moneyOn(summaryLabel) ? summaryLabel : lines[lines.indexOf(summaryLabel) + 1];
+    const labelX = summaryLabel ? {
+      opening: (summaryLabel.items.find(item => /zacet/i.test(norm(item.str))) || {}).x,
+      debit: (summaryLabel.items.find(item => /^breme$/i.test(item.str.trim()) || norm(item.str) === "breme") || {}).x,
+      credit: (summaryLabel.items.find(item => /^dobro$/i.test(item.str.trim()) || norm(item.str) === "dobro") || {}).x,
+      closing: (summaryLabel.items.find(item => /konc/i.test(norm(item.str))) || {}).x
+    } : {};
+    function nearestMoney(line, x) {
+      if (!line || x == null) return null;
+      let best = null;
+      line.items.forEach(item => {
+        const value = parseMoney(item.str);
+        if (value == null || !/\d/.test(item.str)) return;
+        const dist = Math.abs(item.x - x);
+        if (!best || dist < best.dist) best = { dist, value, raw: item.str };
+      });
+      return best ? best.value : null;
+    }
+    const summary = {
+      opening: nearestMoney(summaryLine, labelX.opening),
+      debit: nearestMoney(summaryLine, labelX.debit),
+      credit: nearestMoney(summaryLine, labelX.credit),
+      closing: nearestMoney(summaryLine, labelX.closing)
+    };
+    if (summary.debit != null) summary.debit = Math.abs(summary.debit);
+    if (summary.credit != null) summary.credit = Math.abs(summary.credit);
+    const txs = [];
+    lines.forEach(line => {
+      if (!/\d{1,2}\.\d{1,2}\.\d{4}/.test(line.text) || !/\b\d{10}\b/.test(line.text)) return;
+      const buckets = { date: [], id: [], account: [], breme: [], dobro: [], stanje: [], opis: [] };
+      line.items.forEach(item => {
+        const name = columnOf(item.x, cols);
+        if (buckets[name]) buckets[name].push(item.str);
+      });
+      const date = parseDate((buckets.date.join(" ").match(/\d{1,2}\.\d{1,2}\.\d{4}/) || [])[0] || "");
+      const breme = buckets.breme.map(parseMoney).find(value => value != null && value !== 0);
+      const dobro = buckets.dobro.map(parseMoney).find(value => value != null && value !== 0);
+      const stanje = buckets.stanje.map(parseMoney).find(value => value != null);
+      const desc = buckets.opis.join(" ").replace(/\s+/g, " ").trim();
+      if (!date || (!breme && !dobro)) return;
+      const amount = breme ? -Math.abs(breme) : Math.abs(dobro);
+      const special = classifyStatement(desc);
+      txs.push({
+        date, desc, amount, abs: Math.abs(amount), stanje,
+        type: special ? special.type : amount < 0 ? "expense" : "income",
+        categoryName: special ? special.category : ""
+      });
+    });
+    const sumDebit = Math.round(txs.filter(tx => tx.amount < 0).reduce((sum, tx) => sum + tx.abs, 0) * 100) / 100;
+    const sumCredit = Math.round(txs.filter(tx => tx.amount > 0).reduce((sum, tx) => sum + tx.abs, 0) * 100) / 100;
+    const end = txs.length ? txs[txs.length - 1].stanje : null;
+    const near = (a, b) => a != null && b != null && Math.abs(a - b) < 0.02;
+    const check = {
+      ok: near(sumDebit, summary.debit) && near(sumCredit, summary.credit) && near(end, summary.closing),
+      sumDebit, sumCredit, end,
+      summary
+    };
+    check.message = check.ok
+      ? "Vsota bremen, dobrih in končno stanje se ujemajo z zbirnikom."
+      : "Opozorilo: breme " + sumDebit + " / " + summary.debit + ", dobro " + sumCredit + " / " + summary.credit + ", stanje " + end + " / " + summary.closing + ".";
+    const period = blob.match(/OD\s+(\d{1,2}\.\d{1,2}(?:\.\d{4})?)\s*-\s*(\d{1,2}\.\d{1,2}\.\d{4})/i);
+    const rate = blob.match(/obrestn\w*\s+mer\w*[:\s]+([0-9]+,[0-9]+\s*%)/i);
+    const limit = blob.match(/prekora\w*[^0-9]{0,30}([0-9.]+,[0-9]{2})/i);
+    const account = {
+      statementNo: ((blob.match(/[ŠS]tev\.?\s*izpiska\s*[:\s]*([0-9]+)/i) || [])[1]) || "",
+      statementDate: parseDate((blob.match(/Datum\s+izpiska\s*[:\s]*(\d{1,2}\.\d{1,2}\.\d{4})/i) || [])[1] || ""),
+      period: period ? period[1] + "-" + period[2] : "",
+      opening: summary.opening,
+      debit: summary.debit,
+      credit: summary.credit,
+      closing: summary.closing,
+      overdraft: limit ? parseMoney(limit[1]) : null,
+      rate: rate ? rate[1].replace(/\s/g, "") : "",
+      check,
+      interest: Math.round(txs.filter(tx => tx.type === "expense" && /obresti/.test(norm(tx.desc))).reduce((sum, tx) => sum + tx.abs, 0) * 100) / 100
+    };
+    return { statement: true, sure: true, encoding: "pdf", delimiter: "pdf", headers: ["Datum", "Opis", "Znesek"], mapping: { date: 0, desc: 1, amount: 2, debit: -1, credit: -1 }, signature: "otp-bankanet-pdf", body: [], preview: txs, account, check, subs: suggestRecurring(txs) };
+  }
+  return { parseBuffer, preview, categorize, fingerprint, suggestRecurring, guess, parseDate, parseMoney, norm, parseStatement, classifyStatement };
 });

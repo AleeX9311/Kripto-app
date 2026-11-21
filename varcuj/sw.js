@@ -1,4 +1,4 @@
-const CACHE = "varcuj-shell-5";
+const CACHE = "varcuj-shell-7";
 const SHELL = ["./index.html", "./import.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
