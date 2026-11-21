@@ -1,5 +1,5 @@
-const CACHE = "varcuj-shell-1";
-const SHELL = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CACHE = "varcuj-shell-4";
+const SHELL = ["./index.html", "./import.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

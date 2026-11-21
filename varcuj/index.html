@@ -9,6 +9,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="import.js"></script>
 <style>
   :root {
     --ink:#f4fff9; --muted:#93b3a6; --mint:#5ef0c4; --line:rgba(255,255,255,.12);
@@ -136,7 +137,7 @@ function defaultCategories() {
   return ["Hrana", "Gorivo", "Stanovanje", "Položnice", "Zabava", "Oblačila", "Zdravje", "Otroci in drugo"].map(name => ({ id: uid(), name }));
 }
 function blank() {
-  return { onboarded: false, name: "", pinHash: "", incomeMonthly: 0, categories: defaultCategories(), entries: [], budgets: {}, goals: [], subs: [], recurring: [], challenges: { nospend: null, week52: null }, notified: {} };
+  return { onboarded: false, name: "", pinHash: "", incomeMonthly: 0, categories: defaultCategories(), entries: [], budgets: {}, goals: [], subs: [], recurring: [], challenges: { nospend: null, week52: null }, notified: {}, learned: [], importMaps: {} };
 }
 function load() {
   try { return Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || "{}")); }
@@ -598,12 +599,24 @@ function renderSheet() {
       <input id="snext" type="date" value="${sheet.next}" style="background:transparent;color:inherit">
       <label class="muted"><input id="sunused" type="checkbox" ${sheet.unused ? "checked" : ""}> ne uporabljam</label>
       <button class="go" id="saveSheet" type="button">Shrani</button>${sheet.id ? `<button class="go" id="deleteSheet" type="button" style="background:#ffb0a8">Izbriši</button>` : ""}`;
+  } else if (sheet.kind === "import") {
+    const headers = sheet.headers.map((name, index) => `<option value="${index}">${name || "Stolpec " + (index + 1)}</option>`).join("");
+    const choose = (field) => `<select data-map="${field}" class="sel"><option value="-1">—</option>${headers}</select>`;
+    const rows = (sheet.preview || []).slice(0, 6).map(tx => `<div class="row"><span>${tx.date} · ${tx.categoryName || "brez"}<br><small class="muted">${tx.desc.slice(0, 42)}</small></span><b>${tx.amount.toFixed(2).replace(".", ",")} €</b></div>`).join("");
+    const subs = (sheet.subs || []).map((sub, index) => `<label class="muted"><input type="checkbox" data-subpick="${index}" checked> ${sub.name} · ${sub.amount.toFixed(2).replace(".", ",")} € / ${sub.period === "year" ? "leto" : "mesec"}</label>`).join("<br>");
+    body = `<b>Uvoz izpiska</b><p class="muted">${sheet.encoding} · ${sheet.delimiter}${sheet.sure ? "" : " · preveri stolpce"}</p>
+      ${sheet.sure ? "" : `<div class="row"><span>Datum</span>${choose("date")}</div><div class="row"><span>Opis</span>${choose("desc")}</div><div class="row"><span>Znesek</span>${choose("amount")}</div><div class="row"><span>V breme</span>${choose("debit")}</div><div class="row"><span>V dobro</span>${choose("credit")}</div><button class="mini" id="remap" type="button">Osveži predogled</button>`}
+      ${rows || `<p class="muted">Ni prebranih vrstic.</p>`}
+      ${subs ? `<p><b>Predlog naročnin</b><br>${subs}</p>` : ""}
+      <button class="go" id="importGo" type="button">Uvozi ${(sheet.preview || []).length} vrstic</button>`;
   } else if (sheet.kind === "settings") {
     body = `<b>Nastavitve</b><input id="setName" value="${(sheet.name || "").replace(/"/g, "")}" placeholder="ime" style="width:100%;background:transparent;border:0;color:inherit;font:inherit;font-size:20px"><p class="muted">Mesečni neto dohodek</p><div class="hero"><b id="sheetAmount">${sheet.amount || "0"} €</b></div><div class="keys" id="keys"></div>
       <p class="muted">Koda, 4 številke. Prazno pusti, če je ne želiš.</p><input id="setPin" inputmode="numeric" maxlength="4" placeholder="koda" style="background:transparent;color:inherit;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px">
       <button class="go" id="saveSheet" type="button">Shrani</button>
       <button class="mini" id="csv" type="button">CSV</button> <button class="mini" id="jsonOut" type="button">JSON izvoz</button>
-      <input id="jsonIn" type="file" accept="application/json">`;
+      <input id="jsonIn" type="file" accept="application/json">
+      <p class="muted">Izpisek Bankanet, NLB ali drug CSV/Excel. Bere se samo na telefonu.</p>
+      <input id="bankIn" type="file" accept=".csv,.txt,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">`;
   }
   host.innerHTML = `<div class="sheet"><div class="panel"><button class="mini" id="closeSheet" type="button">Zapri</button>${body}</div></div>`;
   if (document.getElementById("keys")) keypad(() => sheet.amount, v => { sheet.amount = v; });
@@ -618,6 +631,10 @@ function renderSheet() {
   const csv = document.getElementById("csv"); if (csv) csv.onclick = exportCSV;
   const jsonOut = document.getElementById("jsonOut"); if (jsonOut) jsonOut.onclick = exportJSON;
   const jsonIn = document.getElementById("jsonIn"); if (jsonIn) jsonIn.onchange = importJSON;
+  const bankIn = document.getElementById("bankIn"); if (bankIn) bankIn.onchange = readBank;
+  const remap = document.getElementById("remap"); if (remap) remap.onclick = remapImport;
+  const importGo = document.getElementById("importGo"); if (importGo) importGo.onclick = commitImport;
+  host.querySelectorAll("[data-map]").forEach(select => { select.value = String(sheet.mapping[select.dataset.map]); });
 }
 async function saveSheet() {
   const amount = parseAmount(sheet.amount);
@@ -626,6 +643,10 @@ async function saveSheet() {
     let entry = state.entries.find(item => item.id === sheet.id);
     if (!entry) { entry = { id: uid() }; state.entries.push(entry); }
     Object.assign(entry, { type: sheet.type, categoryId: sheet.categoryId, amount, note: (document.getElementById("note") || {}).value || sheet.note || "", at: sheet.at, method: sheet.method });
+    if (entry.merchant) {
+      state.learned = (state.learned || []).filter(rule => VarcujImport.norm(rule.merchant) !== VarcujImport.norm(entry.merchant));
+      state.learned.push({ merchant: entry.merchant, categoryId: entry.categoryId });
+    }
     if (sheet.recurring) {
       const rule = { id: entry.recurringId || uid(), type: entry.type, categoryId: entry.categoryId, amount, note: entry.note, method: entry.method, every: "month", next: addMonths(entry.at, 1) };
       entry.recurringId = rule.id;
@@ -699,6 +720,65 @@ function exportCSV() {
   download(lines.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(";")).join("\n"), "varcevanje.csv", "text/csv");
 }
 function exportJSON() { download(JSON.stringify(state, null, 2), "varcevanje.json", "application/json"); }
+async function readBank(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  try {
+    const parsed = await VarcujImport.parseBuffer(await file.arrayBuffer());
+    const remembered = (state.importMaps || {})[parsed.signature];
+    showImport(parsed, remembered || parsed.mapping, remembered ? true : parsed.sure);
+  } catch (err) {
+    document.getElementById("toast").textContent = err.message || "Izpiska ni bilo mogoče prebrati.";
+  }
+  event.target.value = "";
+}
+function showImport(parsed, mapping, sure) {
+  const preview = VarcujImport.preview(parsed.body || sheet.body, mapping).map(tx => {
+    const categoryId = VarcujImport.categorize(tx.desc, state.learned, state.categories);
+    return Object.assign({}, tx, { categoryId, categoryName: categoryId ? cat(categoryId).name : "brez" });
+  });
+  sheet = {
+    kind: "import",
+    headers: parsed.headers || sheet.headers,
+    body: parsed.body || sheet.body,
+    mapping, sure,
+    encoding: parsed.encoding || sheet.encoding,
+    delimiter: parsed.delimiter || sheet.delimiter,
+    signature: parsed.signature || sheet.signature,
+    preview,
+    subs: VarcujImport.suggestRecurring(preview)
+  };
+  renderSheet();
+}
+function remapImport() {
+  const mapping = {};
+  document.querySelectorAll("[data-map]").forEach(select => { mapping[select.dataset.map] = Number(select.value); });
+  showImport(sheet, mapping, false);
+}
+function commitImport() {
+  const existing = new Set(state.entries.map(item => item.importKey).filter(Boolean));
+  let added = 0, skipped = 0;
+  (sheet.preview || []).forEach(tx => {
+    const key = VarcujImport.fingerprint(tx);
+    if (existing.has(key)) { skipped++; return; }
+    existing.add(key);
+    state.entries.push({ id: uid(), type: tx.type, categoryId: tx.categoryId || "", amount: tx.abs, note: tx.desc, at: tx.date, method: "card", merchant: tx.desc, importKey: key });
+    added++;
+  });
+  document.querySelectorAll("[data-subpick]").forEach(box => {
+    if (!box.checked) return;
+    const sub = sheet.subs[Number(box.dataset.subpick)];
+    if (!sub || state.subs.some(item => VarcujImport.norm(item.name) === VarcujImport.norm(sub.name))) return;
+    state.subs.push({ id: uid(), name: sub.name, amount: sub.amount, period: sub.period, next: sub.next, unused: false });
+  });
+  state.importMaps = state.importMaps || {};
+  state.importMaps[sheet.signature] = sheet.mapping;
+  save();
+  const note = "Uvoženih " + added + ", preskočenih " + skipped + ".";
+  sheet = null;
+  paint();
+  document.getElementById("toast").textContent = note;
+}
 function importJSON(event) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
