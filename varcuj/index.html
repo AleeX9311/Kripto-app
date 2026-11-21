@@ -218,7 +218,8 @@ function tips() {
   const coffee = state.entries.filter(item => /kava/i.test((item.note || "") + catName(item.categoryId)) && item.type === "expense");
   if (coffee.length) {
     const sum = coffee.reduce((s, i) => s + i.amount, 0);
-    const days = Math.max(1, (Date.now() - new Date(coffee[coffee.length - 1].at).getTime()) / 86400000);
+    const first = coffee.reduce((min, item) => item.at < min ? item.at : min, coffee[0].at);
+    const days = Math.max(1, (Date.now() - new Date(first).getTime()) / 86400000);
     out.push({ title: "Kava", text: "V vnosih je " + euro.format(sum) + ". Po tem tempu je to približno " + euro.format(sum / days * 365) + " na leto." });
   }
   return out;
